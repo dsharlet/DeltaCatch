@@ -59,6 +59,7 @@
     <ClInclude Include="trajectory.h" />
     <ClInclude Include="vector2.h" />
     <ClInclude Include="vector3.h" />
+    <ClInclude Include="viz_client.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="autodiff_test.cpp" />
@@ -70,6 +71,7 @@
     <ClCompile Include="nxtcam.cpp" />
     <ClCompile Include="nxtcam_test.cpp" />
     <ClCompile Include="trajectory.cpp" />
+    <ClCompile Include="viz_client.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile" />

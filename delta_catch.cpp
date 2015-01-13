@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <thread>
+#include <memory>
 #include <iomanip>
 
 #include "debug.h"
@@ -11,7 +12,8 @@
 #include "nxtcam.h"
 #include "arg_port.h"
 #include "trajectory.h"
-#include "camera.h"
+
+#include "viz_client.h"
 
 using namespace ev3dev;
 using namespace std;
@@ -90,11 +92,11 @@ static cl::arg<float> outlier_threshold(
   cl::name("outlier-threshold"),
   cl::desc("Tolerance of standard error before an observation is considered an outlier."));
 
-static cl::arg<string> viz_server(
+static cl::arg<string> viz_host(
   "",
   cl::name("viz-host"),
   cl::desc("Hostname/address of the visualization server."));
-static cl::arg<int> viz_port(
+static cl::arg<short> viz_port(
   3333,
   cl::name("viz-port"),
   cl::desc("Network port of the visualization server."));
@@ -103,10 +105,20 @@ static cl::arg<int> viz_port(
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
   
-  // Reduce clutter of insignificant digits.
-  //cout << fixed << showpoint << setprecision(3);
-  //cerr << fixed << showpoint << setprecision(3);
-  
+  // Start a thread to find the visualization server address while we start up and calibrate the robot.
+  thread find_host;
+  if (viz_host->empty() && viz_port != 0) {
+    thread t([&]() {
+      try {
+        viz_host = viz_client::find_host(viz_port);
+        cout << "Found visualization host at " << *viz_host << ":" << viz_port << endl;
+      } catch(exception &ex) {
+        dbg(1) << "viz_client::find_host failed: " << ex.what() << endl;
+      }
+    });
+    std::swap(find_host, t);
+  }
+    
   // Define the camera transforms.
   vector3f X(-1.0f, 0.0f, 0.0f);
   vector3f Y(0.0f, cos(eye_pitch*pi/180 + pi/2), sin(eye_pitch*pi/180 + pi/2));
@@ -115,9 +127,12 @@ int main(int argc, const char **argv) {
 
   test_estimate_trajectory(g, sigma_observation, outlier_threshold, Tcam0, Tcam1);
   
-  nxtcam cam0(eye0);
-  nxtcam cam1(eye1);
+  // Reduce clutter of insignificant digits.
+  cout << fixed << showpoint << setprecision(3);
+  cerr << fixed << showpoint << setprecision(3);
 
+  nxtcam cam0(eye0);
+  nxtcam cam1(eye1); 
   dbg(1) << "Cameras:" << endl;
   dbg(1) << cam0.device_id() << " " << cam0.version() << " (" << cam0.vendor_id() << ")" << endl;
   dbg(1) << cam1.device_id() << " " << cam1.version() << " (" << cam1.vendor_id() << ")" << endl;
@@ -137,5 +152,11 @@ int main(int argc, const char **argv) {
   delta.set_ramp_up(ramp);
   delta.set_ramp_down(ramp);
 
+  // Check to see if we should connect to a visualization host.
+  find_host.join();
+  viz_client viz;
+  if (!viz_host->empty())
+    viz.connect(viz_host, viz_port);
+  
   return 0;
 }
