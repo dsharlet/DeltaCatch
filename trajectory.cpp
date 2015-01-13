@@ -217,7 +217,7 @@ static cl::arg<int> test_count(
 static cl::arg<float> flight_time(
   1.25f,
   cl::name("test-flight-time"),
-  cl::desc("Flight time of test trajectories."));
+  cl::desc("Flight time of test trajectories, in seconds."));
 static cl::arg<float> target_distance(
   250.0f,
   cl::name("test-distance"),
@@ -225,11 +225,11 @@ static cl::arg<float> target_distance(
 static cl::arg<float> false_negative_rate(
   0.1f,
   cl::name("test-false-negative-rate"),
-  cl::desc("Rate of missed observations in simualted trajectory observations."));
+  cl::desc("Probability of missed observations in simulated trajectory observations."));
 static cl::arg<float> false_positive_rate(
   0.0f,
   cl::name("test-false-positive-rate"),
-  cl::desc("Rate of spurious observations in simualted trajectory observations."));
+  cl::desc("Probability of spurious observations in simulated trajectory observations."));
 static cl::arg<float> tolerance(
   4.0f,
   cl::name("test-tolerance"),
