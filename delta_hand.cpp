@@ -10,7 +10,7 @@ delta_hand::delta_hand(
     float base, float effector, float bicep, float forearm, int theta_max,
     bool find_limits_now) 
   : delta_robot(a, b, c, base, effector, bicep, forearm, theta_max, false)
-  , hand(hand), grab_open(0), grab_close(0) {
+  , hand(hand), grab_close(0), grab_open(0) {
 
   // Don't use the base class because our overridden definition of find_limits won't be called.
   if (find_limits_now)
@@ -29,24 +29,11 @@ void delta_hand::find_limits() {
   hand.set_run_mode(motor::run_mode_forever);
   hand.set_stop_mode(motor::stop_mode_coast);
   hand.set_regulation_mode(motor::mode_off);
-  hand.set_duty_cycle_setpoint(50);
-  grab_open = hand.position();
-  hand.run();
-
-  // Wait until all the motors hit the zero position.
-  while (hand.running()) {
-    this_thread::sleep_for(stall_time);
-    int pos = hand.position();
-    if (pos <= grab_open)
-      hand.stop();
-    else
-      grab_open = pos;
-  }
-  grab_close = grab_open;
-
   hand.set_duty_cycle_setpoint(-50);
+  grab_close = hand.position();
   hand.run();
-
+  
+  // Wait until all the motors hit the zero position.
   while (hand.running()) {
     this_thread::sleep_for(stall_time);
     int pos = hand.position();
@@ -55,13 +42,24 @@ void delta_hand::find_limits() {
     else
       grab_close = pos;
   }
-    
+  grab_open = grab_close;
+
+  hand.set_duty_cycle_setpoint(50);
+  hand.run();
+
+  while (hand.running()) {
+    this_thread::sleep_for(stall_time);
+    int pos = hand.position();
+    if (pos <= grab_open)
+      hand.stop();
+    else
+      grab_open = pos;
+  }
+  
   // We always want the hand to move as quickly as possible.
   hand.set_run_mode(motor::run_mode_position);
   hand.set_duty_cycle_setpoint(100);
-    
-  open_hand();
-
+   
   // Wait for the base's find_limits.
   base.join();
 }
