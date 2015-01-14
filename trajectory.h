@@ -10,24 +10,29 @@ struct trajectory {
   vector3<T> x, v;
 
   template <typename U>
-  vector3<T> position(float half_g, const U &t) const {
+  vector3<T> position_half_g(float half_g, const U &t) const {
     return vector3<T>(
       v.x*t + x.x,
       v.y*t + x.y,
       half_g*sqr(t) + (v.z*t + x.z));
+  }
+  
+  template <typename U>
+  vector3<T> position(float g, const U &t) const {
+    return position(g*0.5f, t);
   }
 };
 
 typedef trajectory<float> trajectoryf;
 
 // This function finds the first intersection after t_min of a trajectory and a sphere.
-vector3f intersect_trajectory_sphere(
+float intersect_trajectory_sphere(
     float gravity, const trajectoryf &tj, 
     const std::pair<vector3f, float> &s, float t_min = 0.0f);
 
 // Find the intersection of a trajectory with the z plane. This function computes the 
 // later (larger t) of the two intersections.
-vector3f intersect_trajectory_zplane(float gravity, const trajectoryf &tj, float z);
+float intersect_trajectory_zplane(float gravity, const trajectoryf &tj, float z);
 
 // Describes a 2D observation/time pair.
 
@@ -40,6 +45,9 @@ struct observation {
   float t;
   vector2f x;
   bool outlier;
+
+  observation() : t(0.0f), outlier(false) {}
+  observation(float t, const vector2f &x, bool outlier = false) : t(t), x(x), outlier(outlier) {}
 };
 typedef circular_array<observation, 128> observation_buffer;
 int estimate_trajectory(

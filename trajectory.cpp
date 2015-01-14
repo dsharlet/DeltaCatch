@@ -38,7 +38,7 @@ T trajectory_sphere_XZ(float half_g, float v_x, float v_z, const vector3f &s, fl
 }
 
 // This function finds the first intersection after t of a trajectory and a sphere.
-vector3f intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vector3f, float> &s, float t_min) {
+float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vector3f, float> &s, float t_min) {
   // Project the sphere onto the plane containing the trajectory.
   vector3f X = vector3f(tj.v.x, tj.v.y, 0.0f);
   float v_x = abs(X);
@@ -60,12 +60,12 @@ vector3f intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<
   typedef diff<float, 1> d;
   d t(t_min, 0);
 
-  return s0;
+  return 0.0f;
 }
 
 // Find the intersection of a trajectory with the z plane. This function computes the 
 // later (larger t) of the two intersections.
-vector3f intersect_trajectory_zplane(float g, const trajectoryf &tj, float z) {
+float intersect_trajectory_zplane(float g, const trajectoryf &tj, float z) {
   float a = g/2.0f;
   float b = tj.v.z;
   float c = tj.x.z - z;
@@ -73,8 +73,7 @@ vector3f intersect_trajectory_zplane(float g, const trajectoryf &tj, float z) {
   if (D < 0)
     throw runtime_error("trajectory has no intercept with z plane");
 
-  float t1 = (-b - sqrt(D))/(2.0f*a);
-  return tj.position(g/2.0f, t1);
+  return (-b - sqrt(D))/(2.0f*a);
 }
 
 typedef circular_array<observation, 128> observation_buffer;
@@ -90,9 +89,9 @@ vector2<T> reprojection_error(
   // Compute the error in screen space for the observation.
   vector3<T> x;
   if (dt) {
-    x = tj.position(half_g, *dt + ob.t);
+    x = tj.position_half_g(half_g, *dt + ob.t);
   } else {
-    x = tj.position(half_g, ob.t);
+    x = tj.position_half_g(half_g, ob.t);
   }
   vector2<T> r = cam.project(x) - ob.x;
   return -r;
@@ -253,7 +252,6 @@ void test_estimate_trajectory(
     const camera &cam0, const camera &cam1) {
   // How many random trajectories to check.
   const int count = test_count;
-  const float half_g = gravity/2.0f;
   // Sampling rate of the generated observations.
   const float T = 1.0f/30.0f;
   
@@ -268,10 +266,10 @@ void test_estimate_trajectory(
   tj_init.x = launch.first;
   tj_init.v = target.first - launch.first;
   tj_init.v /= flight_time;
-  tj_init.v.z += -half_g*flight_time;
+  tj_init.v.z += -0.5f*gravity*flight_time;
 
   dbg(1) 
-    << "Test trajectory max z=" << tj_init.position(half_g, flight_time/2).z 
+    << "Test trajectory max z=" << tj_init.position(gravity, flight_time/2).z 
     << ", target=" << intersect_trajectory_zplane(gravity, tj_init, target.first.z) << endl;
   
   // Benchmarking timer duration.
@@ -291,14 +289,14 @@ void test_estimate_trajectory(
     tj.x = (randfv3()*2.0f - vector3f(1.0f))*launch.second + launch.first;
     tj.v = (randfv3()*2.0f - vector3f(1.0f))*target.second + target.first - tj.x;
     tj.v /= flight_time;
-    tj.v.z += -half_g*flight_time;
+    tj.v.z += -0.5f*gravity*flight_time;
 
     // Generate some simulated observations of the trajectory, 
     // adding some random noise/false positives/false negatives.
     observation_buffer obs0, obs1;
     for (float t = 0.0f; t <= flight_time; t += T) {
       if (randf() >= false_negative_rate) {
-        vector3f x = tj.position(half_g, t);
+        vector3f x = tj.position(gravity, t);
         vector2f ob = cam0.project(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
         if (-1.0f <= ob.x && ob.x <= 1.0f && 
             -1.0f <= ob.y && ob.y <= 1.0f && 
@@ -306,7 +304,7 @@ void test_estimate_trajectory(
           obs0.push_back({t, ob, false});
       }
       if (randf() >= false_negative_rate) {
-        vector3f x = tj.position(half_g, t + dt);
+        vector3f x = tj.position(gravity, t + dt);
         vector2f ob = cam1.project(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
         if (-1.0f <= ob.x && ob.x <= 1.0f && 
             -1.0f <= ob.y && ob.y <= 1.0f && 
@@ -334,8 +332,8 @@ void test_estimate_trajectory(
       benchmark_count++;
 
       // Check that the trajectory is within tolerance.
-      vector3f intercept_tj = intersect_trajectory_zplane(gravity, tj, target.first.z);
-      vector3f intercept_tj_ = intersect_trajectory_zplane(gravity, tj_, target.first.z);
+      vector3f intercept_tj = tj.position(gravity, intersect_trajectory_zplane(gravity, tj, target.first.z));
+      vector3f intercept_tj_ = tj_.position(gravity, intersect_trajectory_zplane(gravity, tj_, target.first.z));
       vector3f err = intercept_tj - intercept_tj_;
       total_err += abs(err);
       size_t M = obs0.size() + obs1.size();
