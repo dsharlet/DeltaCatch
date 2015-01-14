@@ -34,6 +34,8 @@ public:
   void track_objects();
   // Command camera to begin tracking lines.
   void track_lines();
+  // Command camera to stop tracking.
+  void stop_tracking();
   
   // Get the currently tracked blobs from the camera.
   blob_list blobs() const;

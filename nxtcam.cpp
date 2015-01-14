@@ -64,6 +64,11 @@ void nxtcam::track_lines() {
   char cmds[] = "DXLE";
   write_cmds(cmds);
 }
+
+void nxtcam::stop_tracking() {
+  char cmds[] = "D";
+  write_cmds(cmds);
+}
   
 // Update the tracking data.
 nxtcam::blob_list nxtcam::blobs() const {
