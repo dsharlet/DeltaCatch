@@ -1,6 +1,8 @@
 #ifndef AUTODIFF_H
 #define AUTODIFF_H
 
+#include "math.h"
+
 // Implementation of automatic differentiation via operator overloading.
 template <typename T, int N>
 class diff {
@@ -69,11 +71,6 @@ diff<T, N> sqrt(const diff<T, N> &x) {
   return r;
 }
 
-template <typename T>
-T sqr(T x) {
-  return x*x;
-}
-
 template <typename T, int N>
 diff<T, N> sqr(const diff<T, N> &x) {
   diff<T, N> r(x);
@@ -82,11 +79,6 @@ diff<T, N> sqr(const diff<T, N> &x) {
     r.df[i] *= du;
   r.f *= r.f;
   return r;
-}
-
-template <typename T>
-T rcp(T x) {
-  return 1/x;
 }
 
 template <typename T, int N>

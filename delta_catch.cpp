@@ -205,9 +205,9 @@ int main(int argc, const char **argv) {
         while(!obs1.empty() && obs1.front().t + max_flight_time < t_obs)
           obs1.pop_front();
         for (nxtcam::blob &i : blobs0)
-          obs0.push_back(observation(t_obs, (i.x2 + i.x1)/2, (i.y2 + i.y1)/2));
+          obs0.push_back(observation(t_obs, vector2f((i.x2 + i.x1)/2, (i.y2 + i.y1)/2)));
         for (nxtcam::blob &i : blobs1)
-          obs1.push_back(observation(t_obs, (i.x2 + i.x1)/2, (i.y2 + i.y1)/2));
+          obs1.push_back(observation(t_obs, vector2f((i.x2 + i.x1)/2, (i.y2 + i.y1)/2)));
         obs_lock.unlock();
 
         t += T;
@@ -278,11 +278,15 @@ int main(int argc, const char **argv) {
 
             // If the trajectory intercepts the z plane where we can reach it, find the first intercept with the volume.
             if (abs(intercept_b.x - volume.first) < volume.second) {
-              intercept_a.t = intersect_trajectory_sphere(gravity, tj, volume, intercept_b.t);
+              intercept_a.t = intersect_trajectory_sphere(gravity, tj, volume, 0.0f, intercept_b.t);
               intercept_a.x = tj.position(gravity, intercept_a.t);
+
+              dbg(2) << "trajectory found with intercept expected at t=+" << intercept_a.t - t_now << " s at x=" << intercept_a.x << endl;
+            } else {
+              dbg(2) << "trajectory found with unreachable intercept expected at t=+" << intercept_b.t - t_now << " s at x=" << intercept_b.x << endl;
             }
           } catch(runtime_error &ex) {
-            dbg(2) << ex.what() << endl;
+            dbg(3) << ex.what() << endl;
             tj = tj_init;
             dt = 0.0f;
             delta.run_to(volume.first);

@@ -3,7 +3,7 @@ CFLAGS=-O2 -march=armv5
 CCFLAGS=-std=c++11 -D_GLIBCXX_USE_NANOSLEEP -I../../ev3dev-lang/cpp -I../../Util
 OBJ=
 LIBS=-lstdc++ -L../../Util/lib -lutil -L../../ev3dev-lang/cpp -lev3dev -lpthread -lm
-DEPS=delta_robot.h delta_hand.h delta_config.h vector2.h vector3.h arg_port.h nxtcam.h circular_array.h autodiff.h matrix.h debug.h trajectory.h camera.h viz_client.h
+DEPS=delta_robot.h delta_hand.h delta_config.h vector2.h vector3.h arg_port.h nxtcam.h circular_array.h autodiff.h matrix.h debug.h trajectory.h camera.h viz_client.h math.h
 
 obj/%.o: %.cpp $(DEPS)
 	mkdir -p obj

@@ -1,6 +1,7 @@
 #ifndef TRAJECTORY_H
 #define TRAJECTORY_H
 
+#include "math.h"
 #include "camera.h"
 #include "circular_array.h"
 
@@ -19,16 +20,16 @@ struct trajectory {
   
   template <typename U>
   vector3<T> position(float g, const U &t) const {
-    return position(g*0.5f, t);
+    return position_half_g(g*0.5f, t);
   }
 };
 
 typedef trajectory<float> trajectoryf;
 
-// This function finds the first intersection after t_min of a trajectory and a sphere.
+// This function finds an intersection of the trajectory and the sphere between t_min and t_max.
 float intersect_trajectory_sphere(
     float gravity, const trajectoryf &tj, 
-    const std::pair<vector3f, float> &s, float t_min = 0.0f);
+    const std::pair<vector3f, float> &s, float t_min, float t_max);
 
 // Find the intersection of a trajectory with the z plane. This function computes the 
 // later (larger t) of the two intersections.

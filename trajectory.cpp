@@ -37,8 +37,25 @@ T trajectory_sphere_XZ(float half_g, float v_x, float v_z, const vector3f &s, fl
   return sqr(v_x*t - s.x) + sqr(half_g*sqr(t) + v_z*t - s.z) + sqr(s.y) - sqr(r);
 }
 
+// Use Newton's method to find an intersection of a trajectory in the XZ plane, and a sphere, using t_0 as the initial guess.
+float intersect_trajectory_sphere_XZ(float half_g, float v_x, float v_z, const vector3f &s, float r, float t_0) {
+  typedef diff<float, 1> d;
+  float t = t_0;
+  d ft;
+  for (int i = 0; i < max_iterations; i++) {
+    ft = trajectory_sphere_XZ(half_g, v_x, v_z, s, r, d(t, 0));
+    t -= ft.f/D(ft, 0);
+
+    if (abs(ft.f) < epsilon)
+      break;
+  }
+  return t;
+}
+
 // This function finds the first intersection after t of a trajectory and a sphere.
-float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vector3f, float> &s, float t_min) {
+float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vector3f, float> &s, float t_min, float t_max) {
+  const float half_g = g/2.0f;
+
   // Project the sphere onto the plane containing the trajectory.
   vector3f X = vector3f(tj.v.x, tj.v.y, 0.0f);
   float v_x = abs(X);
@@ -57,10 +74,7 @@ float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vec
   //   (v_x*t - s0.x)^2 + (g*t^2 + tj.v.z*t - s0.z)^2 + s0.y^2 = r^2
   //
   // It's a quartic. Rather than use the quartic formula (pain in the ass), let's use Newton's method.
-  typedef diff<float, 1> d;
-  d t(t_min, 0);
-
-  return 0.0f;
+  return intersect_trajectory_sphere_XZ(g/2.0f, v_x, tj.v.z, s0, s.second, (t_min + t_max)/2.0f);
 }
 
 // Find the intersection of a trajectory with the z plane. This function computes the 
@@ -270,7 +284,7 @@ void test_estimate_trajectory(
 
   dbg(1) 
     << "Test trajectory max z=" << tj_init.position(gravity, flight_time/2).z 
-    << ", target=" << intersect_trajectory_zplane(gravity, tj_init, target.first.z) << endl;
+    << ", target=" << tj_init.position(gravity, intersect_trajectory_zplane(gravity, tj_init, target.first.z)) << endl;
   
   // Benchmarking timer duration.
   typedef chrono::high_resolution_clock clock;
