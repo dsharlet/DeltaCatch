@@ -56,6 +56,18 @@ std::ostream &operator << (std::ostream &os, const vector3<T> &x) {
   return os << '<' << x.x << ", " << x.y << ", " << x.z << '>';
 }
 
+template <typename T>
+std::istream &operator >> (std::istream &is, vector3<T> &x) {
+  if (is.peek() == '<') is.ignore();
+  is >> x.x;
+  if (is.peek() == ',') is.ignore();
+  is >> x.y;
+  if (is.peek() == ',') is.ignore();
+  is >> x.z;
+  if (is.peek() == '>') is.ignore();
+  return is;
+}
+
 typedef vector3<float> vector3f;
 typedef vector3<int> vector3i;
 

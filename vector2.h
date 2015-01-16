@@ -48,6 +48,16 @@ std::ostream &operator << (std::ostream &os, const vector2<T> &x) {
   return os << '<' << x.x << ", " << x.y << '>';
 }
 
+template <typename T>
+std::istream &operator >> (std::istream &is, vector2<T> &x) {
+  if (is.peek() == '<') is.ignore();
+  is >> x.x;
+  if (is.peek() == ',') is.ignore();
+  is >> x.y;
+  if (is.peek() == '>') is.ignore();
+  return is;
+}
+
 typedef vector2<float> vector2f;
 typedef vector2<int> vector2i;
 
