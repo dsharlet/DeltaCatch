@@ -57,6 +57,9 @@
     <ClInclude Include="viz_client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="eye_config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="trajectory.cpp">
@@ -88,6 +91,9 @@
     </ClCompile>
     <ClCompile Include="viz_client.cpp">
       <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stereo_calibrate.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

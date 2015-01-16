@@ -38,43 +38,8 @@ static cl::arg<int> ramp(
   cl::name("ramp"), 
   cl::desc("Ramp time, in ms."));
 
-// Camera geometry.
-static arg_port eye0(
-  ev3::INPUT_1,
-  cl::name("eye0"),
-  cl::desc("Input port for the first camera."));
-static arg_port eye1(
-  ev3::INPUT_4,
-  cl::name("eye1"),
-  cl::desc("Input port for the second camera."));
-static cl::arg<float> eye_baseline(
-  20.0f,
-  cl::name("eye-baseline"),
-  cl::desc("Distance between the cameras."));
-static cl::arg<float> eye_y(
-  13.0f,
-  cl::name("eye-y"),
-  cl::desc("Camera baseline y coordinate."));
-static cl::arg<float> eye_z(
-  -2.0f,
-  cl::name("eye-z"),
-  cl::desc("Camera baseline z coordinate."));
-static cl::arg<float> eye_pitch(
-  53.5f,
-  cl::name("eye-pitch"),
-  cl::desc("Camera pitch from horizontal."));
-static cl::arg<float> eye_fov(
-  43.5f,
-  cl::name("eye-fov"),
-  cl::desc("Horizontal camera field of view, in degrees."));
-static cl::arg<float> eye_aspect_ratio(
-  1.0f,
-  cl::name("eye-aspect-ratio"),
-  cl::desc("Camera aspect ratio."));
-static cl::arg<float> sampling_rate(
-  30.0f,
-  cl::name("sampling-rate"),
-  cl::desc("Frequency of camera observation samples, in Hz."));
+#include "eye_config.h"
+
 static cl::arg<float> max_flight_time(
   1.25f,
   cl::name("max-flight-time"),
@@ -142,13 +107,18 @@ int main(int argc, const char **argv) {
   }
     
   // Define the camera transforms.
-  vector3f X(-1.0f, 0.0f, 0.0f);
-  vector3f Y(0.0f, cos(eye_pitch*pi/180 + pi/2), sin(eye_pitch*pi/180 + pi/2));
-  camera cam0 = {{eye_baseline/2.0f, eye_y, eye_z}, X, Y};
-  camera cam1 = {{-eye_baseline/2.0f, eye_y, eye_z}, X, Y};
+  float pitch = eye_pitch*pi/180 + pi/2;
+  vector3f X(1.0f, 0.0f, 0.0f);
+  vector3f Y(0.0f, cos(pitch), sin(pitch));
+  
+  X *= eye_sensor_size->x/(2*eye_focal_length);
+  Y *= eye_sensor_size->y/(2*eye_focal_length);
+
+  cameraf cam0 = {{-eye_baseline/2.0f, eye_y, eye_z}, X, Y};
+  cameraf cam1 = {{eye_baseline/2.0f, eye_y, eye_z}, X, Y};
 
   test_estimate_trajectory(gravity, sigma_observation, outlier_threshold, cam0, cam1);
-  
+
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
@@ -176,6 +146,7 @@ int main(int argc, const char **argv) {
   
   volatile bool run = true;
   observation_buffer obs0, obs1;
+  float obs_t0 = 0.0f;
   mutex obs_lock;
 
   typedef chrono::high_resolution_clock clock;
@@ -193,21 +164,25 @@ int main(int argc, const char **argv) {
   
       // t will increment in regular intervals of T.
       auto t = clock::now();
-      chrono::microseconds T(static_cast<int>(1e6f/sampling_rate + 0.5f));
+      chrono::microseconds T(static_cast<int>(1e6f/eye_sample_rate + 0.5f));
       while (run) {
         nxtcam::blob_list blobs0 = cam0.blobs();
         float t_obs = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count() + observation_delay*1e-3f;
         nxtcam::blob_list blobs1 = cam1.blobs();
 
         obs_lock.lock();
-        while(!obs0.empty() && obs0.front().t + max_flight_time < t_obs) 
+        while(!obs0.empty() && obs_t0 + obs0.front().t + max_flight_time < t_obs) 
           obs0.pop_front();
-        while(!obs1.empty() && obs1.front().t + max_flight_time < t_obs)
+        while(!obs1.empty() && obs_t0 + obs1.front().t + max_flight_time < t_obs)
           obs1.pop_front();
+        if (obs0.empty() && obs1.empty())
+          obs_t0 = t_obs;
         for (nxtcam::blob &i : blobs0)
-          obs0.push_back(observation(t_obs, vector2f((i.x2 + i.x1)/2, (i.y2 + i.y1)/2)));
+          obs0.push_back(observation(t_obs - obs_t0, vector2f(static_cast<float>(i.x2 + i.x1)/eye_resolution->x - 1.0f, 
+                                                              -(static_cast<float>(i.y2 + i.y1)/eye_resolution->y - 1.0f))));
         for (nxtcam::blob &i : blobs1)
-          obs1.push_back(observation(t_obs, vector2f((i.x2 + i.x1)/2, (i.y2 + i.y1)/2)));
+          obs1.push_back(observation(t_obs - obs_t0, vector2f(static_cast<float>(i.x2 + i.x1)/eye_resolution->x - 1.0f, 
+                                                              -(static_cast<float>(i.y2 + i.y1)/eye_resolution->y - 1.0f))));
         obs_lock.unlock();
 
         t += T;
@@ -219,10 +194,10 @@ int main(int argc, const char **argv) {
 
     // Use a reasonable initial guess for the trajectory.
     trajectoryf tj_init;
-    tj_init.v = vector3f(0.0f, -250.0f, 0.0f);
-    tj_init.x = volume.first - tj_init.v;
-    tj_init.v /= max_flight_time;
-    tj_init.v.z += -0.5f*gravity*max_flight_time;
+    tj_init.v = vector3f(0.0f, 0.0f, 0.0f);
+    tj_init.x = vector3f(0.0f, 80.0f, 40.0f);//volume.first - tj_init.v;
+    //tj_init.v /= max_flight_time;
+    tj_init.v.z += -0.5f*gravity*1.0f;//max_flight_time;
 
     trajectoryf tj = tj_init;
     float dt = 0.0f;
@@ -249,12 +224,12 @@ int main(int argc, const char **argv) {
       // them anyways.
       if (t_now + observation_delay < intercept_a.t) {
         bool update_tj = false;
-        if (!obs0.empty() && obs0.back().t > current_obs) {
-          current_obs = obs0.back().t;
+        if (!obs0.empty() && obs_t0 + obs0.back().t > current_obs) {
+          current_obs = obs_t0 + obs0.back().t;
           update_tj = true;
         }
-        if (!obs1.empty() && obs1.back().t > current_obs) {
-          current_obs = obs1.back().t;
+        if (!obs1.empty() && obs_t0 + obs1.back().t > current_obs) {
+          current_obs = obs_t0 + obs1.back().t;
           update_tj = true;
         }
 
@@ -264,6 +239,12 @@ int main(int argc, const char **argv) {
             intercept_a.t = intercept_b.t = numeric_limits<float>::infinity();
             {
               lock_guard<mutex> lock(obs_lock);
+              if (obs0.size() + obs1.size() > 20) {
+                for (size_t i = obs0.begin(); i != obs0.end(); i++)
+                  dbg(1) << "0: " << obs0.at(i).t << " " << obs0.at(i).x << endl;
+                for (size_t i = obs1.begin(); i != obs1.end(); i++)
+                  dbg(1) << "1: " << obs1.at(i).t << " " << obs1.at(i).x << endl;
+              }
               estimate_trajectory(
                   gravity, 
                   sigma_observation, outlier_threshold, 
@@ -275,11 +256,13 @@ int main(int argc, const char **argv) {
             // Intersect the trajectory with the z plane, the last place on the trajectory we can reach.
             intercept_b.t = intersect_trajectory_zplane(gravity, tj, volume.first.z);
             intercept_b.x = tj.position(gravity, intercept_b.t);
+            intercept_b.t += obs_t0;
 
             // If the trajectory intercepts the z plane where we can reach it, find the first intercept with the volume.
             if (abs(intercept_b.x - volume.first) < volume.second) {
               intercept_a.t = intersect_trajectory_sphere(gravity, tj, volume, 0.0f, intercept_b.t);
               intercept_a.x = tj.position(gravity, intercept_a.t);
+              intercept_a.t += obs_t0;
 
               dbg(2) << "trajectory found with intercept expected at t=+" << intercept_a.t - t_now << " s at x=" << intercept_a.x << endl;
             } else {

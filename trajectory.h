@@ -54,7 +54,7 @@ typedef circular_array<observation, 128> observation_buffer;
 int estimate_trajectory(
     float gravity, 
     float sigma_observation, float outlier_threshold,
-    const camera &cam0, const camera &cam1,
+    const cameraf &cam0, const cameraf &cam1,
     observation_buffer &obs0, observation_buffer &obs1,
     float &dt, trajectoryf &tj);
 
@@ -63,6 +63,6 @@ int estimate_trajectory(
 void test_estimate_trajectory(
     float gravity, 
     float sigma_observation, float outlier_threshold, 
-    const camera &cam0, const camera &cam1);
+    const cameraf &cam0, const cameraf &cam1);
 
 #endif

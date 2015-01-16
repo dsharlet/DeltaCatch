@@ -54,6 +54,7 @@
     <ClInclude Include="delta_config.h" />
     <ClInclude Include="delta_hand.h" />
     <ClInclude Include="delta_robot.h" />
+    <ClInclude Include="eye_config.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="nxtcam.h" />
     <ClInclude Include="trajectory.h" />
@@ -70,6 +71,7 @@
     <ClCompile Include="delta_test.cpp" />
     <ClCompile Include="nxtcam.cpp" />
     <ClCompile Include="nxtcam_test.cpp" />
+    <ClCompile Include="stereo_calibrate.cpp" />
     <ClCompile Include="trajectory.cpp" />
     <ClCompile Include="viz_client.cpp" />
   </ItemGroup>

@@ -5,50 +5,55 @@
 #include "vector3.h"
 
 // Basis of a 3D coordinate system.
-struct basis3f {
-  vector3f origin, x, y, z;
+template <typename T>
+struct basis3 {
+  vector3<T> origin, x, y, z;
 
   // Convert global coordinates to the local coordinates of this basis.
   // This is templatized to enable computation of Jacobians when necessary.
-  template <typename T>
-  vector3<T> local(vector3<T> g) const {
+  template <typename U>
+  vector3<U> local(vector3<U> g) const {
     g -= origin;
-    return vector3<T>(dot(g, x), dot(g, y), dot(g, z));
+    return vector3<U>(dot(g, x), dot(g, y), dot(g, z));
   }
 
   // Convert local basis coordinates to global coorinates.
   // This is templatized to enable computation of Jacobians when necessary.
-  template <typename T>
-  vector3<T> global(const vector3<T> &l) const {
+  template <typename U>
+  vector3<U> global(const vector3<U> &l) const {
     return l.x*x + l.y*y + l.z*z + origin;
   }
 };
 
 // Mapping of 3D coordinates to the 2D projection observed by a camera.
+template <typename T>
 struct camera {
-  basis3f basis;
+  basis3<T> basis;
 
   camera(
-      vector3f origin = 0.0f,
-      vector3f x = { 1.0f, 0.0f, 0.0f }, 
-      vector3f y = { 0.0f, 1.0f, 0.0f }) {
+      vector3<T> origin = 0.0f,
+      vector3<T> x = { 1.0f, 0.0f, 0.0f }, 
+      vector3<T> y = { 0.0f, 1.0f, 0.0f }) {
     basis.origin = origin;
     basis.x = x;
     basis.y = y;
-    vector3f z = cross(x, y);
+    vector3<T> z = cross(y, x);
     basis.z = z/abs(z);
   }
   
   // This is templatized to enable computation of Jacobians when necessary.
-  template <typename T>
-  vector2<T> project(const vector3<T> &g) const {
+  template <typename U>
+  vector2<U> project(const vector3<U> &g) const {
     // Convert the global coordinates to the local basis.
-    vector3<T> l = basis.local(g);
+    vector3<U> l = basis.local(g);
 
     // Project the local coordinates.
-    T inv_z = rcp(l.z);
-    return vector2<T>(l.x*inv_z, l.y*inv_z);
+    U inv_z = rcp(l.z);
+    return vector2<U>(l.x*inv_z, l.y*inv_z);
   }
 };
+
+typedef basis3<float> basis3f;
+typedef camera<float> cameraf;
 
 #endif

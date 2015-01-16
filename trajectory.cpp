@@ -96,7 +96,7 @@ typedef circular_array<observation, 128> observation_buffer;
 template <typename T>
 vector2<T> reprojection_error(
     float half_g,
-    const camera &cam, 
+    const cameraf &cam, 
     const observation &ob,
     const T* dt, 
     const trajectory<T> &tj) {
@@ -117,7 +117,7 @@ int estimate_trajectory(
     float gravity, 
     float sigma_observation, 
     float outlier_threshold, 
-    const camera &cam0, const camera &cam1,
+    const cameraf &cam0, const cameraf &cam1,
     observation_buffer &obs0, observation_buffer &obs1,
     float &dt,
     trajectoryf &tj) {
@@ -150,7 +150,7 @@ int estimate_trajectory(
     matrix<float, N, N> JTJ;
     matrix<float, N, 1> JTy;
     for (size_t i = 0; i < M; i++) {
-      const observation &o_i = i < M0 ? obs0[i] : obs1[i - M0];
+      const observation &o_i = i < M0 ? obs0[obs0.begin() + i] : obs1[obs1.begin() + i - M0];
       if (o_i.outlier) continue;
 
       vector2<d> r = reprojection_error(
@@ -200,7 +200,7 @@ int estimate_trajectory(
   int outliers = 0;
   const float error_threshold = sigma_observation*outlier_threshold;
   for (size_t i = 0; i < M; i++) {
-    observation &o_i = i < M0 ? obs0[i] : obs1[i - M0];
+    observation &o_i = i < M0 ? obs0[obs0.begin() + i] : obs1[obs1.begin() + i - M0];
     if (o_i.outlier) continue;
 
     vector2<float> r = reprojection_error(
@@ -263,7 +263,7 @@ void test_estimate_trajectory(
     float gravity, 
     float sigma_observation, 
     float outlier_threshold, 
-    const camera &cam0, const camera &cam1) {
+    const cameraf &cam0, const cameraf &cam1) {
   // How many random trajectories to check.
   const int count = test_count;
   // Sampling rate of the generated observations.
