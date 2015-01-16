@@ -1,6 +1,7 @@
 #ifndef CIRCULAR_ARRAY_H
 #define CIRCULAR_ARRAY_H
 
+#include <cassert>
 #include <array>
 
 // A circular buffer of observations.
@@ -12,8 +13,8 @@ class circular_array {
 public:
   circular_array() : begin_(0), end_(0) {}
 
-  T &at(size_t i) { return m[i % N]; }
-  const T &at(size_t i) const { return m[i % N]; }
+  T &at(size_t i) { assert(begin() <= i && i < end()); return m[i % N]; }
+  const T &at(size_t i) const { assert(begin() <= i && i < end()); return m[i % N]; }
 
   size_t begin() const { return begin_; }
   size_t end() const { return end_; }
@@ -21,27 +22,24 @@ public:
   bool empty() const { return size() == 0; }
   
   void push_back(const T &obs) {
-    if (size() >= N)
-      throw std::runtime_error("circular_array is full.");
+    assert(size() < N - 1);
     at(end_++) = obs;
   }
 
   void push_back(T &&obs) {
-    if (size() >= N)
-      throw std::runtime_error("circular_array is full.");
+    assert(size() < N - 1);
     at(end_++) = std::move(obs);
   }
 
   void pop_front() {
-    if (size() <= 0)
-      throw std::runtime_error("circular_array is empty.");
+    assert(size() > 0);
     begin_ += 1;
   }
   
-  T &front() { return at(begin()); }
-  const T &front() const { return at(begin()); }
-  T &back() { return at(end() - 1); }
-  const T &back() const { return at(end() - 1); }
+  T &front() { assert(!empty()); return at(begin()); }
+  const T &front() const { assert(!empty()); return at(begin()); }
+  T &back() { assert(!empty()); return at(end() - 1); }
+  const T &back() const { assert(!empty()); return at(end() - 1); }
 
   void clear() {
     begin_ = end_ = 0;
