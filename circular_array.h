@@ -12,6 +12,10 @@ class circular_array {
 
 public:
   circular_array() : begin_(0), end_(0) {}
+  circular_array(const std::initializer_list<T> &init) : circular_array() {
+    for (typename std::initializer_list<T>::const_iterator i = init.begin(); i != init.end(); i++)
+      push_back(*i);
+  }
 
   T &at(size_t i) { assert(begin() <= i && i < end()); return m[i % N]; }
   const T &at(size_t i) const { assert(begin() <= i && i < end()); return m[i % N]; }
