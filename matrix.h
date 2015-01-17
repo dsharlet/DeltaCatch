@@ -258,4 +258,13 @@ bool isnan(const_matrix_ref<T, M, N> A) {
   return false;
 }
 
+template <typename T, int M, int N>
+bool isfinite(const_matrix_ref<T, M, N> A) {
+  for (int i = 0; i < M; i++)
+    for (int j = 0; j < N; j++)
+      if (!std::isfinite(A(i, j)))
+        return false;
+  return true;
+}
+
 #endif
