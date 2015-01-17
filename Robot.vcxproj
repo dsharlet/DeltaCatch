@@ -55,6 +55,7 @@
     <ClInclude Include="delta_hand.h" />
     <ClInclude Include="delta_robot.h" />
     <ClInclude Include="eye_config.h" />
+    <ClInclude Include="math.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="nxtcam.h" />
     <ClInclude Include="trajectory.h" />
