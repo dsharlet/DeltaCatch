@@ -26,9 +26,9 @@ struct camera {
     x.y = x.y*(T(-2)/resolution.y) + U(1);
 
     // Apply distortion correction.
-    // Inverse of distortion via newton's method.
+    // Inverse of distortion model via newton's method.
     vector2<U> y = x;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
       vector2<U> a_x2 = distortion*dot(x, x);
       vector2<U> fx = (y - x*(vector2<U>(1) - a_x2));
       vector2<U> df_dx = (a_x2 + 2*distortion*x - vector2<U>(1));
@@ -40,7 +40,7 @@ struct camera {
   
   template <typename U>
   vector2<U> normalized_to_sensor(vector2<U> x) const {
-    // Apply distortion.
+    // Apply distortion model.
     x *= vector2<U>(1) - distortion*dot(x, x);
         
     x.x = (x.x + T(1))*(T(0.5)*resolution.x);
@@ -108,6 +108,14 @@ struct camera {
   template <typename U>
   vector3<U> sensor_to_projection(const vector2<U> &x, const U &z) const {
     return focal_plane_to_projection(sensor_to_focal_plane(x), z);
+  }
+
+  bool is_visible(const vector3<T> &g) const {
+    if (transform.to_local(g).z <= 1e-6f)
+      return false;
+    vector2<T> s = project_to_sensor(g);
+    return 0 <= s.x && s.x < resolution.x && 
+           0 <= s.y && s.y < resolution.y;
   }
 };
 
