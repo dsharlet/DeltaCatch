@@ -93,8 +93,8 @@ struct stereo_config {
     c0.focal_length = cam0.focal_length;
     c0.distortion = cam0.distortion;
     float theta0 = cam0.orientation*pi/180;
-    c0.focal_plane = basis2f(vector2f(cos(theta0), sin(theta0)), 
-                             vector2f(-sin(theta0), cos(theta0)));
+    c0.focal_plane = basis2f(vector2f(cos(theta0), -sin(theta0)), 
+                             vector2f(sin(theta0), cos(theta0)));
 
     c1.resolution = vector_cast<float>(*cam1.resolution);
     c1.size = cam1.sensor_size;
@@ -102,8 +102,8 @@ struct stereo_config {
     c1.focal_length = cam1.focal_length;
     c1.distortion = cam1.distortion;
     float theta1 = cam1.orientation*pi/180;
-    c1.focal_plane = basis2f(vector2f(cos(theta1), sin(theta1)), 
-                             vector2f(-sin(theta1), cos(theta1)));
+    c1.focal_plane = basis2f(vector2f(cos(theta1), -sin(theta1)), 
+                             vector2f(sin(theta1), cos(theta1)));
 
     vector3f b_2 = vector3f(baseline/2.0f, 0.0f, 0.0f);
     vector3f z = cross(*y, *x);

@@ -44,25 +44,20 @@ int main(int argc, const char **argv) {
   tie(cam0, cam1) = stereo.cameras();
   const float baseline = stereo.baseline;
 
+  string eraser;
   while (true) {
+
     nxtcam::blob_list blobs0 = nxtcam0.blobs();
     nxtcam::blob_list blobs1 = nxtcam1.blobs();
 
-    vector2f f0, f1;
-    if (!blobs0.empty()) {
-      const nxtcam::blob &i = blobs0.front();
-      f0 = cam0.sensor_to_focal_plane(i.center());
-    }
-    if (!blobs1.empty()) {
-      const nxtcam::blob &i = blobs1.front();
-      f1 = cam1.sensor_to_focal_plane(i.center());
-    }
-
-    string eraser;
-
     if (!blobs0.empty() && !blobs1.empty()) {
+      const nxtcam::blob &b0 = blobs0.front();
+      const nxtcam::blob &b1 = blobs1.front();
+      vector2f f0 = cam0.sensor_to_focal_plane(b0.center());
+      vector2f f1 = cam1.sensor_to_focal_plane(b1.center());
+
       // z is determined by the stereo disparity.
-      float z = baseline/(f1.x - f0.x);
+      float z = baseline/(f0.x - f1.x);
       
       vector3f x0 = cam0.focal_plane_to_projection(f0, z);
       vector3f x1 = cam1.focal_plane_to_projection(f1, z);
