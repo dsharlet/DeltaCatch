@@ -84,7 +84,7 @@ void dump_config(ostream &os, const camera<T> &cam0, const camera<T> &cam1, cons
 }
 
 void calibrate(const std::vector<sample> &samples, cameraf &cam0, cameraf &cam1) {
-  const int M = samples.size();
+  const size_t M = samples.size();
   const double epsilon_sq = epsilon*epsilon;
 
   enum variable {
@@ -229,7 +229,7 @@ vector<sample> collect_samples() {
   typedef chrono::steady_clock clock;
   auto t = clock::now();
   chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
-  while (samples.size() < sample_count) {
+  while (static_cast<int>(samples.size()) < sample_count) {
     nxtcam::blob_list blobs0 = cam0.blobs();
     nxtcam::blob_list blobs1 = cam1.blobs();
 
@@ -280,7 +280,7 @@ void test_calibrate() {
   }
 
   vector<sample> samples;
-  while(samples.size() < sample_count) {
+  while(static_cast<int>(samples.size()) < sample_count) {
     vector3f x = unit(randv3f())*sample_radius + *sample_origin;
     vector2f s0 = cam0.project_to_sensor(x);
     vector2f s1 = cam1.project_to_sensor(x);

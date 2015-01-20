@@ -10,7 +10,7 @@ delta_hand::delta_hand(
     float base, float effector, float bicep, float forearm, int theta_max,
     bool find_limits_now) 
   : delta_robot(a, b, c, base, effector, bicep, forearm, theta_max, false)
-  , hand(hand), grab_close(0), grab_open(0) {
+  , hand(hand), grab_open(0), grab_close(0) {
 
   // Don't use the base class because our overridden definition of find_limits won't be called.
   if (find_limits_now)

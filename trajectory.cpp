@@ -52,8 +52,6 @@ float intersect_trajectory_sphere_XZ(float half_g, float v_x, float v_z, const v
 
 // This function finds the first intersection after t of a trajectory and a sphere.
 float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vector3f, float> &s, float t_min, float t_max) {
-  const float half_g = g/2.0f;
-
   // Project the sphere onto the plane containing the trajectory.
   vector3f X = vector3f(tj.v.x, tj.v.y, 0.0f);
   float v_x = abs(X);
@@ -136,9 +134,9 @@ int estimate_trajectory(
   tj_.x = vector3<d>(d(tj.x.x, x_x), d(tj.x.y, x_y), d(tj.x.z, x_z));
   tj_.v = vector3<d>(d(tj.v.x, v_x), d(tj.v.y, v_y), d(tj.v.z, v_z));
   
-  int M0 = static_cast<int>(obs0.size());
-  int M1 = static_cast<int>(obs1.size());
-  int M = M0 + M1;
+  size_t M0 = static_cast<int>(obs0.size());
+  size_t M1 = static_cast<int>(obs1.size());
+  size_t M = M0 + M1;
   
   dbg(3) << "estimate_trajectory, M=" << M << "..." << endl;
   
