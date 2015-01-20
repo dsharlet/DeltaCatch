@@ -35,7 +35,7 @@ int main(int argc, const char **argv) {
 
     cout << '\r';
     for (nxtcam::blob_list::iterator i = blobs.begin(); i != blobs.end(); i++) {
-      cout << setw(2) << i->color << setw(4) << (i->x2 + i->x1) / 2 << setw(4) << (i->y1 + i->y2) / 2;
+      cout << setw(2) << i->color << " " << (i->x2 + i->x1) / 2;
     }
     for (size_t i = blobs.size(); i < 8; i++) {
       cout << "          ";

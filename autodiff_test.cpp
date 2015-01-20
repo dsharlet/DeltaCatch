@@ -16,24 +16,25 @@ static void assert_lt(T l, U r, const char *msg) {
 #define ASSERT_LT(x, y) assert_lt(x, y, #x" < "#y)
 
 template <typename T> T f1_x(T x) { return x; }
-template <typename T> T f1_Ax(T x) { return 3*x; }
-template <typename T> T f1_linear(T x) { return 3*x + 1; }
-template <typename T> T f1_quadratic1(T x) { return -2*x*x + 8.5f*x + 2.0f; }
-template <typename T> T f1_quadratic2(T x) { return -2*sqr(x) + 8.5f*x + 2.0f; }
+template <typename T> T f1_Ax(T x) { return T(3)*x; }
+template <typename T> T f1_linear(T x) { return T(3)*x + T(1); }
+template <typename T> T f1_quadratic1(T x) { return T(-2)*x*x + T(8.5)*x + T(2); }
+template <typename T> T f1_quadratic2(T x) { return T(-2)*sqr(x) + T(8.5)*x + T(2); }
 
-template <typename T> T f1_1(T x) { return 1/x; }
-template <typename T> T f1_2(T x) { return sqr(x); }
-template <typename T> T f1_3(T x) { return sqrt(x); }
-template <typename T> T f1_4(T x) { return sqrt(1.0/sqrt(x)); }
-template <typename T> T f1_5(T x) { return sqr(1.0/sqrt(x)); }
-template <typename T> T f1_6(T x) { return abs(x); }
-template <typename T> T f1_7(T x) { return sqrt(abs(x*x*x)); }
-template <typename T> T f1_8(T x) { return rcp(x); }
+template <typename T> T f1_1(T x) { return T(1.5)/x; }
+template <typename T> T f1_2(T x) { return T(1)/x; }
+template <typename T> T f1_3(T x) { return sqr(x); }
+template <typename T> T f1_4(T x) { return sqrt(x); }
+template <typename T> T f1_5(T x) { return sqrt(T(1.3)/sqrt(x)); }
+template <typename T> T f1_6(T x) { return sqr(T(1)/sqrt(x)); }
+template <typename T> T f1_7(T x) { return abs(x); }
+template <typename T> T f1_8(T x) { return sqrt(abs(x*x*x)); }
+template <typename T> T f1_9(T x) { return rcp(x); }
 
 template <typename T> T f2_1(T x, T y) { return x/y; }
 template <typename T> T f2_2(T x, T y) { return sqrt(sqr(x) + sqr(y)); }
-template <typename T> T f2_3(T x, T y) { return 1/(sqr(x) + sqr(y)); }
-template <typename T> T f2_4(T x, T y) { return 1/sqrt(sqr(x) + sqr(y)); }
+template <typename T> T f2_3(T x, T y) { return T(1)/(sqr(x) + sqr(y)); }
+template <typename T> T f2_4(T x, T y) { return T(1)/sqrt(sqr(x) + sqr(y)); }
 
 const double epsilon = 1e-6;
 const double h = 1e-6;
@@ -81,6 +82,7 @@ int main(int argc, const char **argv) {
   TEST_1(f1_6, 0.5, 9.5, 1);
   TEST_1(f1_7, -9.5, 9.5, 1);
   TEST_1(f1_8, -9.5, 9.5, 1);
+  TEST_1(f1_9, -9.5, 9.5, 1);
 
   TEST_2(f2_1, -9.5, 9.5, 1, -9.5, 9.5, 1);
   TEST_2(f2_2, -9.5, 9.5, 1, -9.5, 9.5, 1);

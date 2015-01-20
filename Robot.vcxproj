@@ -38,6 +38,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <NMakeOutput>Robot.exe</NMakeOutput>
     <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <IncludePath>C:\cygwin64\home\Dillon\Util;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <NMakeOutput>Robot.exe</NMakeOutput>
@@ -48,16 +49,18 @@
   <ItemGroup>
     <ClInclude Include="arg_port.h" />
     <ClInclude Include="autodiff.h" />
+    <ClInclude Include="basis.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="circular_array.h" />
     <ClInclude Include="debug.h" />
     <ClInclude Include="delta_config.h" />
     <ClInclude Include="delta_hand.h" />
     <ClInclude Include="delta_robot.h" />
-    <ClInclude Include="eye_config.h" />
+    <ClInclude Include="stereo_config.h" />
     <ClInclude Include="math.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="nxtcam.h" />
+    <ClInclude Include="quaternion.h" />
     <ClInclude Include="trajectory.h" />
     <ClInclude Include="vector2.h" />
     <ClInclude Include="vector3.h" />
@@ -65,6 +68,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="autodiff_test.cpp" />
+    <ClCompile Include="camera_test.cpp" />
     <ClCompile Include="debug.cpp" />
     <ClCompile Include="delta_catch.cpp" />
     <ClCompile Include="delta_hand.cpp" />
@@ -73,6 +77,7 @@
     <ClCompile Include="nxtcam.cpp" />
     <ClCompile Include="nxtcam_test.cpp" />
     <ClCompile Include="stereo_calibrate.cpp" />
+    <ClCompile Include="stereo_test.cpp" />
     <ClCompile Include="trajectory.cpp" />
     <ClCompile Include="viz_client.cpp" />
   </ItemGroup>

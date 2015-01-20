@@ -57,10 +57,16 @@
     <ClInclude Include="viz_client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="eye_config.h">
+    <ClInclude Include="math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="math.h">
+    <ClInclude Include="quaternion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="basis.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stereo_config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -95,7 +101,13 @@
     <ClCompile Include="viz_client.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="stereo_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="stereo_calibrate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="camera_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -44,11 +44,11 @@ float intersect_trajectory_zplane(float gravity, const trajectoryf &tj, float z)
 // model are tagged as such.
 struct observation {
   float t;
-  vector2f x;
+  vector2f f;
   bool outlier;
 
   observation() : t(0.0f), outlier(false) {}
-  observation(float t, const vector2f &x, bool outlier = false) : t(t), x(x), outlier(outlier) {}
+  observation(float t, const vector2f &f, bool outlier = false) : t(t), f(f), outlier(outlier) {}
 };
 typedef circular_array<observation, 128> observation_buffer;
 int estimate_trajectory(

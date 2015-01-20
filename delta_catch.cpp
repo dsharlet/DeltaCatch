@@ -14,31 +14,42 @@
 #include "arg_port.h"
 #include "trajectory.h"
 
+#include "stereo_config.h"
+
 #include "viz_client.h"
 
 using namespace ev3dev;
 using namespace std;
 
-static const float pi = 3.1415926535897f;
+static cl::group motor_control("Motor control");
 
 static cl::arg<mode_type> regulation_mode(
   "on", 
   cl::name("regulation-mode"), 
-  cl::desc("One of: 'on', 'off'."));
+  cl::desc("One of: 'on', 'off'."),
+  motor_control);
 static cl::arg<int> pulses_per_second(
   700, 
   cl::name("pulses-per-second"), 
-  cl::desc("Pulses/second for when --regulation-on is specified."));
+  cl::desc("Pulses/second for when --regulation-on is specified."),
+  motor_control);
 static cl::arg<int> duty_cycle(
   100,
   cl::name("duty-cycle"), 
-  cl::desc("Duty cycle for when --regulation-on is not specified."));
+  cl::desc("Duty cycle for when --regulation-on is not specified."),
+  motor_control);
 static cl::arg<int> ramp(
   0, 
   cl::name("ramp"), 
-  cl::desc("Ramp time, in ms."));
+  cl::desc("Ramp time, in ms."),
+  motor_control);
 
-#include "eye_config.h"
+static stereo_config stereo;
+
+static cl::arg<float> sample_rate(
+  30.0f,
+  cl::name("sample-rate"),
+  cl::desc("Frequency of camera observation samples, in Hz."));
 
 static cl::arg<float> max_flight_time(
   1.25f,
@@ -82,16 +93,40 @@ static cl::arg<float> observation_delay(
 static cl::arg<string> viz_host(
   "",
   cl::name("viz-host"),
-  cl::desc("Hostname/address of the visualization server."));
+  cl::desc("Hostname/address of the visualization server."),
+  cl::group("Visualization"));
 static cl::arg<short> viz_port(
   3333,
   cl::name("viz-port"),
-  cl::desc("Network port of the visualization server."));
+  cl::desc("Network port of the visualization server."),
+  cl::group("Visualization"));
 
+static cl::arg<vector3f> init_x(
+  vector3f(0.0f, 0.0f, 0.0f),
+  cl::name("init-x"));
+static cl::arg<vector3f> init_v(
+  vector3f(0.0f, 0.0f, 0.0f),
+  cl::name("init-v"));
+
+static void dump_trajectory(
+    std::ostream &os,
+    float dt, const trajectoryf &tj,
+    const cameraf &cam0, const cameraf &cam1,
+    const observation_buffer &obs0, const observation_buffer &obs1);
 
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
+      
+  // Define the camera transforms.
+  cameraf cam0, cam1;
+  tie(cam0, cam1) = stereo.cameras();
+
+  test_estimate_trajectory(gravity, sigma_observation, outlier_threshold, cam0, cam1);
   
+  // Reduce clutter of insignificant digits.
+  cout << fixed << showpoint << setprecision(3);
+  cerr << fixed << showpoint << setprecision(3);
+    
   // Start a thread to find the visualization server address while we start up and calibrate the robot.
   thread find_host;
   if (viz_host->empty() && viz_port != 0) {
@@ -105,23 +140,6 @@ int main(int argc, const char **argv) {
     });
     std::swap(find_host, t);
   }
-    
-  // Define the camera transforms.
-  float pitch = eye_pitch*pi/180 + pi/2;
-  vector3f X(1.0f, 0.0f, 0.0f);
-  vector3f Y(0.0f, cos(pitch), sin(pitch));
-  
-  X *= eye_sensor_size->x/(2*eye_focal_length);
-  Y *= eye_sensor_size->y/(2*eye_focal_length);
-
-  cameraf cam0 = {{-eye_baseline/2.0f, eye_y, eye_z}, X, Y};
-  cameraf cam1 = {{eye_baseline/2.0f, eye_y, eye_z}, X, Y};
-
-  test_estimate_trajectory(gravity, sigma_observation, outlier_threshold, cam0, cam1);
-
-  // Reduce clutter of insignificant digits.
-  cout << fixed << showpoint << setprecision(3);
-  cerr << fixed << showpoint << setprecision(3);
 
   // Initialize the delta robot.
   delta_hand delta(
@@ -153,22 +171,22 @@ int main(int argc, const char **argv) {
   auto t0 = clock::now();
   try {
     thread tracking_thread([&]() {
-      nxtcam cam0(eye0);
-      nxtcam cam1(eye1); 
+      nxtcam nxtcam0(stereo.cam0.port);
+      nxtcam nxtcam1(stereo.cam1.port); 
       dbg(1) << "Cameras:" << endl;
-      dbg(1) << cam0.device_id() << " " << cam0.version() << " (" << cam0.vendor_id() << ")" << endl;
-      dbg(1) << cam1.device_id() << " " << cam1.version() << " (" << cam1.vendor_id() << ")" << endl;
+      dbg(1) << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
+      dbg(1) << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;
 
-      cam0.track_objects();
-      cam1.track_objects();
+      nxtcam0.track_objects();
+      nxtcam1.track_objects();
   
       // t will increment in regular intervals of T.
       auto t = clock::now();
-      chrono::microseconds T(static_cast<int>(1e6f/eye_sample_rate + 0.5f));
+      chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
       while (run) {
-        nxtcam::blob_list blobs0 = cam0.blobs();
+        nxtcam::blob_list blobs0 = nxtcam0.blobs();
         float t_obs = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count() + observation_delay*1e-3f;
-        nxtcam::blob_list blobs1 = cam1.blobs();
+        nxtcam::blob_list blobs1 = nxtcam1.blobs();
 
         obs_lock.lock();
         while(!obs0.empty() && obs_t0 + obs0.front().t + max_flight_time < t_obs) 
@@ -178,11 +196,9 @@ int main(int argc, const char **argv) {
         if (obs0.empty() && obs1.empty())
           obs_t0 = t_obs;
         for (nxtcam::blob &i : blobs0)
-          obs0.push_back(observation(t_obs - obs_t0, vector2f(static_cast<float>(i.x2 + i.x1)/eye_resolution->x - 1.0f, 
-                                                              -(static_cast<float>(i.y2 + i.y1)/eye_resolution->y - 1.0f))));
+          obs0.push_back(observation(t_obs - obs_t0, cam0.sensor_to_focal_plane(i.center())));
         for (nxtcam::blob &i : blobs1)
-          obs1.push_back(observation(t_obs - obs_t0, vector2f(static_cast<float>(i.x2 + i.x1)/eye_resolution->x - 1.0f, 
-                                                              -(static_cast<float>(i.y2 + i.y1)/eye_resolution->y - 1.0f))));
+          obs1.push_back(observation(t_obs - obs_t0, cam1.sensor_to_focal_plane(i.center())));
         obs_lock.unlock();
 
         t += T;
@@ -241,9 +257,9 @@ int main(int argc, const char **argv) {
               lock_guard<mutex> lock(obs_lock);
               if (obs0.size() + obs1.size() > 20) {
                 for (size_t i = obs0.begin(); i != obs0.end(); i++)
-                  dbg(1) << "0: " << obs0.at(i).t << " " << obs0.at(i).x << endl;
+                  dbg(1) << "0\t" << obs0.at(i).t << "\t" << obs0.at(i).f.x << '\t' << obs0.at(i).f.y << endl;
                 for (size_t i = obs1.begin(); i != obs1.end(); i++)
-                  dbg(1) << "1: " << obs1.at(i).t << " " << obs1.at(i).x << endl;
+                  dbg(1) << "1\t" << obs1.at(i).t << "\t" << obs1.at(i).f.x << "\t" << obs1.at(i).f.y << endl;
               }
               estimate_trajectory(
                   gravity, 
@@ -267,6 +283,7 @@ int main(int argc, const char **argv) {
               dbg(2) << "trajectory found with intercept expected at t=+" << intercept_a.t - t_now << " s at x=" << intercept_a.x << endl;
             } else {
               dbg(2) << "trajectory found with unreachable intercept expected at t=+" << intercept_b.t - t_now << " s at x=" << intercept_b.x << endl;
+              dbg(2) << tj.x << " " << tj.v << endl;
             }
           } catch(runtime_error &ex) {
             dbg(3) << ex.what() << endl;
@@ -307,4 +324,28 @@ int main(int argc, const char **argv) {
   
   run = false;
   return 0;
+}
+
+static void dump_trajectory(
+    std::ostream &os,
+    float dt, const trajectoryf &tj,
+    const cameraf &cam0, const cameraf &cam1,
+    const observation_buffer &obs0, const observation_buffer &obs1) {
+
+  float t_min = numeric_limits<float>::infinity();
+  float t_max = -t_min;
+  for (size_t i = obs0.begin(); i != obs0.end(); i++) {
+    t_min = std::min(obs0[i].t, t_min);
+    t_max = std::max(obs0[i].t, t_max);
+    vector3f x = tj.position(gravity, obs0[i].t);
+    os << obs0[i].t << "\t" << obs0[i].f << "\t-> " << cam0.project_to_focal_plane(x) << "\t" << cam0.transform.to_local(x).z << endl;
+  }
+  os << endl;
+  for (size_t i = obs1.begin(); i != obs1.end(); i++) {
+    t_min = std::min(obs1[i].t, t_min);
+    t_max = std::max(obs1[i].t, t_max);
+    vector3f x = tj.position(gravity, obs1[i].t + dt);
+    os << obs1[i].t << "\t" << obs1[i].f << "\t-> " << cam1.project_to_focal_plane(x) << "\t" << cam1.transform.to_local(x).z << endl;
+  }
+  os << endl;
 }

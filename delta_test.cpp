@@ -113,10 +113,6 @@ void main_ngon(delta_robot &delta) {
   }
 }
 
-static float randf() {
-  return (float)rand() / (float)RAND_MAX;
-}
-
 void main_random_lines(delta_robot &delta) {
   // Get the volume of the delta bot.
   vector3f center;
@@ -134,8 +130,9 @@ void main_random_lines(delta_robot &delta) {
     // Pick a random point.
     vector3f x1 = x0;
     for (int i = 0; i < 20 && abs(x1 - x0) < radius*1.5f; i++) {
-      x1 = vector3f(2*randf() - 1, 2*randf() - 1, randf());
-      x1 = radius*x1/abs(x1) + center;
+      x1 = radius*unit(randv3f());
+      x1.z = abs(x1.z);
+      x1 += center;
     };
     if (show_path)
       cout << x1 << endl;

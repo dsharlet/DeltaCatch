@@ -3,7 +3,7 @@ CFLAGS=-O2 -march=armv5
 CCFLAGS=-std=c++11 -D_GLIBCXX_USE_NANOSLEEP -I../../ev3dev-lang/cpp -I../../Util
 OBJ=
 LIBS=-lstdc++ -L../../Util/lib -lutil -L../../ev3dev-lang/cpp -lev3dev -lpthread -lm
-DEPS=delta_robot.h delta_hand.h delta_config.h vector2.h vector3.h arg_port.h nxtcam.h circular_array.h autodiff.h matrix.h debug.h trajectory.h camera.h viz_client.h math.h eye_config.h
+DEPS=delta_robot.h delta_hand.h delta_config.h vector2.h vector3.h arg_port.h nxtcam.h circular_array.h autodiff.h matrix.h debug.h trajectory.h camera.h viz_client.h math.h stereo_config.h quaternion.h basis.h
 
 obj/%.o: %.cpp $(DEPS)
 	mkdir -p obj
@@ -20,8 +20,20 @@ bin/delta_catch: obj/delta_catch.o obj/delta_robot.o obj/nxtcam.o obj/debug.o ob
 bin/nxtcam_test: obj/nxtcam_test.o obj/nxtcam.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
+	
+bin/stereo_calibrate: obj/stereo_calibrate.o obj/nxtcam.o obj/debug.o
+	mkdir -p bin
+	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 
+bin/stereo_test: obj/stereo_test.o obj/nxtcam.o
+	mkdir -p bin
+	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
+	
 bin/autodiff_test: obj/autodiff_test.o
+	mkdir -p bin
+	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
+
+bin/camera_test: obj/camera_test.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 
@@ -30,4 +42,4 @@ bin/autodiff_test: obj/autodiff_test.o
 clean:
 	rm -rf obj bin *~
 
-all:  bin/delta_test bin/nxtcam_test bin/delta_catch bin/autodiff_test
+all:  bin/delta_test bin/nxtcam_test bin/delta_catch bin/autodiff_test bin/stereo_calibrate bin/stereo_test bin/camera_test

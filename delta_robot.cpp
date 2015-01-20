@@ -10,8 +10,6 @@
 using namespace ev3;
 using namespace std;
 
-static const float pi = 3.1415926535897f;
-
 std::pair<vector3f, float> delta_robot::get_volume() const {
   return std::make_pair(
     vector3f(0.0f, 0.0f, bicep),
@@ -180,10 +178,6 @@ void delta_robot::find_limits() {
   while(running()) this_thread::sleep_for(chrono::milliseconds(50));
 }
 
-static float randf() {
-  return (float)rand() / (float)RAND_MAX;
-}
-
 void delta_robot::test() const {
   vector3f center;
   float radius;
@@ -193,8 +187,9 @@ void delta_robot::test() const {
   for (int i = 0; i < 100; i++) {
     vector3f x;
     do {
-      x = vector3f(2*randf() - 1, 2*randf() - 1, randf())*radius;
+      x = randv3f()*radius;
     } while(abs(x) > radius);
+    x.z = std::abs(x.z);
     x += center;
 
     try {

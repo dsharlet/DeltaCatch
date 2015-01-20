@@ -6,14 +6,17 @@
 #include <vector>
 #include <string>
 
+#include "vector2.h"
+
 // Talks to an NXTcam device to perform image based tracking of 'blobs'.
 class nxtcam {
 public:
   // Description of a tracked blob.
   struct blob {
-    int x1, y1;
-    int x2, y2;
+    vector2i x1, x2;
     int color;
+
+    vector2f center() const { return vector_cast<float>(x1 + x2)/2.0f; }
   };
   // Type of a list of blobs.
   typedef std::vector<blob> blob_list;

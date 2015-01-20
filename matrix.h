@@ -4,6 +4,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include "math.h"
+
 // Defines compile time constant dimension 2D matrices.
 
 // A constant reference to a matrix. This is intended to be passed by value,
@@ -210,9 +212,9 @@ matrix_ref<T, N, 1> solve(matrix_ref<T, N, N> A, matrix_ref<T, N, 1> b) {
   for (int i = 0; i < N; ++i) {
     // Find a pivot row for this variable.
     int pi = i;
-    T max = std::abs(A(i, i));
+    T max = abs(A(i, i));
     for (int i2 = i + 1; i2 < N; ++i2) {
-      T absi2j = std::abs(A(i2, i));
+      T absi2j = abs(A(i2, i));
       if (absi2j > max) {
         pi = i2;
         max = absi2j;
@@ -253,7 +255,7 @@ template <typename T, int M, int N>
 bool isnan(const_matrix_ref<T, M, N> A) {
   for (int i = 0; i < M; i++)
     for (int j = 0; j < N; j++)
-      if (std::isnan(A(i, j)))
+      if (isnan(A(i, j)))
         return true;
   return false;
 }
@@ -262,7 +264,7 @@ template <typename T, int M, int N>
 bool isfinite(const_matrix_ref<T, M, N> A) {
   for (int i = 0; i < M; i++)
     for (int j = 0; j < N; j++)
-      if (!std::isfinite(A(i, j)))
+      if (!isfinite(A(i, j)))
         return false;
   return true;
 }

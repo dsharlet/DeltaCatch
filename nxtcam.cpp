@@ -83,10 +83,8 @@ nxtcam::blob_list nxtcam::blobs() const {
     read(reg_data, &data[0], data.size());
     for (size_t i = 0; i < blobs.size(); i++) {
       blobs[i].color = data[i*5 + 0];
-      blobs[i].x1 = data[i*5 + 1];
-      blobs[i].y1 = data[i*5 + 2];
-      blobs[i].x2 = data[i*5 + 3];
-      blobs[i].y2 = data[i*5 + 4];
+      blobs[i].x1 = vector2i(data[i*5 + 1], data[i*5 + 2]);
+      blobs[i].x2 = vector2i(data[i*5 + 3], data[i*5 + 4]);
     }
   }
 

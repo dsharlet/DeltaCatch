@@ -10,8 +10,6 @@
 
 using namespace std;
 
-static const float pi = 3.1415926535897f;
-
 static cl::arg<int> max_iterations(
   12,
   cl::name("max-iterations"),
@@ -23,7 +21,7 @@ static cl::arg<float> epsilon(
 
 // A few helper print functions for debug output from this file.
 std::ostream &operator <<(std::ostream &os, const observation &obs) {
-  return os << obs.t << " (" << obs.x << ")";
+  return os << obs.t << " (" << obs.f << ")";
 }
 
 template <typename T, int N>
@@ -64,10 +62,10 @@ float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vec
   vector3f Y = cross(X, Z);
 
   // This basis contains the trajectory in the XZ plane.
-  basis3f B_tj = { tj.x, X, Y, Z };
+  basis3f B_tj(X, Y, Z, tj.x);
 
   // Map the sphere into the basis given by the trajectory.
-  vector3f s0 = B_tj.local(s.first);
+  vector3f s0 = B_tj.to_local(s.first);
 
   // Now we need to solve this:
   // 
@@ -107,7 +105,7 @@ vector2<T> reprojection_error(
   } else {
     x = tj.position_half_g(half_g, ob.t);
   }
-  vector2<T> r = cam.project(x) - ob.x;
+  vector2<T> r = cam.project_to_focal_plane(x) - ob.f;
   return -r;
 }
 
@@ -124,14 +122,14 @@ int estimate_trajectory(
   const float epsilon_sq = epsilon*epsilon;
   const float half_g = gravity/2;
 
-  // Our system has N=7 variables.
-  static const int N = 7;
-  typedef diff<float, N> d;
   enum variable {
     t = 0,
     x_x, x_y, x_z,
     v_x, v_y, v_z,
+    // The number of variables.
+    N,
   };
+  typedef diff<float, N> d;
   
   d dt_ = d(dt, t);
   trajectory<d> tj_;
@@ -173,7 +171,7 @@ int estimate_trajectory(
     // Solve J^T*J*dB = J^T*y.
     matrix_ref<float, N, 1> dB = solve(JTJ, JTy);
     
-    if (isnan(dB))
+    if (!isfinite(dB))
       throw runtime_error("estimate_trajectory optimization diverged");
 
     // If the debug level is high, dump out info about the last few iterations.
@@ -192,9 +190,9 @@ int estimate_trajectory(
     }
   }
 
-  tj.x = vector3f(tj_.x.x.f, tj_.x.y.f, tj_.x.z.f);
-  tj.v = vector3f(tj_.v.x.f, tj_.v.y.f, tj_.v.z.f);
-  dt = dt_.f;
+  tj.x = vector_cast<float>(tj_.x);
+  tj.v = vector_cast<float>(tj_.v);
+  dt = scalar_cast<float>(dt_);
 
   dbg(3) << "  tagging outliers..." << endl;
   int outliers = 0;
@@ -223,40 +221,38 @@ int estimate_trajectory(
   return outliers;
 }
 
+static cl::group test_group("Trajectory estimation test parameters");
+
 static cl::arg<int> test_count(
   10,
   cl::name("test-trajectory-count"),
-  cl::desc("Number of trajectories to test estimate_trajectory on."));
+  cl::desc("Number of trajectories to test estimate_trajectory on."),
+  test_group);
 static cl::arg<float> flight_time(
   1.25f,
   cl::name("test-flight-time"),
-  cl::desc("Flight time of test trajectories, in seconds."));
+  cl::desc("Flight time of test trajectories, in seconds."),
+  test_group);
 static cl::arg<float> target_distance(
   250.0f,
   cl::name("test-distance"),
-  cl::desc("How far away from the target the simulated trajectories originate, in studs."));
+  cl::desc("How far away from the target the simulated trajectories originate, in studs."),
+  test_group);
 static cl::arg<float> false_negative_rate(
   0.1f,
   cl::name("test-false-negative-rate"),
-  cl::desc("Probability of missed observations in simulated trajectory observations."));
+  cl::desc("Probability of missed observations in simulated trajectory observations."),
+  test_group);
 static cl::arg<float> false_positive_rate(
   0.0f,
   cl::name("test-false-positive-rate"),
-  cl::desc("Probability of spurious observations in simulated trajectory observations."));
+  cl::desc("Probability of spurious observations in simulated trajectory observations."),
+  test_group);
 static cl::arg<float> tolerance(
   4.0f,
   cl::name("test-tolerance"),
-  cl::desc("Allowed error in estimated intercept for a test to be considered successful, in studs."));
-
-static float randf() { return static_cast<float>(rand()) / RAND_MAX; }
-static vector2f randfv2() {
-  vector2f r(randf(), randf());
-  return r/abs(r);
-}
-static vector3f randfv3() {
-  vector3f r(randf(), randf(), randf());
-  return r/abs(r);
-}
+  cl::desc("Allowed error in estimated intercept for a test to be considered successful, in studs."),
+  test_group);
 
 // Test and benchmark estimate_trajectory.
 void test_estimate_trajectory(
@@ -300,8 +296,8 @@ void test_estimate_trajectory(
 
     // Generate a trajectory to test with.
     trajectoryf tj = tj_init;
-    tj.x = (randfv3()*2.0f - vector3f(1.0f))*launch.second + launch.first;
-    tj.v = (randfv3()*2.0f - vector3f(1.0f))*target.second + target.first - tj.x;
+    tj.x = unit(randv3f(-1.0f, 1.0f))*launch.second + launch.first;
+    tj.v = unit(randv3f(-1.0f, 1.0f))*target.second + target.first - tj.x;
     tj.v /= flight_time;
     tj.v.z += -0.5f*gravity*flight_time;
 
@@ -311,24 +307,24 @@ void test_estimate_trajectory(
     for (float t = 0.0f; t <= flight_time; t += T) {
       if (randf() >= false_negative_rate) {
         vector3f x = tj.position(gravity, t);
-        vector2f ob = cam0.project(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
+        vector2f ob = cam0.project_to_normalized(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
         if (-1.0f <= ob.x && ob.x <= 1.0f && 
             -1.0f <= ob.y && ob.y <= 1.0f && 
-            cam0.basis.local(x).z > tolerance)
-          obs0.push_back({t, ob, false});
+            cam0.transform.to_local(x).z > tolerance)
+          obs0.push_back({t, cam0.normalized_to_focal_plane(ob), false});
       }
       if (randf() >= false_negative_rate) {
         vector3f x = tj.position(gravity, t + dt);
-        vector2f ob = cam1.project(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
+        vector2f ob = cam1.project_to_normalized(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
         if (-1.0f <= ob.x && ob.x <= 1.0f && 
             -1.0f <= ob.y && ob.y <= 1.0f && 
-            cam1.basis.local(x).z > tolerance)
-          obs1.push_back({t, ob, false});
+            cam1.transform.to_local(x).z > tolerance)
+          obs1.push_back({t, cam1.normalized_to_focal_plane(ob), false});
       }
       while (randf() < false_positive_rate)
-        obs0.push_back({t, randfv2()*2.0f - vector2f(1.0f)});
+        obs0.push_back({t, cam0.normalized_to_focal_plane(randv2f(-1.0f, 1.0f))});
       while (randf() < false_positive_rate)
-        obs1.push_back({t, randfv2()*2.0f - vector2f(1.0f)});
+        obs1.push_back({t, cam1.normalized_to_focal_plane(randv2f(-1.0f, 1.0f))});
     }
     
     try {
