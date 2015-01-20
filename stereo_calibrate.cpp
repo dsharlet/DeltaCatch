@@ -269,16 +269,7 @@ void test_calibrate() {
 
   cam1.distortion.x = 0.03f;
   cam1.distortion.y = 0.04f;
-
-  for (int i = 0; i < 100; i++) {
-    vector2f s = vector2f(randf(), randf())*cam0.resolution;
-    vector2f f = cam0.sensor_to_focal_plane(s);
-    vector2f s_ = cam0.focal_plane_to_sensor(f);
-
-    if (abs(s - s_) > 1e-2f)
-      cout << "sensor_to_focal_plane not invertible! " << s << " -> " << f << " -> " << s_ << endl;
-  }
-
+  
   vector<sample> samples;
   while(static_cast<int>(samples.size()) < sample_count) {
     vector3f x = unit(randv3f())*sample_radius + *sample_origin;
