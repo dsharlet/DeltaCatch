@@ -130,7 +130,7 @@ void main_random_lines(delta_robot &delta) {
     // Pick a random point.
     vector3f x1 = x0;
     for (int i = 0; i < 20 && abs(x1 - x0) < radius*1.5f; i++) {
-      x1 = radius*unit(randv3f());
+      x1 = radius*unit(randv3f(-1.0f, 1.0f));
       x1.z = abs(x1.z);
       x1 += center;
     };

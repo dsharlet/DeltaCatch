@@ -5,15 +5,7 @@
 using namespace std;
 
 #include "autodiff.h"
-
-template <typename T, typename U>
-static void assert_lt(T l, U r, const char *msg) {
-  if (!(l < r)) {
-    cerr << "Test " << msg << " failed: " << l << " !< " << r << endl;
-  }
-}
-
-#define ASSERT_LT(x, y) assert_lt(x, y, #x" < "#y)
+#include "test.h"
 
 template <typename T> T f1_x(T x) { return x; }
 template <typename T> T f1_Ax(T x) { return T(3)*x; }

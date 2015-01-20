@@ -187,7 +187,7 @@ void delta_robot::test() const {
   for (int i = 0; i < 100; i++) {
     vector3f x;
     do {
-      x = randv3f()*radius;
+      x = randv3f(-1.0f, 1.0f)*radius;
     } while(abs(x) > radius);
     x.z = std::abs(x.z);
     x += center;

@@ -69,6 +69,9 @@
     <ClInclude Include="stereo_config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="trajectory.cpp">
@@ -87,9 +90,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="nxtcam.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="nxtcam_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="autodiff_test.cpp">

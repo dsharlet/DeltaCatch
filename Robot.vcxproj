@@ -61,6 +61,7 @@
     <ClInclude Include="matrix.h" />
     <ClInclude Include="nxtcam.h" />
     <ClInclude Include="quaternion.h" />
+    <ClInclude Include="test.h" />
     <ClInclude Include="trajectory.h" />
     <ClInclude Include="vector2.h" />
     <ClInclude Include="vector3.h" />
@@ -75,7 +76,6 @@
     <ClCompile Include="delta_robot.cpp" />
     <ClCompile Include="delta_test.cpp" />
     <ClCompile Include="nxtcam.cpp" />
-    <ClCompile Include="nxtcam_test.cpp" />
     <ClCompile Include="stereo_calibrate.cpp" />
     <ClCompile Include="stereo_test.cpp" />
     <ClCompile Include="trajectory.cpp" />

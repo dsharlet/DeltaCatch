@@ -262,7 +262,8 @@ void test_estimate_trajectory(
   const int count = test_count;
   // Sampling rate of the generated observations.
   const float T = 1.0f/30.0f;
-  
+  const cameraf cam[2] = { cam0, cam1 };
+
   default_random_engine rnd;
   normal_distribution<float> obs_noise(0.0f, sigma_observation);
 
@@ -301,28 +302,21 @@ void test_estimate_trajectory(
 
     // Generate some simulated observations of the trajectory, 
     // adding some random noise/false positives/false negatives.
-    observation_buffer obs0, obs1;
+    observation_buffer obs[2];
+    
     for (float t = 0.0f; t <= flight_time; t += T) {
-      if (randf() >= false_negative_rate) {
-        vector3f x = tj.position(gravity, t);
-        vector2f ob = cam0.project_to_normalized(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
-        if (-1.0f <= ob.x && ob.x <= 1.0f && 
-            -1.0f <= ob.y && ob.y <= 1.0f && 
-            cam0.transform.to_local(x).z > tolerance)
-          obs0.push_back({t, cam0.normalized_to_focal_plane(ob), false});
+      for (int c = 0; c < 2; c++) {
+        if (randf() >= false_negative_rate) {
+          vector3f x = tj.position(gravity, t);
+          vector2f ob = cam[c].project_to_normalized(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
+          if (-1.0f <= ob.x && ob.x <= 1.0f && 
+              -1.0f <= ob.y && ob.y <= 1.0f && 
+              cam[c].transform.to_local(x).z > tolerance)
+            obs[0].push_back({t, cam[0].normalized_to_focal_plane(ob), false});
+        }
+        while (randf() < false_positive_rate)
+          obs[0].push_back({t, cam[0].normalized_to_focal_plane(randv2f(-1.0f, 1.0f))});
       }
-      if (randf() >= false_negative_rate) {
-        vector3f x = tj.position(gravity, t + dt);
-        vector2f ob = cam1.project_to_normalized(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
-        if (-1.0f <= ob.x && ob.x <= 1.0f && 
-            -1.0f <= ob.y && ob.y <= 1.0f && 
-            cam1.transform.to_local(x).z > tolerance)
-          obs1.push_back({t, cam1.normalized_to_focal_plane(ob), false});
-      }
-      while (randf() < false_positive_rate)
-        obs0.push_back({t, cam0.normalized_to_focal_plane(randv2f(-1.0f, 1.0f))});
-      while (randf() < false_positive_rate)
-        obs1.push_back({t, cam1.normalized_to_focal_plane(randv2f(-1.0f, 1.0f))});
     }
     
     try {
@@ -333,8 +327,8 @@ void test_estimate_trajectory(
       int outliers = estimate_trajectory(
           gravity, 
           sigma_observation, outlier_threshold, 
-          cam0, cam1,
-          obs0, obs1, 
+          cam[0], cam[1],
+          obs[0], obs[1], 
           dt_, tj_);
       auto finish = clock::now();
       benchmark_count++;
@@ -344,7 +338,7 @@ void test_estimate_trajectory(
       vector3f intercept_tj_ = tj_.position(gravity, intersect_trajectory_zplane(gravity, tj_, target.first.z));
       vector3f err = intercept_tj - intercept_tj_;
       total_err += abs(err);
-      size_t M = obs0.size() + obs1.size();
+      size_t M = obs[0].size() + obs[1].size();
       if (abs(err) > tolerance || isnan(err)) {
         cerr << "Target intercept test failed, ||actual-estimated||=" << abs(err) << ", M=" << M << ", outliers=" << outliers << endl;
         cerr << "  Actual intercept=" << intercept_tj << endl;
@@ -370,5 +364,7 @@ void test_estimate_trajectory(
   if (fails > 0)
     cerr << fails << " tests failed!" << endl;
 
-  dbg(1) << "estimate_trajectory accuracy=" << total_err/count << ", benchmark=" << 1e3f*static_cast<float>(benchmark.count())/benchmark_count/clock::period::den << " ms" << endl;
+  dbg(1) 
+    << "estimate_trajectory accuracy=" << total_err/count 
+    << ", benchmark=" << 1e3f*static_cast<float>(benchmark.count())/benchmark_count/clock::period::den << " ms" << endl;
 }
