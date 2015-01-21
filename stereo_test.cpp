@@ -42,7 +42,8 @@ int main(int argc, const char **argv) {
   
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
-  const float baseline = stereo.baseline;
+
+  vector3f baseline = cam1.x - cam0.x;
 
   string eraser;
   while (true) {
@@ -53,18 +54,20 @@ int main(int argc, const char **argv) {
     if (!blobs0.empty() && !blobs1.empty()) {
       const nxtcam::blob &b0 = blobs0.front();
       const nxtcam::blob &b1 = blobs1.front();
-      vector2f f0 = cam0.sensor_to_focal_plane(b0.center());
-      vector2f f1 = cam1.sensor_to_focal_plane(b1.center());
+
+      vector3f x0 = cam0.sensor_to_projection(b0.center(), 1.0f);
+      vector3f x1 = cam1.sensor_to_projection(b1.center(), 1.0f);
 
       // z is determined by the stereo disparity.
-      float z = baseline/(f0.x - f1.x);
-      
-      vector3f x0 = cam0.focal_plane_to_projection(f0, z);
-      vector3f x1 = cam1.focal_plane_to_projection(f1, z);
+      float z = abs(baseline)/(dot(x0, baseline) - dot(x1, baseline));
 
+      // Move the points from the focal plane to the (parallel) plane containing z and add the camera origins.
+      x0 = x0*z + cam0.x;
+      x1 = x1*z + cam1.x;
+      
       stringstream ss;
       ss << fixed << showpoint << setprecision(3);
-      ss << "(" << f0 << ", " << f1 << ") -> (" << x0 << ",  " << x1 << ")";
+      ss << "x0=" << x0 << ",  x1=" << x1 << ", ||x0 - x1||=" << abs(x0 - x1);
       string msg = ss.str();
       if (msg.length() > eraser.length())
         eraser = string(msg.length(), ' ');

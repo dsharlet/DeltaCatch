@@ -63,13 +63,13 @@
     <ClInclude Include="quaternion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="basis.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="stereo_config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="calibration_data.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

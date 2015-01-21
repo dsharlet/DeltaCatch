@@ -1,117 +1,117 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "basis.h"
+#include "vector2.h"
+#include "vector3.h"
+#include "quaternion.h"
+#include "matrix.h"
 
 // Mapping of 3D coordinates to the 2D projection observed by a camera.
 template <typename T>
 struct camera {
+  // Distortion
   vector2<T> resolution;
-  T size;
-  T aspect_ratio;
-  T focal_length;
-  basis2<T> focal_plane;
-  vector2<T> distortion;
-  basis3<T> transform;
+  vector2<T> d;
 
-  vector2<T> sensor_size() const {
-    T s = size/sqrt(sqr(aspect_ratio) + T(1));
-    return vector2<T>(size*s, s);
+  // Defines the camera calibration matrix (intrinsic parameters):
+  //     [ a.x  s  t.x ]
+  // K = [ 0   a.y t.y ]
+  //     [ 0    0   1  ]
+  vector2<T> a;
+  vector2<T> t;
+  T s;
+
+  // Defines the basis of the camera space.
+  quaternion<T> R;
+  vector3<T> x;
+
+  camera() : s(0) {}
+ 
+  // Realize the actual K matrix.
+  matrix<T, 3, 3> K() const {
+    matrix<T, 3, 3> k;
+    k(0, 0) = a.x;
+    k(1, 1) = a.y;
+    k(0, 1) = s;
+    k(0, 2) = t.x;
+    k(1, 2) = t.y;
+    k(2, 2) = 1;
+    return k;
   }
-  
+
+  // Set the intrinsic parameters from a calibration matrix.
+  void set_K(const_matrix_ref<T, 3, 3> K) {
+    a = vector2<T>(K(0, 0), K(1, 1));
+    s = K(0, 1);
+    t = vector2<T>(K(0, 2), K(1, 2));
+ }
+
   template <typename U>
-  vector2<U> sensor_to_normalized(vector2<U> x) const {
+  vector2<U> focal_plane_to_sensor(const vector2<U> &P) const {
+    // Apply camera calibration matrix.
+    vector2<U> u(
+        a.x*P.x + s*P.y + t.x,
+        a.y*P.y + t.y);
+
+    // Apply distortion model.
+    u *= vector2<U>(1) - d*dot(u, u);
+        
+    return vector2<U>(
+        (u.x + T(1))*(T(0.5)*resolution.x),
+        (T(1) - u.y)*(T(0.5)*resolution.y));
+  }
+
+  template <typename U>
+  vector2<U> sensor_to_focal_plane(const vector2<U> &p) const {
     // Normalize coordinates.
-    x.x = x.x*(T(2)/resolution.x) - U(1);
-    x.y = x.y*(T(-2)/resolution.y) + U(1);
+    vector2<U> u_(
+        p.x*(T(2)/resolution.x) - U(1),
+        p.y*(T(-2)/resolution.y) + U(1));
 
     // Apply distortion correction.
     // Inverse of distortion model via newton's method.
-    vector2<U> y = x;
+    vector2<U> u = u_;
     for (int i = 0; i < 4; i++) {
-      vector2<U> a_x2 = distortion*dot(x, x);
-      vector2<U> fx = (y - x*(vector2<U>(1) - a_x2));
-      vector2<U> df_dx = (a_x2 + 2*distortion*x - vector2<U>(1));
-      x -= fx/df_dx;
+      vector2<U> d_uu = d*dot(u, u);
+      vector2<U> fu = (u_ - u*(vector2<U>(1) - d_uu));
+      vector2<U> df_du = (d_uu + U(2)*d*u - vector2<U>(1));
+      u -= fu/df_du;
     }
 
-    return x;
-  }
-  
-  template <typename U>
-  vector2<U> normalized_to_sensor(vector2<U> x) const {
-    // Apply distortion model.
-    x *= vector2<U>(1) - distortion*dot(x, x);
-        
-    x.x = (x.x + T(1))*(T(0.5)*resolution.x);
-    x.y = (T(1) - x.y)*(T(0.5)*resolution.y);
-
-    return x;
-  }
-
-  template <typename U>
-  vector2<U> normalized_to_focal_plane(vector2<U> x) const {
-    x = focal_plane.to_global(x);
-    x *= sensor_size()/(T(2)*focal_length);   
-
-    return x;
-  }
-
-  template <typename U>
-  vector2<U> sensor_to_focal_plane(const vector2<U> &x) const {
-    return normalized_to_focal_plane(sensor_to_normalized(x));
-  }
-  
-  template <typename U>
-  vector2<U> focal_plane_to_normalized(vector2<U> x) const {
-    x /= sensor_size()/(T(2)*focal_length);  
-    x = focal_plane.to_local(x);
-
-    return x;
-  }
-  
-
-  template <typename U>
-  vector2<U> focal_plane_to_sensor(const vector2<U> &x) const {
-    return normalized_to_sensor(focal_plane_to_normalized(x));
+    // Solve K*x = u.
+    U y = (u.y - t.y)/a.y;
+    U x = (u.x - t.x - s*y)/a.x;
+    return vector2<U>(x, y);
   }
 
   // Project to normalized coordinates to the focal plane.
   template <typename U>
   vector2<U> project_to_focal_plane(const vector3<U> &g) const {
     // Convert the global coordinates to the local transform.
-    vector3<U> l = transform.to_local(g);
+    vector3<U> l = (~quaternion_cast<U>(R)*g*quaternion_cast<U>(R)).b;
 
     // Project the local coordinates.
     return vector2<U>(l.x, l.y)*rcp(l.z);
-  }
-  
-  template <typename U>
-  vector2<U> project_to_normalized(const vector3<U> &g) const {
-    return focal_plane_to_normalized(project_to_focal_plane(g));
   }
 
   template <typename U>
   vector2<U> project_to_sensor(const vector3<U> &g) const {
     return focal_plane_to_sensor(project_to_focal_plane(g));
   }
+
   // Unproject a point on the focal plane.
   template <typename U>
-  vector3<U> focal_plane_to_projection(const vector2<U> &x, const U &z) const {
-    return transform.to_global(vector3<U>(x.x*z, x.y*z, z));
+  vector3<U> focal_plane_to_projection(const vector2<U> &P, const U &z) const {
+    return (R*quaternion<T>(0, P.x*z, P.y*z, z)*~R).b;
   }
   
   template <typename U>
-  vector3<U> normalized_to_projection(const vector2<U> &x, const U &z) const {
-    return focal_plane_to_projection(normalized_to_focal_plane(x), z);
-  }
-  template <typename U>
-  vector3<U> sensor_to_projection(const vector2<U> &x, const U &z) const {
-    return focal_plane_to_projection(sensor_to_focal_plane(x), z);
+  vector3<U> sensor_to_projection(const vector2<U> &p, const U &z) const {
+    return focal_plane_to_projection(sensor_to_focal_plane(p), z);
   }
 
   bool is_visible(const vector3<T> &g) const {
-    if (transform.to_local(g).z <= 1e-6f)
+    if ((~R*(g - x)*R).b.z <= 1e-6f)
       return false;
     vector2<T> s = project_to_sensor(g);
     return 0 <= s.x && s.x < resolution.x && 
@@ -122,13 +122,13 @@ struct camera {
 template <typename T, typename U>
 camera<T> camera_cast(const camera<U> &x) {
   camera<T> y;
-  y.resolution = vector_cast<T>(x.resolution);
-  y.size = scalar_cast<T>(x.size);
-  y.aspect_ratio = scalar_cast<T>(x.aspect_ratio);
-  y.focal_length = scalar_cast<T>(x.focal_length);
-  y.focal_plane = basis_cast<T>(x.focal_plane);
-  y.distortion = vector_cast<T>(x.distortion);
-  y.transform = basis_cast<T>(x.transform);
+  y.resolution = x.resolution;
+  y.d = vector_cast<T>(x.d);
+  y.a = vector_cast<T>(x.a);
+  y.t = vector_cast<T>(x.t);
+  y.s = scalar_cast<T>(x.s);
+  y.R = quaternion_cast<T>(x.R);
+  y.x = vector_cast<T>(x.x);
   return y;
 }
 

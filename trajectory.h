@@ -45,15 +45,13 @@ float intersect_trajectory_zplane(float gravity, const trajectoryf &tj, float z)
 struct observation {
   float t;
   vector2f f;
-  bool outlier;
 
-  observation() : t(0.0f), outlier(false) {}
-  observation(float t, const vector2f &f, bool outlier = false) : t(t), f(f), outlier(outlier) {}
+  observation() : t(0.0f) {}
+  observation(float t, const vector2f &f) : t(t), f(f) {}
 };
 typedef circular_array<observation, 128> observation_buffer;
-int estimate_trajectory(
+float estimate_trajectory(
     float gravity, 
-    float sigma_observation, float outlier_threshold,
     const cameraf &cam0, const cameraf &cam1,
     observation_buffer &obs0, observation_buffer &obs1,
     float &dt, trajectoryf &tj);
@@ -62,7 +60,6 @@ int estimate_trajectory(
 // the estimated trajectories are similar.
 void test_estimate_trajectory(
     float gravity, 
-    float sigma_observation, float outlier_threshold, 
     const cameraf &cam0, const cameraf &cam1);
 
 #endif

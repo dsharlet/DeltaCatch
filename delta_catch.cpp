@@ -68,14 +68,6 @@ static cl::arg<float> gravity(
   -1225.0f,
   cl::name("gravity"),
   cl::desc("Acceleration due to gravity, in studs/s^2."));
-static cl::arg<float> sigma_observation(
-  0.01f,
-  cl::name("sigma-observation"),
-  cl::desc("Standard deviation of observation noise in normalized projected camera space."));
-static cl::arg<float> outlier_threshold(
-  6.0f,
-  cl::name("outlier-threshold"),
-  cl::desc("Tolerance of standard error before an observation is considered an outlier."));
 
 static cl::arg<float> intercept_delay(
   20.0f,
@@ -121,7 +113,7 @@ int main(int argc, const char **argv) {
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
 
-  test_estimate_trajectory(gravity, sigma_observation, outlier_threshold, cam0, cam1);
+  test_estimate_trajectory(gravity, cam0, cam1);
   
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << setprecision(3);
@@ -263,7 +255,6 @@ int main(int argc, const char **argv) {
               }
               estimate_trajectory(
                   gravity, 
-                  sigma_observation, outlier_threshold, 
                   cam0, cam1,
                   obs0, obs1, 
                   dt, tj);
@@ -338,14 +329,14 @@ static void dump_trajectory(
     t_min = std::min(obs0[i].t, t_min);
     t_max = std::max(obs0[i].t, t_max);
     vector3f x = tj.position(gravity, obs0[i].t);
-    os << obs0[i].t << "\t" << obs0[i].f << "\t-> " << cam0.project_to_focal_plane(x) << "\t" << cam0.transform.to_local(x).z << endl;
+    os << obs0[i].t << "\t" << obs0[i].f << "\t-> " << cam0.project_to_focal_plane(x) << "\t" << endl;
   }
   os << endl;
   for (size_t i = obs1.begin(); i != obs1.end(); i++) {
     t_min = std::min(obs1[i].t, t_min);
     t_max = std::max(obs1[i].t, t_max);
     vector3f x = tj.position(gravity, obs1[i].t + dt);
-    os << obs1[i].t << "\t" << obs1[i].f << "\t-> " << cam1.project_to_focal_plane(x) << "\t" << cam1.transform.to_local(x).z << endl;
+    os << obs1[i].t << "\t" << obs1[i].f << "\t-> " << cam1.project_to_focal_plane(x) << "\t" << endl;
   }
   os << endl;
 }

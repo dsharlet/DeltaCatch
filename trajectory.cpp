@@ -59,11 +59,8 @@ float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vec
   vector3f Z = vector3f(0.0f, 0.0f, 1.0f);
   vector3f Y = cross(X, Z);
 
-  // This basis contains the trajectory in the XZ plane.
-  basis3f B_tj(X, Y, Z, tj.x);
-
   // Map the sphere into the basis given by the trajectory.
-  vector3f s0 = B_tj.to_local(s.first);
+  vector3f s0 = vector3f(dot(s.first, X), dot(s.first, Y), dot(s.first, Z)) + tj.x;
 
   // Now we need to solve this:
   // 
@@ -109,10 +106,8 @@ vector2<T> reprojection_error(
 
 // Estimates a trajectory t given a set of observations from two cameras. The input
 // value of tj is used as an initial guess for optimization. 
-int estimate_trajectory(
+float estimate_trajectory(
     float gravity, 
-    float sigma_observation, 
-    float outlier_threshold, 
     const cameraf &cam0, const cameraf &cam1,
     observation_buffer &obs0, observation_buffer &obs1,
     float &dt,
@@ -147,7 +142,6 @@ int estimate_trajectory(
     matrix<float, N, 1> JTy;
     for (size_t i = 0; i < M; i++) {
       const observation &o_i = i < M0 ? obs0[obs0.begin() + i] : obs1[obs1.begin() + i - M0];
-      if (o_i.outlier) continue;
 
       vector2<d> r = reprojection_error(
           half_g, 
@@ -192,31 +186,9 @@ int estimate_trajectory(
   tj.v = vector_cast<float>(tj_.v);
   dt = scalar_cast<float>(dt_);
 
-  dbg(3) << "  tagging outliers..." << endl;
-  int outliers = 0;
-  const float error_threshold = sigma_observation*outlier_threshold;
-  for (size_t i = 0; i < M; i++) {
-    observation &o_i = i < M0 ? obs0[obs0.begin() + i] : obs1[obs1.begin() + i - M0];
-    if (o_i.outlier) continue;
+  dbg(2) << "estimate_trajectory finished, it=" << it << endl;
 
-    vector2<float> r = reprojection_error(
-        half_g, 
-        i < M0 ? cam0 : cam1, 
-        o_i, 
-        i < M0 ? nullptr : &dt, tj);
-
-    if (abs(r.x) > error_threshold || abs(r.y) > error_threshold) {
-      if (dbg_level() >= 4)
-        dbg(4) << "    outlier found, std error = " << vector2f(abs(r.x)/sigma_observation, abs(r.y)/sigma_observation) << endl;
-      o_i.outlier = true;
-      outliers++;
-    }
-  }
-  dbg(3) << "  " << outliers << " outliers tagged." << endl;
-
-  dbg(2) << "estimate_trajectory finished, it=" << it << ", outliers=" << outliers << endl;
-
-  return outliers;
+  return 0.0f;
 }
 
 static cl::group test_group("Trajectory estimation test parameters");
@@ -235,6 +207,11 @@ static cl::arg<float> target_distance(
   250.0f,
   cl::name("test-distance"),
   cl::desc("How far away from the target the simulated trajectories originate, in studs."),
+  test_group);
+static cl::arg<float> sigma_observation(
+  0.0f,
+  cl::name("sigma-observation"),
+  cl::desc("Standard deviation of measurements at the sensor, in pixels."),
   test_group);
 static cl::arg<float> false_negative_rate(
   0.1f,
@@ -255,8 +232,6 @@ static cl::arg<float> tolerance(
 // Test and benchmark estimate_trajectory.
 void test_estimate_trajectory(
     float gravity, 
-    float sigma_observation, 
-    float outlier_threshold, 
     const cameraf &cam0, const cameraf &cam1) {
   // How many random trajectories to check.
   const int count = test_count;
@@ -308,14 +283,13 @@ void test_estimate_trajectory(
       for (int c = 0; c < 2; c++) {
         if (randf() >= false_negative_rate) {
           vector3f x = tj.position(gravity, t);
-          vector2f ob = cam[c].project_to_normalized(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
-          if (-1.0f <= ob.x && ob.x <= 1.0f && 
-              -1.0f <= ob.y && ob.y <= 1.0f && 
-              cam[c].transform.to_local(x).z > tolerance)
-            obs[0].push_back({t, cam[0].normalized_to_focal_plane(ob), false});
+          if (cam[c].is_visible(x)) {
+            vector2f ob = cam[c].project_to_sensor(x) + vector2f(obs_noise(rnd), obs_noise(rnd));
+            obs[0].push_back({t, cam[0].sensor_to_focal_plane(ob)});
+          }
         }
         while (randf() < false_positive_rate)
-          obs[0].push_back({t, cam[0].normalized_to_focal_plane(randv2f(-1.0f, 1.0f))});
+          obs[0].push_back({t, cam[0].sensor_to_focal_plane(randv2f(-1.0f, 1.0f))});
       }
     }
     
@@ -326,7 +300,6 @@ void test_estimate_trajectory(
       auto start = clock::now();
       int outliers = estimate_trajectory(
           gravity, 
-          sigma_observation, outlier_threshold, 
           cam[0], cam[1],
           obs[0], obs[1], 
           dt_, tj_);

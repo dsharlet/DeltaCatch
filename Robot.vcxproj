@@ -49,7 +49,7 @@
   <ItemGroup>
     <ClInclude Include="arg_port.h" />
     <ClInclude Include="autodiff.h" />
-    <ClInclude Include="basis.h" />
+    <ClInclude Include="calibration_data.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="circular_array.h" />
     <ClInclude Include="debug.h" />

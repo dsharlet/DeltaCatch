@@ -6,7 +6,6 @@ LIBS=-lstdc++ -L../../Util/lib -lutil -L../../ev3dev-lang/cpp -lev3dev -lpthread
 DEPS=\
 	arg_port.h \
 	autodiff.h \
-	basis.h \
 	camera.h \
 	circular_array.h \
 	debug.h \
