@@ -51,7 +51,7 @@ protected:
   using const_ref::x;
 
 public:
-  matrix_ref(T *x, int M = 0, int N = 0) : const_ref(x, N, N) {}
+  matrix_ref(T *x, int M = 0, int N = 0) : const_ref(x, M, N) {}
 
   using const_ref::elements;
   using const_ref::at;
@@ -139,6 +139,7 @@ public:
       for (int j = 0; j < N(); j++)
         at(i, j) = A(i, j);
   }
+  matrix(const matrix &c) : matrix(static_cast<const_ref>(c)) {}
 
   // Construct a diagonal matrix of the value a.
   matrix(const T &a) : ref(storage) {
@@ -163,6 +164,8 @@ public:
         at(i, j) = A(i, j);
     return *this;
   }
+  
+  matrix &operator = (const matrix &c) { return *this = static_cast<const_ref>(c); }
 };
 
 
@@ -196,6 +199,7 @@ public:
       for (int j = 0; j < N(); j++)
         at(i, j) = A(i, j);
   }
+  matrix(const matrix &c) : matrix(static_cast<const_ref>(c)) {}
 
   // Construct a diagonal matrix of the value a.
   matrix(const T &a, int M, int N) : ref(nullptr, M, N), storage(M*N) {
@@ -218,6 +222,7 @@ public:
         at(i, j) = A(i, j);
     return *this;
   }
+  matrix &operator = (const matrix &c) { return *this = static_cast<const_ref>(c); }
 };
 
 
@@ -344,14 +349,14 @@ template <typename T, int N, int Nb>
 matrix_ref<T, N, Nb> solve(matrix_ref<T, N, N> A, matrix_ref<T, N, Nb> b) {
   assert(A.M() == A.N() && A.M() == b.M());
   // Row reduce A | b.
-  row_reduce<T, N, N, Nb>(A, b);
+  row_reduce<T, N, N, 0>(A, b);
 
   // A is now upper triangular, so we can solve it.
   for (int i = A.M() - 1; i >= 0; i--) {
-    for (int jb = 0; jb < Nb; jb++) {
+    for (int jb = 0; jb < b.N(); jb++) {
       T r = b(i, jb);
       for (int j = i + 1; j < A.N(); j++)
-        r -= A(i, j)*b(j, jb);
+        r -= A(i, j)*b(jb, j);
       b(i, jb) = r/A(i, i);
     }
   }
@@ -389,7 +394,7 @@ std::ostream &operator << (std::ostream &os, const_matrix_ref<T, M, N> A) {
     os << "]";
     if (i + 1 < A.M()) os << ',';
   }
-  os << ']' << std::endl;
+  os << ']';
   return os;
 }
 

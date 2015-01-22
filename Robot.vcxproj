@@ -75,6 +75,7 @@
     <ClCompile Include="delta_hand.cpp" />
     <ClCompile Include="delta_robot.cpp" />
     <ClCompile Include="delta_test.cpp" />
+    <ClCompile Include="matrix_test.cpp" />
     <ClCompile Include="nxtcam.cpp" />
     <ClCompile Include="stereo_calibrate.cpp" />
     <ClCompile Include="stereo_test.cpp" />
