@@ -18,33 +18,45 @@ struct camera {
   // K = [ 0   a.y t.y ]
   //     [ 0    0   1  ]
   vector2<T> a;
-  vector2<T> t;
   T s;
+  vector2<T> t;
 
   // Defines the basis of the camera space.
   quaternion<T> R;
   vector3<T> x;
 
-  camera() : s(0) {}
+  camera() : resolution(200, 100), a(1), s(0), R(1) {}
+  camera(
+      const vector2<T> &resolution,
+      const vector2<T> &d,
+      const matrix<T, 3, 3> &K,
+      const quaternion<T> &R = quaternionf(1.0f, 0.0f),
+      const vector3<T> &x = vector3f(0.0f)) 
+    : resolution(resolution), d(d)
+    , a(K(0, 0), K(1, 1)), s(K(0, 1)), t(K(0, 2), K(1, 2))
+    , R(R), x(x) {
+  }
+  camera(
+      const vector2<T> &resolution,
+      const vector2<T> &d,
+      const vector2<T> &sensor_size,
+      const T &focal_length,
+      const quaternion<T> &R = quaternionf(1.0f, 0.0f),
+      const vector3<T> &x = vector3f(0.0f)) 
+    : resolution(resolution), d(d)
+    , a(sensor_size/(2*focal_length)), s(0), t(0, 0)
+    , R(R), x(x) {
+  }
+      
  
   // Realize the actual K matrix.
   matrix<T, 3, 3> K() const {
     matrix<T, 3, 3> k;
-    k(0, 0) = a.x;
-    k(1, 1) = a.y;
-    k(0, 1) = s;
-    k(0, 2) = t.x;
-    k(1, 2) = t.y;
-    k(2, 2) = 1;
+    k(0, 0) = a.x; k(0, 1) = s;   k(0, 2) = t.x;
+                   k(1, 1) = a.y; k(1, 2) = t.y;
+                                  k(2, 2) = 1;
     return k;
   }
-
-  // Set the intrinsic parameters from a calibration matrix.
-  void set_K(const_matrix_ref<T, 3, 3> K) {
-    a = vector2<T>(K(0, 0), K(1, 1));
-    s = K(0, 1);
-    t = vector2<T>(K(0, 2), K(1, 2));
- }
 
   template <typename U>
   vector2<U> focal_plane_to_sensor(const vector2<U> &P) const {
@@ -57,21 +69,21 @@ struct camera {
     u *= vector2<U>(1) - d*dot(u, u);
         
     return vector2<U>(
-        (u.x + T(1))*(T(0.5)*resolution.x),
-        (T(1) - u.y)*(T(0.5)*resolution.y));
+        (u.x + U(1))*(T(0.5)*resolution.x),
+        (u.y + U(1))*(T(0.5)*resolution.y));
   }
 
   template <typename U>
-  vector2<U> sensor_to_focal_plane(const vector2<U> &p) const {
+  vector2<U> sensor_to_focal_plane(const vector2<U> &px) const {
     // Normalize coordinates.
-    vector2<U> u_(
-        p.x*(T(2)/resolution.x) - U(1),
-        p.y*(T(-2)/resolution.y) + U(1));
+    vector2<U> u(
+        px.x*(T(2)/resolution.x) - U(1),
+        px.y*(T(2)/resolution.y) - U(1));
 
     // Apply distortion correction.
     // Inverse of distortion model via newton's method.
-    vector2<U> u = u_;
-    for (int i = 0; i < 4; i++) {
+    vector2<U> u_ = u;
+    for (int i = 0; i < 2; i++) {
       vector2<U> d_uu = d*dot(u, u);
       vector2<U> fu = (u_ - u*(vector2<U>(1) - d_uu));
       vector2<U> df_du = (d_uu + U(2)*d*u - vector2<U>(1));
@@ -79,8 +91,8 @@ struct camera {
     }
 
     // Solve K*x = u.
-    U y = (u.y - t.y)/a.y;
-    U x = (u.x - t.x - s*y)/a.x;
+    U y = (u.y - t.y)*rcp(a.y);
+    U x = (u.x - t.x - s*y)*rcp(a.x);
     return vector2<U>(x, y);
   }
 
@@ -88,7 +100,7 @@ struct camera {
   template <typename U>
   vector2<U> project_to_focal_plane(const vector3<U> &g) const {
     // Convert the global coordinates to the local transform.
-    vector3<U> l = (~quaternion_cast<U>(R)*g*quaternion_cast<U>(R)).b;
+    vector3<U> l = (~quaternion_cast<U>(R)*(g - vector_cast<U>(x))*quaternion_cast<U>(R)).b;
 
     // Project the local coordinates.
     return vector2<U>(l.x, l.y)*rcp(l.z);
@@ -102,27 +114,27 @@ struct camera {
   // Unproject a point on the focal plane.
   template <typename U>
   vector3<U> focal_plane_to_projection(const vector2<U> &P, const U &z) const {
-    return (R*quaternion<T>(0, P.x*z, P.y*z, z)*~R).b;
+    return (R*quaternion<U>(0, P.x*z, P.y*z, z)*~R).b + x;
   }
   
   template <typename U>
-  vector3<U> sensor_to_projection(const vector2<U> &p, const U &z) const {
-    return focal_plane_to_projection(sensor_to_focal_plane(p), z);
+  vector3<U> sensor_to_projection(const vector2<U> &px, const U &z) const {
+    return focal_plane_to_projection(sensor_to_focal_plane(px), z);
   }
 
   bool is_visible(const vector3<T> &g) const {
-    if ((~R*(g - x)*R).b.z <= 1e-6f)
+    if ((~R*(g - x)*R).b.z <= T(1e-6))
       return false;
-    vector2<T> s = project_to_sensor(g);
-    return 0 <= s.x && s.x < resolution.x && 
-           0 <= s.y && s.y < resolution.y;
+    vector2<T> px = project_to_sensor(g);
+    return T(0) <= px.x && px.x < resolution.x && 
+           T(0) <= px.y && px.y < resolution.y;
   }
 };
 
 template <typename T, typename U>
 camera<T> camera_cast(const camera<U> &x) {
   camera<T> y;
-  y.resolution = x.resolution;
+  y.resolution = vector_cast<T>(x.resolution);
   y.d = vector_cast<T>(x.d);
   y.a = vector_cast<T>(x.a);
   y.t = vector_cast<T>(x.t);

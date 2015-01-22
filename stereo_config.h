@@ -50,13 +50,12 @@ struct camera_config {
   {}
 
   cameraf to_camera() const {
-    cameraf c;
-    c.resolution = vector_cast<float>(*resolution);
-    c.d = distortion;
-    c.set_K(calibration);
-    c.R = R;
-    c.x = x;
-    return c;
+    return cameraf(
+        vector_cast<float>(*resolution),
+        distortion,
+        calibration,
+        R,
+        x);
   }
 };
 
