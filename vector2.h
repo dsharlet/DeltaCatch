@@ -2,6 +2,7 @@
 #define VECTOR2_H
 
 #include <iostream>
+#include <limits>
 
 #include "math.h"
 
@@ -53,16 +54,14 @@ bool isnan(const vector2<T> &x) { return isnan(x.x) || isnan(x.y); }
 
 template <typename T>
 std::ostream &operator << (std::ostream &os, const vector2<T> &x) {
-  return os << '<' << x.x << ", " << x.y << '>';
+  return os << '[' << x.x << ' ' << x.y << ']';
 }
 
 template <typename T>
 std::istream &operator >> (std::istream &is, vector2<T> &x) {
-  if (is.peek() == '<') is.ignore();
-  is >> x.x;
-  if (is.peek() == ',') is.ignore();
-  is >> x.y;
-  if (is.peek() == '>') is.ignore();
+  is.ignore(std::numeric_limits<std::streamsize>::max(), '[');
+  is >> x.x >> x.y;
+  is.ignore(std::numeric_limits<std::streamsize>::max(), ']');
   return is;
 }
 

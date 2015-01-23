@@ -2,6 +2,7 @@
 #define VECTOR3_H
 
 #include <iostream>
+#include <limits>
 
 #include "math.h"
 
@@ -62,18 +63,14 @@ bool isnan(const vector3<T> &x) { return isnan(x.x) || isnan(x.y) || isnan(x.z);
 
 template <typename T>
 std::ostream &operator << (std::ostream &os, const vector3<T> &x) {
-  return os << '<' << x.x << ", " << x.y << ", " << x.z << '>';
+  return os << '[' << x.x << ' ' << x.y << ' ' << x.z << ']';
 }
 
 template <typename T>
 std::istream &operator >> (std::istream &is, vector3<T> &x) {
-  if (is.peek() == '<') is.ignore();
-  is >> x.x;
-  if (is.peek() == ',') is.ignore();
-  is >> x.y;
-  if (is.peek() == ',') is.ignore();
-  is >> x.z;
-  if (is.peek() == '>') is.ignore();
+  is.ignore(std::numeric_limits<std::streamsize>::max(), '[');
+  is >> x.x >> x.y >> x.z;
+  is.ignore(std::numeric_limits<std::streamsize>::max(), ']');
   return is;
 }
 

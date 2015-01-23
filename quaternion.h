@@ -2,6 +2,7 @@
 #define QUATERNION_H
 
 #include <iostream>
+#include <limits>
 
 #include "vector3.h"
 
@@ -108,20 +109,14 @@ quaternion<T> quaternion_cast(const quaternion<U> &q) {
 
 template <typename T>
 std::ostream &operator << (std::ostream &os, const quaternion<T> &q) {
-  return os << '<' << q.a << ", " << q.b.x << ", " << q.b.y << ", " << q.b.z << '>';
+  return os << '[' << q.a << ' ' << q.b.x << ' ' << q.b.y << ' ' << q.b.z << ']';
 }
 
 template <typename T>
 std::istream &operator >> (std::istream &is, quaternion<T> &q) {
-  if (is.peek() == '<') is.ignore();
-  is >> q.a;
-  if (is.peek() == ',') is.ignore();
-  is >> q.b.x;
-  if (is.peek() == ',') is.ignore();
-  is >> q.b.y;
-  if (is.peek() == ',') is.ignore();
-  is >> q.b.z;
-  if (is.peek() == '>') is.ignore();
+  is.ignore(std::numeric_limits<std::streamsize>::max(), '[');
+  is >> q.a >> q.b.x >> q.b.y >> q.b.z;
+  is.ignore(std::numeric_limits<std::streamsize>::max(), ']');
   return is;
 }
 

@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <cassert>
 #include <initializer_list>
+#include <limits>
 #include <vector>
 #include <stdexcept>
 
@@ -389,10 +390,9 @@ std::ostream &operator << (std::ostream &os, const_matrix_ref<T, M, N> A) {
     os << '[';
     for (int j = 0; j < A.N(); j++) {
       os << A(i, j);
-      if (j + 1 < A.N()) os << ',';
+      if (j + 1 < A.N()) os << ' ';
     }
-    os << "]";
-    if (i + 1 < A.M()) os << ',';
+    os << ']';
   }
   os << ']';
   return os;
@@ -400,17 +400,14 @@ std::ostream &operator << (std::ostream &os, const_matrix_ref<T, M, N> A) {
 
 template <typename T, int M, int N>
 std::istream &operator >> (std::istream &is, matrix_ref<T, M, N> A) {
-  if (is.peek() == '[') is.ignore();
+  is.ignore(std::numeric_limits<std::streamsize>::max(), '[');
   for (int i = 0; i < A.M(); i++) {
-    if (is.peek() == '[') is.ignore();
-    for (int j = 0; j < A.N(); j++) {
+    is.ignore(std::numeric_limits<std::streamsize>::max(), '[');
+    for (int j = 0; j < A.N(); j++)
       is >> A.at(i, j);
-      if (is.peek() == ',') is.ignore();
-    }
-    if (is.peek() == ']') is.ignore();
-    if (is.peek() == ',') is.ignore();
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ']');
   }
-  if (is.peek() == ']') is.ignore();
+  is.ignore(std::numeric_limits<std::streamsize>::max(), ']');
   return is;
 }
 
