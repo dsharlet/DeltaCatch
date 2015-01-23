@@ -24,14 +24,23 @@ struct calibration_data {
     vector3<T> center;
     T radius;
     std::vector<sample> samples;
+
+    set() : center_valid(false) {}
   };
   std::vector<set> sets;
+
+  std::size_t sample_count() const {
+    std::size_t samples = 0;
+    for (const auto &i : sets) 
+      samples += i.samples.size();
+    return samples;
+  }
 };
 
 template <typename T>
 void write_calibration_data(std::ostream &os, const calibration_data<T> &cd) {
   for (const auto &set : cd.sets) {
-    os << "set " << set.samples.size() << " " << set.radius;
+    os << "set " << set.radius;
     if (set.center_valid)
       os << " " << set.center;
     os << endl;
@@ -55,15 +64,15 @@ calibration_data<T> read_calibration_data(std::istream &is) {
       line >> set.radius;
       if (line.good()) {
         line >> set.center;
-        set.center_valid = line.good();
-        cd.sets.push_back(std::move(set));
+        set.center_valid = !line.bad();
       }
+      cd.sets.push_back(std::move(set));
     } else if (cmd == "sample") {
       if (cd.sets.empty())
         throw std::runtime_error("calibration data missing set descriptor");
       typename calibration_data<T>::sample s;
       line >> s.e0 >> s.e1;
-      if (line.good())
+      if (!line.bad())
         cd.sets.back().samples.push_back(s);
     }
   }
