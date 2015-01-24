@@ -13,10 +13,10 @@ template <typename T>
 struct calibration_data {
 
   struct sample {
-    vector2<T> e0, e1;
+    vector2<T> px0, px1;
 
     sample() {}
-    sample(const vector2<T> &e0, const vector2<T> &e1) : e0(e0), e1(e1) {}
+    sample(const vector2<T> &px0, const vector2<T> &px1) : px0(px0), px1(px1) {}
   };
 
   struct set {
@@ -45,7 +45,7 @@ void write_calibration_data(std::ostream &os, const calibration_data<T> &cd) {
       os << " " << set.center;
     os << endl;
     for (const auto &s : set.samples)
-      os << "sample " << s.e0 << " " << s.e1 << endl;
+      os << "sample " << s.px0 << " " << s.px1 << endl;
   }
 }
 
@@ -71,7 +71,7 @@ calibration_data<T> read_calibration_data(std::istream &is) {
       if (cd.sets.empty())
         throw std::runtime_error("calibration data missing set descriptor");
       typename calibration_data<T>::sample s;
-      line >> s.e0 >> s.e1;
+      line >> s.px0 >> s.px1;
       if (!line.bad())
         cd.sets.back().samples.push_back(s);
     }

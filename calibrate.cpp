@@ -3,366 +3,441 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
-#include <thread>
 #include <iomanip>
 #include <chrono>
+#include <thread>
 
+#include "arg_port.h"
 #include "debug.h"
+#include "camera.h"
 #include "nxtcam.h"
-#include "stereo_config.h"
-
 #include "autodiff.h"
 #include "matrix.h"
 
-using namespace ev3dev;
+#include "calibration_data.h"
+
 using namespace std;
 
-static stereo_config stereo;
+static cl::group stereo_group("Camera configuration estimate");
 
+struct camera_config {
+  arg_port port;
+  cl::arg<vector2i> resolution;
+  cl::arg<vector2f> distortion;
+
+  cl::arg<float> sensor_size;
+  cl::arg<float> aspect_ratio;
+  cl::arg<float> focal_length;
+
+  cl::arg<vector3f> x, y;
+  cl::arg<vector3f> position;
+
+  camera_config(
+      const std::string &prefix,
+      const ev3::port_type &port,
+      const vector2i &resolution,
+      float sensor_size, float aspect_ratio, float focal_length,
+      const vector3f &x,
+      const vector3f &y,
+      const vector3f &position,
+      const vector2f &distortion = vector2f(0.0f)) : 
+  port(
+    port,
+    cl::name(prefix + "-port"),
+    cl::desc("Port this camera is attached to."),
+    stereo_group),
+  resolution(
+    resolution,
+    cl::name(prefix + "-resolution"),
+    cl::desc("Resolution of the cameras, in pixels."),
+    stereo_group),
+  distortion(
+    vector2f(0.0f, 0.0f),
+    cl::name(prefix + "-distortion"),
+    cl::desc("Radial distortion parameters of the camera."),
+    stereo_group),
+  sensor_size(
+    4.0f,
+    cl::name(prefix + "-sensor-size"),
+    cl::desc("Camera diagonal sensor size, in mm."),
+    stereo_group),
+  aspect_ratio(
+    1.33f,
+    cl::name(prefix + "-aspect-ratio"),
+    cl::desc("Camera aspect ratio."),
+    stereo_group),
+  focal_length(
+    1.0f,
+    cl::name(prefix + "-focal-length"),
+    cl::desc("Focal length of the camera."),
+    stereo_group),
+  x(x,
+    cl::name(prefix + "-x"),
+    cl::desc("Basis vector of the x coordinates of the camera sensor."),
+    stereo_group),
+  y(y,
+    cl::name(prefix + "-y"),
+    cl::desc("Basis vector of the y coordinates of the camera sensor."),
+    stereo_group),
+  position(
+    position,
+    cl::name(prefix + "-position"),
+    cl::desc("Position of the camera focal point."),
+    stereo_group)
+  {}
+
+  cameraf to_camera() const {
+    vector2f sensor_dim(aspect_ratio, -1.0f);
+    sensor_dim *= sensor_size/abs(sensor_dim);
+    return cameraf(
+        vector_cast<float>(*resolution), 
+        distortion,
+        sensor_dim, focal_length,
+        quaternionf::from_basis(*x, *y, unit(cross(*x, *y))),
+        position);
+  }
+};
+
+static cl::arg<string> calibration_data_file(
+  "calibration_data",
+  cl::name("input-file"),
+  cl::flags(cl::positional));
+static cl::arg<string> output_file(
+  "stereo_config",
+  cl::name("output-file"),
+  cl::flags(cl::positional));
+
+static cl::group capture_group("Data capture");
+
+static cl::boolean capture(
+  cl::name("capture"),
+  cl::desc("Capture and append a new set of data to the calibration data."),
+  capture_group);
+static cl::arg<int> sample_count(
+  32,
+  cl::name("sample-count"),
+  cl::desc("Number of samples to capture."),
+  capture_group);
+static cl::arg<vector3f> sample_center(
+  vector3f(0.0f),
+  cl::name("sample-center"),
+  cl::desc("Center of the sampling sphere."),
+  capture_group);
+static cl::arg<float> sample_radius(
+  77.5f,
+  cl::name("sample-radius"),
+  cl::desc("Radius of the sampling sphere."),
+  capture_group);
+static cl::arg<float> sample_min_dx(
+  10.0f,
+  cl::name("sample-min-dx"),
+  cl::desc("Minimum distance between samples."),
+  capture_group);
+static cl::arg<float> sample_max_dx(
+  20.0f,
+  cl::name("sample-max-dx"),
+  cl::desc("Maximum distance between samples."),
+  capture_group);
 static cl::arg<float> sample_rate(
   30.0f,
   cl::name("sample-rate"),
-  cl::desc("Sample rate of the cameras."));
-static cl::arg<int> sample_count(
-  50,
-  cl::name("sample-count"),
-  cl::desc("How many samples to collect."));
-static cl::arg<vector3f> sample_origin(
-  vector3f(0.0f, 0.0f, 6.0f),
-  cl::name("sample-origin"),
-  cl::desc("Center of the sampling sphere, in studs."));
-static cl::arg<float> sample_radius(
-  98.0f,
-  cl::name("sample-radius"),
-  cl::desc("Radius of the sampling sphere, in studs."));
+  cl::desc("Frequency of camera observation samples, in Hz."),
+  capture_group);
 
-static cl::arg<float> new_sample_min(
-  5.0f,
-  cl::name("new-sample-min"),
-  cl::desc("Minimum distance for a new sample to be considered, in pixels."));
-static cl::arg<float> new_sample_max(
-  20.0f,
-  cl::name("new-sample-max"),
-  cl::desc("Maximum distance for a new sample to be considered, in pixels."));
+static camera_config cam_config0(
+    "cam0",
+    ev3::INPUT_1,
+    vector2i(176, 144),
+    4.0f, 1.33f, 3.5f,
+    vector3f(0.0f, -cos(53.5*pi/180 + pi/2), -sin(53.5*pi/180 + pi/2)),
+    vector3f(1.0f, 0.0f, 0.0f),
+    vector3f(-11.0f, 13.0f, -2.0f));
+static camera_config cam_config1(
+    "cam1",
+    ev3::INPUT_4,
+    vector2i(176, 144),
+    4.0f, 1.33f, 3.5f,
+    vector3f(0.0f, cos(53.5*pi/180 + pi/2), sin(53.5*pi/180 + pi/2)),
+    vector3f(-1.0f, 0.0f, 0.0f),
+    vector3f(11.0f, 13.0f, -2.0f));
+
+static cl::group optimization_group("Optimization parameters");
 
 static cl::arg<int> max_iterations(
   50,
   cl::name("max-iterations"),
-  cl::desc("Maximum number of iterations allowed when solving optimization problems."));
-static cl::arg<float> epsilon(
-  1e-6,
+  cl::desc("Maximum number of iterations allowed when solving optimization problems."),
+  optimization_group);
+static cl::arg<double> epsilon(
+  1e-4,
   cl::name("epsilon"),
-  cl::desc("Number to consider to be zero when solving optimization problems."));
-
-static cl::arg<string> output(
-  "stereo.cb",
-  cl::name("output-file"),
-  cl::flags(cl::positional));
-
-static cl::boolean test(
-  cl::name("test"),
-  cl::desc("Generate simulated calibration samples."));
+  cl::desc("Number to consider to be zero when solving optimization problems."),
+  optimization_group);
+static cl::arg<double> lambda_recovery(
+  1,
+  cl::name("lambda-recovery"),
+  cl::desc("Value of the Levenberg-Marquart damping parameter to use when recovering from a bad optimization step."),
+  optimization_group);
+static cl::arg<double> lambda_decay(
+  0.9,
+  cl::name("lambda-decay"),
+  cl::desc("Decay rate of the Levenberg-Marquart damping parameter for a successful optimization steps."),
+  optimization_group);
 
 template <typename T, int N>
 std::ostream &operator << (std::ostream &os, const diff<T, N> &d) {
   return os << d.f;
 }
 
-struct sample {
-  vector2f e0, e1;
-
-  sample() {}
-  sample(const vector2f &e0, const vector2f &e1) : e0(e0), e1(e1) {}
-};
-
-// Calibration data is a list of sets of samples from spheres.
-struct calibration_data {
-  struct set {
-    vector3f center;
-    float radius;
-    vector<sample> samples;
-  };
-  vector<set> sets;
-};
-
-void write_calibration_data(ostream &os, const calibration_data &cd) {
-  for (const auto &set : cd.sets) {
-    os << "set " << set.samples.size();
-    if (set.radius > 0.0f)
-      os << " " << set.center << " " << set.radius;
-    os << endl;
-    for (const auto &s : set.samples)
-      os << "sample " << s.e0 << " " << s.e1 << endl;
-  }
+template <typename T, int N>
+std::istream &operator >> (std::istream &is, diff<T, N> &d) {
+  return is >> d.f;
 }
-
-calibration_data read_calibration_data(istream &is) {
-  calibration_data cd;
-  while (is.good()) {
-    string line_buf;
-    getline(is, line_buf);
-    stringstream line(line_buf);
-
-    string cmd;
-    line >> cmd;
-    if (cmd == "set") {
-      calibration_data::set set;
-      line >> set.center >> set.radius;
-      if (line.good())
-        cd.sets.push_back(std::move(set));
-    } else if (cmd == "sample") {
-      if (cd.sets.empty())
-        throw runtime_error("calibration data missing set descriptor");
-      sample s;
-      line >> s.e0 >> s.e1;
-      if (line.good())
-        cd.sets.back().samples.push_back(s);
-    }
-  }
-  return cd;
-}
-
-vector<sample> collect_samples(int count);
-
-#define FOCAL_LENGTH
-#define FOCAL_PLANE_ORIGIN
-#define DISTORTION
 
 template <typename T>
-void dump_config(ostream &os, const camera<T> &cam0, const camera<T> &cam1, const char *prefix = "--") {
-#ifdef FOCAL_LENGTH
-  os << prefix << stereo.cam0.focal_length.name() << " " << cam0.focal_length << endl;
-  os << prefix << stereo.cam1.focal_length.name() << " " << cam1.focal_length << endl;
-#endif
-#ifdef FOCAL_PLANE_ORIGIN
-  os << prefix << stereo.cam0.origin.name() << " " << cam0.focal_plane.origin << endl;
-  os << prefix << stereo.cam1.origin.name() << " " << cam1.focal_plane.origin << endl;
-#endif
-#ifdef DISTORTION
-  os << prefix << stereo.cam0.distortion.name() << " " << cam0.distortion << endl;
-  os << prefix << stereo.cam1.distortion.name() << " " << cam1.distortion << endl;
-#endif
+void dump_config(ostream &os, const char *prefix, const camera<T> &cam) {
+  os << prefix << "distortion " << cam.d << endl;
+  os << prefix << "calibration " << cam.K() << endl;
+  os << prefix << "orientation " << cam.R << endl;
+  os << prefix << "origin " << cam.x << endl;
 }
 
-
-void calibrate(const std::vector<sample> &samples, cameraf &cam0, cameraf &cam1) {
-  const size_t M = samples.size();
-  const double epsilon_sq = epsilon*epsilon;
-
-  enum variable {
-    // Intrinsic parameters.
-#ifdef FOCAL_LENGTH
-    e0_f,
-    e1_f,
-#endif
-#ifdef FOCAL_PLANE_ORIGIN
-    e0_tx, e0_ty,
-    e1_tx, e1_ty,
-#endif
-#ifdef DISTORTION
-    e0_dx, e0_dy,
-    e1_dx, e1_dy,
-#endif
-
-    // The number of variables.
-    N,
-  };
-  typedef diff<double, N> d;
-  
-  camera<d> cam0_ = camera_cast<d>(cam0);
-  camera<d> cam1_ = camera_cast<d>(cam1);
-#ifdef FOCAL_LENGTH
-  cam0_.focal_length = d(cam0.focal_length, e0_f);
-  cam1_.focal_length = d(cam1.focal_length, e1_f);
-#endif
-#ifdef DISTORTION
-  cam0_.distortion = vector2<d>(d(cam0.distortion.x, e0_dx), d(cam0.distortion.y, e0_dy));
-  cam1_.distortion = vector2<d>(d(cam1.distortion.x, e1_dx), d(cam1.distortion.y, e1_dy));
-#endif
-#ifdef FOCAL_PLANE_ORIGIN
-  cam0_.focal_plane.origin = vector2<d>(d(cam0.focal_plane.origin.x, e0_tx), d(cam0.focal_plane.origin.y, e0_ty));
-  cam1_.focal_plane.origin = vector2<d>(d(cam1.focal_plane.origin.x, e1_tx), d(cam1.focal_plane.origin.y, e1_ty));
-#endif
-
-  double baseline = abs(cam0.transform.origin - cam1.transform.origin);//.baseline;
-
-  const vector3d sample_origin = vector_cast<double>(*::sample_origin);
-  const double sample_radius = scalar_cast<double>(*::sample_radius);
-
-  int it;
-  for (it = 1; it <= max_iterations; it++) {
-    // Compute J^T*J and b.
-    matrix<double, N, N> JTJ;
-    matrix<double, N, 1> JTy;
-    for (size_t i = 0; i < M; i++) {
-      const sample &s_i = samples[i];
-      vector2<d> f0 = cam0_.sensor_to_focal_plane(vector_cast<d>(s_i.e0));
-      vector2<d> f1 = cam1_.sensor_to_focal_plane(vector_cast<d>(s_i.e1));
-      
-      // z is determined by the stereo disparity.
-      d z = baseline/abs(f0 - f1);
-      
-      vector3<d> x0 = cam0_.focal_plane_to_projection(f0, z);
-      vector3<d> x1 = cam1_.focal_plane_to_projection(f1, z);
-
-      // Error in depth from the calibration sphere and x, for both samples.
-      d r_z0 = abs(x0 - sample_origin) - sample_radius;
-      d r_z1 = abs(x1 - sample_origin) - sample_radius;
-
-      // The focal plane y values should be equal.
-      d r_x = (f0.y - f1.y)*z;
-      
-      for (int i = 0; i < N; i++) {
-        double Dr_x_i = D(r_x, i);
-        double Dr_z0_i = D(r_z0, i);
-        double Dr_z1_i = D(r_z1, i);
-        // Add this residual to J^T*y.
-        JTy(i) -= Dr_x_i*r_x.f + Dr_z0_i*r_z0.f + Dr_z1_i*r_z1.f;
-        // Add this residual to J^T*J
-        for (int j = 0; j < N; j++)
-          JTJ(i, j) += Dr_x_i*D(r_x, j) + Dr_z0_i*D(r_z0, j) + Dr_z1_i*D(r_z1, j);
-      }
-    }
-
-    // Solve J^T*J*dB = J^T*y.
-    matrix_ref<double, N, 1> dB = solve(JTJ, JTy);
-    
-    if (!isfinite(dB))
-      throw runtime_error("optimization diverged");
-
-    dbg(2) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
-    
-#ifdef FOCAL_LENGTH
-    cam0_.focal_length += dB(e0_f);
-    cam1_.focal_length += dB(e1_f);
-#endif    
-#ifdef DISTORTION
-    cam0_.distortion += vector2d(dB(e0_dx), dB(e0_dy));
-    cam1_.distortion += vector2d(dB(e1_dx), dB(e1_dy));
-#endif    
-#ifdef FOCAL_PLANE_ORIGIN
-    cam0_.focal_plane.origin += vector2d(dB(e0_tx), dB(e0_ty));
-    cam1_.focal_plane.origin += vector2d(dB(e1_tx), dB(e1_ty));
-#endif    
-    
-    if (dot(dB, dB) < epsilon_sq) {
-      dbg(1) << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
-      break;
-    }
-  }
-  
-#ifdef FOCAL_LENGTH
-  cam0.focal_length = scalar_cast<float>(cam0_.focal_length);
-  cam1.focal_length = scalar_cast<float>(cam1_.focal_length);
-#endif    
-#ifdef DISTORTION
-  cam0.distortion = vector_cast<float>(cam0_.distortion);
-  cam1.distortion = vector_cast<float>(cam1_.distortion);
-#endif    
-#ifdef FOCAL_PLANE_ORIGIN
-  cam0.focal_plane.origin = vector_cast<float>(cam0_.focal_plane.origin);
-  cam1.focal_plane.origin = vector_cast<float>(cam1_.focal_plane.origin);
-#endif    
+template <typename T>
+void dump_config(ostream &os, const camera<T> &cam0, const camera<T> &cam1) {
+  dump_config(os, "--cam0-", cam0);
+  dump_config(os, "--cam1-", cam1);
 }
-
-void test_calibrate();
 
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
-
+  
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
-  
-  cameraf cam0, cam1;
-  tie(cam0, cam1) = stereo.cameras();
 
-  dump_config(cout, cam0, cam1);
+  if (capture) {
+    // Read in the existing data.
+    calibration_data<float> cd;
+    try {
+      ifstream input(calibration_data_file);
+      cd = read_calibration_data<float>(input);
+      cout << "Read calibration data with " << cd.sets.size() << " sets, " << cd.sample_count() << " samples." << endl;
+    } catch (exception &ex) {
+      cout << "Warning, failed to read calibration data file '" << *calibration_data_file << "'" << endl;
+    }
+    
+    // Add a new dataset.
+    cd.sets.emplace_back();
+    calibration_data<float>::set &set = cd.sets.back();
+    set.radius = sample_radius;
+    if (sample_center.parsed()) {
+      set.center = sample_center;
+      set.center_valid = true;
+    }
+    set.samples.reserve(sample_count);
 
-  // Get a list of samples corresponding to observations of an object lying somewhere on the sampling sphere. 
-  vector<sample> samples = collect_samples();
-  calibrate(samples, cam0, cam1);
-  
-  dump_config(cout, cam0, cam1);
-
-  // Dump results to output file too.
-  if (!test) {
-    ofstream file(output);
-    dump_config(file, cam0, cam1);
-  }
-  
-  return 0;
-}
-
-vector<sample> collect_samples() {
-  vector<sample> samples;
-
-  if (!test) {
-    // Start up cameras.
-    nxtcam cam0(stereo.cam0.port);
-    nxtcam cam1(stereo.cam1.port); 
+    // Turn on the cameras.
+    nxtcam cam0(cam_config0.port);
+    nxtcam cam1(cam_config1.port);
     cout << "Cameras:" << endl;
     cout << cam0.device_id() << " " << cam0.version() << " (" << cam0.vendor_id() << ")" << endl;
     cout << cam1.device_id() << " " << cam1.version() << " (" << cam1.vendor_id() << ")" << endl;
 
     cam0.track_objects();
     cam1.track_objects();
+
+    chrono::milliseconds sample_period(static_cast<int>(1e3f/sample_rate + 0.5f));
   
-    // t will increment in regular intervals of T.
-    typedef chrono::steady_clock clock;
-    auto t = clock::now();
-    chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
-    while (static_cast<int>(samples.size()) < sample_count) {
+    // Capture samples.
+    while (static_cast<int>(set.samples.size()) < sample_count) {
       nxtcam::blob_list blobs0 = cam0.blobs();
       nxtcam::blob_list blobs1 = cam1.blobs();
 
       if (blobs0.size() == 1 && blobs1.size() == 1) {
-        vector2f e0 = blobs0.front().center();
-        vector2f e1 = blobs1.front().center();
+        const nxtcam::blob &b0 = blobs0.front();
+        const nxtcam::blob &b1 = blobs1.front();
 
-        if (samples.empty()) {
-          samples.emplace_back(e0, e1);
-          cout << "Recorded sample " << samples.size() << ": " << e0 << ", " << e1 << endl;
+        if(set.samples.empty()) {
+          set.samples.emplace_back(b0.center(), b1.center());
+          cout << "Sample " << set.samples.size() << ": " << b0.center() << ", " << b1.center() << endl;
         } else {
-          float d = max(abs(samples.back().e0 - e0), abs(samples.back().e1 - e1));
-          if (new_sample_min < d && d < new_sample_max) {
-            samples.emplace_back(e0, e1);
-            cout << "Recorded sample " << samples.size() << ": " << e0 << ", " << e1 << endl;
+          float dx = max(abs(b0.center() - set.samples.back().px0), abs(b1.center() - set.samples.back().px1));
+          if (sample_min_dx <= dx && dx < sample_max_dx) {
+            set.samples.emplace_back(b0.center(), b1.center());
+            cout << "Sample " << set.samples.size() << ": " << b0.center() << ", " << b1.center() << endl;
           }
         }
       }
 
-      t += T;
-      this_thread::sleep_until(t);
+      this_thread::sleep_for(sample_period);
     }
 
     cam0.stop_tracking();
     cam1.stop_tracking();
-  } else {
-    cameraf cam0, cam1;
-    tie(cam0, cam1) = stereo.cameras();
-  
-#ifdef FOCAL_LENGTH
-    cam0.focal_length = randf(1.0f, 10.0f);
-    cam1.focal_length = randf(1.0f, 10.0f);
-#endif
-#ifdef FOCAL_PLANE_ORIGIN
-    cam0.focal_plane.origin = randv2f(-1.0f, 1.0f);
-    cam0.focal_plane.origin = randv2f(-1.0f, 1.0f);
-#endif
-#ifdef DISTORTION
-    cam0.distortion = randv2f(0.0f, 0.1f);
-    cam1.distortion = randv2f(0.0f, 0.1f);
-#endif    
-    dump_config(cout, cam0, cam1);
-    
-    srand(time(NULL));
 
-    while(static_cast<int>(samples.size()) < sample_count) {
-      vector3f x = unit(randv3f(-1.0f, 1.0f))*sample_radius + *sample_origin;
-      if (cam0.is_visible(x) && cam1.is_visible(x))
-        samples.emplace_back(cam0.project_to_sensor(x), cam1.project_to_sensor(x));
+    // Write out the updated calibration data.
+    ofstream output(calibration_data_file);
+    write_calibration_data(output, cd);
+  } else {
+    typedef diff<double, 40> d;
+
+    ifstream input(calibration_data_file);
+    calibration_data<d> cd = read_calibration_data<d>(input);
+
+    if (cd.sets.empty()) 
+      throw runtime_error("no calibration data");
+
+    // Get a list of samples corresponding to observations of an object lying somewhere on the sampling sphere. 
+    const double epsilon_sq = epsilon*epsilon;
+ 
+    camera<d> cam0 = camera_cast<d>(cam_config0.to_camera());
+    camera<d> cam1 = camera_cast<d>(cam_config1.to_camera());
+
+    // Construct the variables used in the optimization.
+    int N = 0;
+    cam0.d.x.df[N++] = 1; cam0.d.y.df[N++] = 1;
+    cam0.a.x.df[N++] = 1; cam0.a.y.df[N++] = 1;
+    //cam0.s.df[N++] = 1;
+    cam0.t.x.df[N++] = 1; cam0.t.y.df[N++] = 1;
+    cam0.R.a.df[N++] = 1; cam0.R.b.x.df[N++] = 1; cam0.R.b.y.df[N++] = 1; cam0.R.b.z.df[N++] = 1;
+  
+    cam1.d.x.df[N++] = 1; cam1.d.y.df[N++] = 1;
+    cam1.a.x.df[N++] = 1; cam1.a.y.df[N++] = 1;
+    //cam1.s.df[N++] = 1;
+    cam1.t.x.df[N++] = 1; cam1.t.y.df[N++] = 1;
+    cam1.R.a.df[N++] = 1; cam1.R.b.x.df[N++] = 1; cam1.R.b.y.df[N++] = 1; cam1.R.b.z.df[N++] = 1;
+
+    for (auto &set : cd.sets) {
+      // If we don't know the center of the sphere for this set, we need to find it in the optimization.
+      if (!set.center_valid) {
+        set.center.x.df[N++] = 1;
+        set.center.y.df[N++] = 1;
+        set.center.z.df[N++] = 1;
+      }
     }
-  }
-  return samples;
+  
+    // Levenberg-Marquardt damping parameter.
+    double lambda = lambda_recovery;
+    double prev_error = 1e20f;
+
+    int it;
+    for (it = 1; it <= max_iterations; it++) {
+      d baseline = abs(cam1.x - cam0.x);
+      vector3<d> b = unit(cam1.x - cam0.x);
+    
+      double error = 0;
+
+      // Compute J^T*J and b.
+      matrix<double> JTJ(N, N);
+      matrix<double> JTy(N, 1);
+    
+      for (const auto &set : cd.sets) {
+        for (const auto &s : set.samples) {
+          vector3<d> x0 = cam0.sensor_to_projection(s.px0, d(1.0)) - cam0.x;
+          vector3<d> x1 = cam1.sensor_to_projection(s.px1, d(1.0)) - cam1.x;
+
+          // z is determined by the stereo disparity.
+          d z = baseline/(dot(x0, b) - dot(x1, b));
+
+          // Move the points from the focal plane to the (parallel) plane containing z and add the camera origins.
+          x0 = x0*z + cam0.x;
+          x1 = x1*z + cam1.x;
+
+          // Error in depth from the calibration sphere and x, for both samples.
+          d r_s = set.radius - abs((x0 + x1)/2 - set.center);
+          //d r_0 = set.radius - abs(x0 - set.center);
+          //d r_1 = set.radius - abs(x1 - set.center);
+          error += sqr(r_s.f);
+        
+          // Error in difference between the two projected points.
+          d r_z = abs(x0 - x1);
+          error += sqr(r_z.f);
+
+          //error += sqr(r_0.f) + sqr(r_1.f) + sqr(r_z.f);
+
+          for (int i = 0; i < N; i++) {
+            //double Dr_0_i = D(r_0, i);
+            //double Dr_1_i = D(r_1, i);
+            double Dr_s_i = D(r_s, i);
+            double Dr_z_i = D(r_z, i);
+            // Add this residual to J^T*y.
+            JTy(i) -= Dr_s_i*r_s.f + Dr_z_i*r_z.f;
+            //JTy(i) -= Dr_0_i*r_0.f + Dr_1_i*r_1.f + Dr_z_i*r_z.f;
+            // Add this residual to J^T*J
+            for (int j = 0; j < N; j++)
+              JTJ(i, j) += Dr_s_i*D(r_s, j) + Dr_z_i*D(r_z, j);
+              //JTJ(i, j) += Dr_0_i*D(r_0, j) + Dr_1_i*D(r_1, j) + Dr_z_i*D(r_z, j);
+          }
+        }
+      }
+      
+      // Update Levenberg-Marquardt damping parameter based on whether the error
+      // increased or decreased on this iteration.
+      if (error > prev_error)
+        lambda = lambda_recovery;
+      else
+        lambda *= lambda_decay;
+      prev_error = error;
+      
+      // Add lambda*diag(J^J*J) to J^J*J.
+      for (int i = 0; i < N; i++)
+        JTJ(i, i) *= 1 + lambda;
+
+      // Solve J^T*J*dB = J^T*y.
+      matrix_ref<double> dB = solve(JTJ, JTy);
+    
+      if (!isfinite(dB))
+        throw runtime_error("optimization diverged");
+    
+      dbg(2) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
+        << ", error=" << error << ", lambda=" << lambda << endl;
+    
+      int n = 0;
+      cam0.d.x += dB(n++); cam0.d.y += dB(n++);
+      cam0.a.x += dB(n++); cam0.a.y += dB(n++);
+      //cam0.s += dB(n++);
+      cam0.t.x += dB(n++); cam0.t.y += dB(n++);
+      cam0.R.a += dB(n++); cam0.R.b.x += dB(n++); cam0.R.b.y += dB(n++); cam0.R.b.z += dB(n++);
+  
+      cam1.d.x += dB(n++); cam1.d.y += dB(n++);
+      cam1.a.x += dB(n++); cam1.a.y += dB(n++);
+      //cam1.s += dB(n++);
+      cam1.t.x += dB(n++); cam1.t.y += dB(n++);
+      cam1.R.a += dB(n++); cam1.R.b.x += dB(n++); cam1.R.b.y += dB(n++); cam1.R.b.z += dB(n++);
+
+      // Renormalize quaternions.
+      cam0.R /= abs(cam0.R);
+      cam1.R /= abs(cam1.R);
+  
+      for (auto &i : cd.sets) {
+        // If we don't know the center of the sphere for this set, we need to find them in the optimization.
+        if (!i.center_valid) {
+          i.center.x += dB(n++);
+          i.center.y += dB(n++);
+          i.center.z += dB(n++);
+        }
+      }
+        
+      if (dot(dB, dB) < epsilon_sq) {
+        dbg(1) << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
+        break;
+      }
+    }
+    
+    dump_config(cout, cam0, cam1);
+
+    for (size_t i = 0; i < cd.sets.size(); i++) {
+      if (cd.sets[i].center_valid)
+        cout << "Known sampling sphere ";
+      else
+        cout << "Estimated sampling sphere ";
+      cout << i << " center=" << cd.sets[i].center << ", radius=" << cd.sets[i].radius << endl;
+    }
+    
+    // Dump results to output file too.
+    ofstream output(output_file);
+    dump_config(output, cam0, cam1);
+  }  
+
+  return 0;
 }

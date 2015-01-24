@@ -104,13 +104,13 @@
     <ClCompile Include="stereo_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stereo_calibrate.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="camera_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="matrix_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="calibrate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

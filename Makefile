@@ -36,7 +36,7 @@ bin/delta_catch: obj/delta_catch.o obj/delta_robot.o obj/nxtcam.o obj/debug.o ob
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 		
-bin/stereo_calibrate: obj/stereo_calibrate.o obj/nxtcam.o obj/debug.o
+bin/calibrate: obj/calibrate.o obj/nxtcam.o obj/debug.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 
@@ -61,4 +61,4 @@ bin/matrix_test: obj/matrix_test.o
 clean:
 	rm -rf obj bin *~
 
-all:  bin/delta_test bin/delta_catch bin/autodiff_test bin/stereo_calibrate bin/stereo_test bin/camera_test bin/matrix_test
+all:  bin/delta_test bin/delta_catch bin/autodiff_test bin/calibrate bin/stereo_test bin/camera_test bin/matrix_test

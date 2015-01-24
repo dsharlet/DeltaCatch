@@ -69,6 +69,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="autodiff_test.cpp" />
+    <ClCompile Include="calibrate.cpp" />
     <ClCompile Include="camera_test.cpp" />
     <ClCompile Include="debug.cpp" />
     <ClCompile Include="delta_catch.cpp" />
@@ -77,7 +78,6 @@
     <ClCompile Include="delta_test.cpp" />
     <ClCompile Include="matrix_test.cpp" />
     <ClCompile Include="nxtcam.cpp" />
-    <ClCompile Include="stereo_calibrate.cpp" />
     <ClCompile Include="stereo_test.cpp" />
     <ClCompile Include="trajectory.cpp" />
     <ClCompile Include="viz_client.cpp" />

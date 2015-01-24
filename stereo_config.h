@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "arg_port.h"
 #include "camera.h"
 #include "vector2.h"
@@ -59,11 +61,37 @@ struct camera_config {
   }
 };
 
+class stereo_config_file_arg : public cl::arg<std::string> {
+public:
+  stereo_config_file_arg() : cl::arg<std::string>(
+      "stereo_config",
+      cl::name("stereo-config")) {}
 
+  void parse(std::list<const char *> &argv) {
+    cl::arg<std::string>::parse(argv);
+    
+    std::ifstream file(*this);
+    while (file) {
+      std::string line;
+      std::getline(file, line);
+      
+      std::string::size_type space = line.find(' ');
+      if (space != std::string::npos) {
+        line[space] = '\0';
+        const char *args[] = {
+          &line[0],
+          &line[space + 1]
+        };
+        cl::parse(2, args);
+      }
+    }
+  }
+};
 
 struct stereo_config {
   camera_config cam0{"cam0", ev3::INPUT_1};
   camera_config cam1{"cam1", ev3::INPUT_4};
+  stereo_config_file_arg config_file;
   
   std::pair<cameraf, cameraf> cameras() const {
     return std::make_pair(cam0.to_camera(), cam1.to_camera());
