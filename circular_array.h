@@ -5,7 +5,7 @@
 #include <array>
 
 // A circular buffer of observations.
-template <typename T, int N>
+template <typename T, size_t N>
 class circular_array {
   std::array<T, N> m;
   size_t begin_, end_;
@@ -23,15 +23,16 @@ public:
   size_t begin() const { return begin_; }
   size_t end() const { return end_; }
   size_t size() const { return end_ - begin_; }
+  size_t capacity() const { return N; }
   bool empty() const { return size() == 0; }
   
   void push_back(const T &obs) {
-    assert(size() < N - 1);
+    assert(size() + 1 < N);
     at(end_++) = obs;
   }
 
   void push_back(T &&obs) {
-    assert(size() < N - 1);
+    assert(size() + 1 < N);
     at(end_++) = std::move(obs);
   }
 
