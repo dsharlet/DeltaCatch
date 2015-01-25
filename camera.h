@@ -66,7 +66,7 @@ struct camera {
         a.y*P.y + t.y);
     
     // Apply distortion correction.
-    u *= vector2<U>(1) - d*dot(u, u);
+    u *= vector2<U>(1) + d*dot(u, u);
         
     return vector2<U>(
         (u.x + U(1))*(T(0.5)*resolution.x),
@@ -83,10 +83,10 @@ struct camera {
     // Apply distortion model.
     // Inverse of distortion model via newton's method.
     vector2<U> u_ = u;
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
       vector2<U> d_uu = d*dot(u, u);
-      vector2<U> fu = (u_ - u*(vector2<U>(1) - d_uu));
-      vector2<U> df_du = (d_uu + U(2)*d*u - vector2<U>(1));
+      vector2<U> fu = u*(vector2<U>(1) + d_uu) - u_;
+      vector2<U> df_du = d_uu + U(2)*d*u*u + vector2<U>(1);
       u -= fu/df_du;
     }
 
