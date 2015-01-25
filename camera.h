@@ -66,14 +66,7 @@ struct camera {
         a.y*P.y + t.y);
     
     // Apply distortion correction.
-    // Inverse of distortion model via newton's method.
-    vector2<U> u_ = u;
-    for (int i = 0; i < 2; i++) {
-      vector2<U> d_uu = d*dot(u, u);
-      vector2<U> fu = (u_ - u*(vector2<U>(1) - d_uu));
-      vector2<U> df_du = (d_uu + U(2)*d*u - vector2<U>(1));
-      u -= fu/df_du;
-    }
+    u *= vector2<U>(1) - d*dot(u, u);
         
     return vector2<U>(
         (u.x + U(1))*(T(0.5)*resolution.x),
@@ -88,7 +81,14 @@ struct camera {
         px.y*(T(2)/resolution.y) - U(1));
     
     // Apply distortion model.
-    u *= vector2<U>(1) - d*dot(u, u);
+    // Inverse of distortion model via newton's method.
+    vector2<U> u_ = u;
+    for (int i = 0; i < 2; i++) {
+      vector2<U> d_uu = d*dot(u, u);
+      vector2<U> fu = (u_ - u*(vector2<U>(1) - d_uu));
+      vector2<U> df_du = (d_uu + U(2)*d*u - vector2<U>(1));
+      u -= fu/df_du;
+    }
 
     // Solve K*x = u.
     U y = (u.y - t.y)*rcp(a.y);
@@ -123,7 +123,8 @@ struct camera {
   }
 
   bool is_visible(const vector3<T> &g) const {
-    if ((~R*(g - x)*R).b.z <= T(1e-6))
+    // Unfortunately, positive z is behind the camera, not in front.
+    if ((~R*(g - x)*R).b.z >= T(-1e-6))
       return false;
     vector2<T> px = project_to_sensor(g);
     return T(0) <= px.x && px.x < resolution.x && 
