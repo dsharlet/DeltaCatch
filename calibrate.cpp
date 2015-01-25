@@ -173,15 +173,15 @@ static cl::arg<double> epsilon(
   cl::name("epsilon"),
   cl::desc("Number to consider to be zero when solving optimization problems."),
   optimization_group);
-static cl::arg<double> lambda_init(
-  1,
+static cl::arg<double> lambda_recovery(
+  1.0,
   cl::name("lambda-init"),
-  cl::desc("Initial value of the Levenberg-Marquart damping parameter."),
+  cl::desc("Initial value of Levenberg-Marquardt damping parameter."),
   optimization_group);
-static cl::arg<double> lambda_gain(
-  0.1,
-  cl::name("lambda-gain"),
-  cl::desc("Proportional change in lambda due to change in residual error."),
+static cl::arg<double> lambda_decay(
+  0.5,
+  cl::name("lambda-decay"),
+  cl::desc("Decay ratio of the Levenberg-Marquardt damping parameter on a successful iteration."),
   optimization_group);
 
 static cl::boolean disable_distortion(
@@ -228,6 +228,24 @@ template <typename T>
 void dump_config(ostream &os, const camera<T> &cam0, const camera<T> &cam1) {
   dump_config(os, "--cam0-", cam0);
   dump_config(os, "--cam1-", cam1);
+}
+
+template <typename T>
+vector<vector3<T>> unknown_centers(const calibration_data<T> &cd) {
+  vector<vector3<T>> c;
+  c.reserve(cd.sets.size());
+  for (const auto &i : cd.sets)
+    if (!i.center_valid)
+      c.push_back(i.center);
+  return c;
+}
+
+template <typename T>
+void set_unknown_centers(calibration_data<T> &cd, const vector<vector3<T>> &centers) {
+  typename vector<vector3<T>>::const_iterator c = centers.begin();
+  for (auto &i : cd.sets)
+    if (!i.center_valid)
+      i.center = *c++;
 }
 
 int main(int argc, const char **argv) {
@@ -277,17 +295,17 @@ int main(int argc, const char **argv) {
       nxtcam::blob_list blobs1 = cam1.blobs();
 
       if (blobs0.size() == 1 && blobs1.size() == 1) {
-        const nxtcam::blob &b0 = blobs0.front();
-        const nxtcam::blob &b1 = blobs1.front();
+        vector2f x0 = blobs0.front().center();
+        vector2f x1 = blobs1.front().center();
 
         if(set.samples.empty()) {
-          set.samples.emplace_back(b0.center(), b1.center());
-          cout << "Sample " << set.samples.size() << ": " << b0.center() << ", " << b1.center() << endl;
+          set.samples.emplace_back(x0, x1);
+          cout << "Sample " << set.samples.size() << ": " << x0 << ", " << x1 << endl;
         } else {
-          float dx = max(abs(b0.center() - set.samples.back().px0), abs(b1.center() - set.samples.back().px1));
+          float dx = max(abs(x0 - set.samples.back().px0), abs(x1 - set.samples.back().px1));
           if (sample_min_dx <= dx && dx < sample_max_dx) {
-            set.samples.emplace_back(b0.center(), b1.center());
-            cout << "Sample " << set.samples.size() << ": " << b0.center() << ", " << b1.center() << endl;
+            set.samples.emplace_back(x0, x1);
+            cout << "Sample " << set.samples.size() << ": " << x0 << ", " << x1 << endl;
           }
         }
       }
@@ -349,8 +367,11 @@ int main(int argc, const char **argv) {
     }
   
     // Levenberg-Marquardt damping parameter.
-    double lambda = lambda_init;
-    double prev_error = 1e20f;
+    double lambda = lambda_recovery;
+    double prev_error = numeric_limits<double>::infinity();
+    camera<d> prev_cam0 = cam0;
+    camera<d> prev_cam1 = cam1;
+    vector<vector3<d>> prev_centers = unknown_centers(cd);
 
     int it;
     for (it = 1; it <= max_iterations; it++) {
@@ -394,14 +415,25 @@ int main(int argc, const char **argv) {
           }
         }
       }
-      
-      // Update Levenberg-Marquardt damping parameter based on whether the error
-      // increased or decreased on this iteration.
-      if (it > 1)
-        lambda = error/prev_error;
+
+      // Update Levenberg-Marquardt damping parameter.
+    if (error < prev_error) {
+      lambda *= lambda_decay;
       prev_error = error;
-      
-      // Add lambda*diag(J^J*J) to J^J*J.
+      prev_cam0 = cam0;
+      prev_cam1 = cam1;
+      prev_centers = unknown_centers(cd);
+    } else {
+      lambda = lambda_recovery;
+      prev_error = error;
+      cam0 = prev_cam0;
+      cam1 = prev_cam1;
+      set_unknown_centers(cd, prev_centers);
+      dbg(2) << "  it=" << it << ", ||dB||=0, error=" << error << ", lambda=" << lambda << endl;
+      continue;
+    }
+
+    // J^T*J <- J^J*J + lambda*diag(J^J*J)
       for (int i = 0; i < N; i++)
         JTJ(i, i) *= 1 + lambda;
 

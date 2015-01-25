@@ -12,7 +12,7 @@ using namespace std;
 
 static cl::group optimization_group("Optimization parameters");
 static cl::arg<int> max_iterations(
-  12,
+  32,
   cl::name("max-iterations"),
   cl::desc("Maximum number of iterations allowed when solving optimization problems."),
   optimization_group);
@@ -21,10 +21,15 @@ static cl::arg<float> epsilon(
   cl::name("epsilon"),
   cl::desc("Number to consider to be zero when solving optimization problems."),
   optimization_group);
-static cl::arg<float> lambda(
-  1e-2f,
-  cl::name("lambda"),
-  cl::desc("Levenberg-Marquardt damping parameter."),
+static cl::arg<float> lambda_recovery(
+  1.0f,
+  cl::name("lambda-init"),
+  cl::desc("Initial value of Levenberg-Marquardt damping parameter."),
+  optimization_group);
+static cl::arg<float> lambda_decay(
+  0.2f,
+  cl::name("lambda-decay"),
+  cl::desc("Decay ratio of the Levenberg-Marquardt damping parameter on a successful iteration."),
   optimization_group);
 
 // A few helper print functions for debug output from this file.
@@ -118,8 +123,8 @@ float estimate_trajectory(
     float gravity, 
     const cameraf &cam0, const cameraf &cam1,
     observation_buffer &obs0, observation_buffer &obs1,
-    float &dt,
-    trajectoryf &tj) {
+    float &dtf,
+    trajectoryf &tjf) {
   const float epsilon_sq = epsilon*epsilon;
   const float half_g = gravity/2;
 
@@ -135,22 +140,28 @@ float estimate_trajectory(
   if (obs0.size() + obs1.size() < N)
     throw runtime_error("not enough observations");
 
-  d dt_ = d(dt, t);
-  trajectory<d> tj_;
-  tj_.x = vector3<d>(d(tj.x.x, x_x), d(tj.x.y, x_y), d(tj.x.z, x_z));
-  tj_.v = vector3<d>(d(tj.v.x, v_x), d(tj.v.y, v_y), d(tj.v.z, v_z));
+  d dt = d(dtf, t);
+  trajectory<d> tj;
+  tj.x = vector3<d>(d(tjf.x.x, x_x), d(tjf.x.y, x_y), d(tjf.x.z, x_z));
+  tj.v = vector3<d>(d(tjf.v.x, v_x), d(tjf.v.y, v_y), d(tjf.v.z, v_z));
   
   size_t M0 = static_cast<int>(obs0.size());
   size_t M1 = static_cast<int>(obs1.size());
   size_t M = M0 + M1;
   
   dbg(3) << "estimate_trajectory, M=" << M << " (" << M0 << " + " << M1 << ")..." << endl;
-  
+
+  // Levenberg-Marquardt state.
+  trajectory<d> prev_tj = tj;
+  float prev_error = std::numeric_limits<float>::infinity();
+  float lambda = lambda_recovery;
+
   int it;
   for (it = 1; it <= max_iterations; it++) {
     // Compute J^T*J and b.
     matrix<float, N, N> JTJ;
     matrix<float, N, 1> JTy;
+    float error = 0.0f;
     for (size_t i = 0; i < M; i++) {
       const observation &o_i = i < M0 ? obs0[obs0.begin() + i] : obs1[obs1.begin() + i - M0];
 
@@ -158,7 +169,9 @@ float estimate_trajectory(
           half_g, 
           i < M0 ? cam0 : cam1, 
           o_i, 
-          i < M0 ? nullptr : &dt_, tj_);
+          i < M0 ? nullptr : &dt, tj);
+
+      error += sqr(r.x.f) + sqr(r.y.f);
 
       for (int i = 0; i < N; i++) {
         float Dr_x_i = D(r.x, i);
@@ -170,10 +183,21 @@ float estimate_trajectory(
           JTJ(i, j) += Dr_x_i*D(r.x, j) + Dr_y_i*D(r.y, j);
       }
     }
-    
-    // Add little Levenberg-Marquardt damping:
-    //
-    //   J^T*J <- J^J*J + lambda*diag(J^J*J)
+
+    // Update Levenberg-Marquardt damping parameter.
+    if (error < prev_error) {
+      lambda *= lambda_decay;
+      prev_error = error;
+      prev_tj = tj;
+    } else {
+      lambda = lambda_recovery;
+      prev_error = error;
+      tj = prev_tj;
+      dbg(2) << "  it=" << it << ", ||dB||=0, error=" << error << ", lambda=" << lambda << endl;
+      continue;
+    }
+
+    // J^T*J <- J^J*J + lambda*diag(J^J*J)
     for (int i = 0; i < N; i++)
       JTJ(i, i) *= 1.0f + lambda;
 
@@ -185,23 +209,25 @@ float estimate_trajectory(
 
     // If the debug level is high, dump out info about the last few iterations.
     if (dbg_level() >= 4 && it + dbg_level() >= max_iterations) {
-      dbg(4) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
+      dbg(4) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
+          << ", error=" << error << ", lambda=" << lambda << endl;
     }
 
-    tj_.x += vector3f(dB(x_x), dB(x_y), dB(x_z));
-    tj_.v += vector3f(dB(v_x), dB(v_y), dB(v_z));
-    dt_ += dB(t);
+    tj.x += vector3f(dB(x_x), dB(x_y), dB(x_z));
+    tj.v += vector3f(dB(v_x), dB(v_y), dB(v_z));
+    dt += dB(t);
 
     if (dot(dB, dB) < epsilon_sq) {
-      if (dbg_level() >= 3)
+      if (dbg_level() >= 3) {
         dbg(3) << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
+      }
       break;
     }
   }
 
-  tj.x = vector_cast<float>(tj_.x);
-  tj.v = vector_cast<float>(tj_.v);
-  dt = scalar_cast<float>(dt_);
+  tjf.x = vector_cast<float>(tj.x);
+  tjf.v = vector_cast<float>(tj.v);
+  dt = scalar_cast<float>(dt);
 
   dbg(2) << "estimate_trajectory finished, it=" << it << endl;
 
