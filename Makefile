@@ -51,8 +51,12 @@ bin/autodiff_test: obj/autodiff_test.o
 bin/camera_test: obj/camera_test.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
-
+	
 bin/matrix_test: obj/matrix_test.o
+	mkdir -p bin
+	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
+
+bin/trajectory_test: obj/trajectory_test.o obj/trajectory.o obj/debug.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 
@@ -61,4 +65,4 @@ bin/matrix_test: obj/matrix_test.o
 clean:
 	rm -rf obj bin *~
 
-all:  bin/delta_test bin/delta_catch bin/autodiff_test bin/calibrate bin/stereo_test bin/camera_test bin/matrix_test
+all:  bin/delta_test bin/delta_catch bin/autodiff_test bin/calibrate bin/stereo_test bin/camera_test bin/matrix_test bin/trajectory_test

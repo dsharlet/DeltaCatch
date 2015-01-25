@@ -100,21 +100,13 @@ static cl::arg<vector3f> init_v(
   vector3f(0.0f, 0.0f, 0.0f),
   cl::name("init-v"));
 
-static void dump_trajectory(
-    std::ostream &os,
-    float dt, const trajectoryf &tj,
-    const cameraf &cam0, const cameraf &cam1,
-    const observation_buffer &obs0, const observation_buffer &obs1);
-
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
       
   // Define the camera transforms.
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
-
-  test_estimate_trajectory(gravity, cam0, cam1);
-  
+    
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
@@ -315,28 +307,4 @@ int main(int argc, const char **argv) {
   
   run = false;
   return 0;
-}
-
-static void dump_trajectory(
-    std::ostream &os,
-    float dt, const trajectoryf &tj,
-    const cameraf &cam0, const cameraf &cam1,
-    const observation_buffer &obs0, const observation_buffer &obs1) {
-
-  float t_min = numeric_limits<float>::infinity();
-  float t_max = -t_min;
-  for (size_t i = obs0.begin(); i != obs0.end(); i++) {
-    t_min = std::min(obs0[i].t, t_min);
-    t_max = std::max(obs0[i].t, t_max);
-    vector3f x = tj.position(gravity, obs0[i].t);
-    os << obs0[i].t << "\t" << obs0[i].f << "\t-> " << cam0.project_to_focal_plane(x) << "\t" << endl;
-  }
-  os << endl;
-  for (size_t i = obs1.begin(); i != obs1.end(); i++) {
-    t_min = std::min(obs1[i].t, t_min);
-    t_max = std::max(obs1[i].t, t_max);
-    vector3f x = tj.position(gravity, obs1[i].t + dt);
-    os << obs1[i].t << "\t" << obs1[i].f << "\t-> " << cam1.project_to_focal_plane(x) << "\t" << endl;
-  }
-  os << endl;
 }

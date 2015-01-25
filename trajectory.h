@@ -56,10 +56,4 @@ float estimate_trajectory(
     observation_buffer &obs0, observation_buffer &obs1,
     float &dt, trajectoryf &tj);
 
-// Generate random trajectories with a model of measurement noise and verify that
-// the estimated trajectories are similar.
-void test_estimate_trajectory(
-    float gravity, 
-    const cameraf &cam0, const cameraf &cam1);
-
 #endif

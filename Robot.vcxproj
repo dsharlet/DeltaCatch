@@ -80,6 +80,7 @@
     <ClCompile Include="nxtcam.cpp" />
     <ClCompile Include="stereo_test.cpp" />
     <ClCompile Include="trajectory.cpp" />
+    <ClCompile Include="trajectory_test.cpp" />
     <ClCompile Include="viz_client.cpp" />
   </ItemGroup>
   <ItemGroup>
