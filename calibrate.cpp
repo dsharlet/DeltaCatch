@@ -184,25 +184,10 @@ static cl::arg<double> lambda_decay(
   cl::desc("Decay ratio of the Levenberg-Marquardt damping parameter on a successful iteration."),
   optimization_group);
 
-static cl::boolean disable_distortion(
-  cl::name("disable-distortion"),
-  cl::desc("Disable optimization of the distortion parameters."),
-  optimization_group);
-static cl::boolean disable_calibration_a(
-  cl::name("disable-calibration-a"),
-  cl::desc("Disable optimization of the calibration matrix a parameter."),
-  optimization_group);
-static cl::boolean disable_calibration_s(
-  cl::name("disable-calibration-s"),
-  cl::desc("Disable optimization of the calibration matrix s parameter."),
-  optimization_group);
-static cl::boolean disable_calibration_t(
-  cl::name("disable-calibration-t"),
-  cl::desc("Disable optimization of the calibration matrix t parameter."),
-  optimization_group);
-static cl::boolean disable_orientation(
-  cl::name("disable-orientation"),
-  cl::desc("Disable optimization of the orientation parameters."),
+static cl::arg<string> enable(
+  "dastR",
+  cl::name("enable"),
+  cl::desc("Which calibration parameters to allow optimization over."),
   optimization_group);
 
 template <typename T, int N>
@@ -334,25 +319,31 @@ int main(int argc, const char **argv) {
     camera<d> cam0 = camera_cast<d>(cam_config0.to_camera());
     camera<d> cam1 = camera_cast<d>(cam_config1.to_camera());
 
+    bool enable_d = enable->find('d') != string::npos;
+    bool enable_a = enable->find('a') != string::npos;
+    bool enable_s = enable->find('s') != string::npos;
+    bool enable_t = enable->find('t') != string::npos;
+    bool enable_R = enable->find('R') != string::npos;
+
     // Construct the variables used in the optimization.
     int N = 0;
-    if (!disable_distortion) {
+    if (enable_d) {
       cam0.d.x.df[N++] = 1; cam0.d.y.df[N++] = 1;
       cam1.d.x.df[N++] = 1; cam1.d.y.df[N++] = 1;
     }
-    if (!disable_calibration_a) {
+    if (enable_a) {
       cam0.a.x.df[N++] = 1; cam0.a.y.df[N++] = 1;
       cam1.a.x.df[N++] = 1; cam1.a.y.df[N++] = 1;
     }
-    if (!disable_calibration_s) {
+    if (enable_s) {
       cam0.s.df[N++] = 1;
       cam1.s.df[N++] = 1;
     }
-    if (!disable_calibration_t) {
+    if (enable_t) {
       cam0.t.x.df[N++] = 1; cam0.t.y.df[N++] = 1;
       cam1.t.x.df[N++] = 1; cam1.t.y.df[N++] = 1;
     }
-    if (!disable_orientation) {
+    if (enable_R) {
       cam0.R.a.df[N++] = 1; cam0.R.b.x.df[N++] = 1; cam0.R.b.y.df[N++] = 1; cam0.R.b.z.df[N++] = 1;
       cam1.R.a.df[N++] = 1; cam1.R.b.x.df[N++] = 1; cam1.R.b.y.df[N++] = 1; cam1.R.b.z.df[N++] = 1;
     }
@@ -367,7 +358,7 @@ int main(int argc, const char **argv) {
     }
   
     // Levenberg-Marquardt damping parameter.
-    double lambda = lambda_recovery;
+    double lambda = lambda_recovery/lambda_decay;
     double prev_error = numeric_limits<double>::infinity();
     camera<d> prev_cam0 = cam0;
     camera<d> prev_cam1 = cam1;
@@ -417,23 +408,23 @@ int main(int argc, const char **argv) {
       }
 
       // Update Levenberg-Marquardt damping parameter.
-    if (error < prev_error) {
-      lambda *= lambda_decay;
-      prev_error = error;
-      prev_cam0 = cam0;
-      prev_cam1 = cam1;
-      prev_centers = unknown_centers(cd);
-    } else {
-      lambda = lambda_recovery;
-      prev_error = error;
-      cam0 = prev_cam0;
-      cam1 = prev_cam1;
-      set_unknown_centers(cd, prev_centers);
-      dbg(2) << "  it=" << it << ", ||dB||=0, error=" << error << ", lambda=" << lambda << endl;
-      continue;
-    }
+      if (error < prev_error) {
+        lambda *= lambda_decay;
+        prev_error = error;
+        prev_cam0 = cam0;
+        prev_cam1 = cam1;
+        prev_centers = unknown_centers(cd);
+      } else {
+        lambda = lambda_recovery/lambda_decay;
+        prev_error = error;
+        cam0 = prev_cam0;
+        cam1 = prev_cam1;
+        set_unknown_centers(cd, prev_centers);
+        dbg(2) << "  it=" << it << ", ||dB||=0, error=" << error << ", lambda=" << lambda << endl;
+        continue;
+      }
 
-    // J^T*J <- J^J*J + lambda*diag(J^J*J)
+      // J^T*J <- J^J*J + lambda*diag(J^J*J)
       for (int i = 0; i < N; i++)
         JTJ(i, i) *= 1 + lambda;
 
@@ -447,23 +438,23 @@ int main(int argc, const char **argv) {
         << ", error=" << error << ", lambda=" << lambda << endl;
     
       int n = 0;
-      if (!disable_distortion) {
+      if (enable_d) {
         cam0.d.x += dB(n++); cam0.d.y += dB(n++);
         cam1.d.x += dB(n++); cam1.d.y += dB(n++);
       }
-      if (!disable_calibration_a) {
+      if (enable_a) {
         cam0.a.x += dB(n++); cam0.a.y += dB(n++);
         cam1.a.x += dB(n++); cam1.a.y += dB(n++);
       }
-      if (!disable_calibration_s) {
+      if (enable_s) {
         cam0.s += dB(n++);
         cam1.s += dB(n++);
       }
-      if (!disable_calibration_t) {
+      if (enable_t) {
         cam0.t.x += dB(n++); cam0.t.y += dB(n++);
         cam1.t.x += dB(n++); cam1.t.y += dB(n++);
       }
-      if (!disable_orientation) {
+      if (enable_R) {
         cam0.R.a += dB(n++); cam0.R.b.x += dB(n++); cam0.R.b.y += dB(n++); cam0.R.b.z += dB(n++);
         cam1.R.a += dB(n++); cam1.R.b.x += dB(n++); cam1.R.b.y += dB(n++); cam1.R.b.z += dB(n++);
         // Renormalize quaternions.

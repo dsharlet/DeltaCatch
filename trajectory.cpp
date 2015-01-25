@@ -27,7 +27,7 @@ static cl::arg<float> lambda_recovery(
   cl::desc("Initial value of Levenberg-Marquardt damping parameter."),
   optimization_group);
 static cl::arg<float> lambda_decay(
-  0.2f,
+  0.1f,
   cl::name("lambda-decay"),
   cl::desc("Decay ratio of the Levenberg-Marquardt damping parameter on a successful iteration."),
   optimization_group);
@@ -154,7 +154,7 @@ float estimate_trajectory(
   // Levenberg-Marquardt state.
   trajectory<d> prev_tj = tj;
   float prev_error = std::numeric_limits<float>::infinity();
-  float lambda = lambda_recovery;
+  float lambda = lambda_recovery/lambda_decay;
 
   int it;
   for (it = 1; it <= max_iterations; it++) {
@@ -190,7 +190,7 @@ float estimate_trajectory(
       prev_error = error;
       prev_tj = tj;
     } else {
-      lambda = lambda_recovery;
+      lambda = lambda_recovery/lambda_decay;
       prev_error = error;
       tj = prev_tj;
       dbg(2) << "  it=" << it << ", ||dB||=0, error=" << error << ", lambda=" << lambda << endl;
