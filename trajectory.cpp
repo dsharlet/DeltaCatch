@@ -10,14 +10,22 @@
 
 using namespace std;
 
+static cl::group optimization_group("Optimization parameters");
 static cl::arg<int> max_iterations(
   12,
   cl::name("max-iterations"),
-  cl::desc("Maximum number of iterations allowed when solving optimization problems."));
+  cl::desc("Maximum number of iterations allowed when solving optimization problems."),
+  optimization_group);
 static cl::arg<float> epsilon(
-  1e-3,
+  1e-3f,
   cl::name("epsilon"),
-  cl::desc("Number to consider to be zero when solving optimization problems."));
+  cl::desc("Number to consider to be zero when solving optimization problems."),
+  optimization_group);
+static cl::arg<float> lambda(
+  1e-2f,
+  cl::name("lambda"),
+  cl::desc("Levenberg-Marquardt damping parameter."),
+  optimization_group);
 
 // A few helper print functions for debug output from this file.
 std::ostream &operator <<(std::ostream &os, const observation &obs) {
@@ -163,6 +171,12 @@ float estimate_trajectory(
       }
     }
     
+    // Add little Levenberg-Marquardt damping:
+    //
+    //   J^T*J <- J^J*J + lambda*diag(J^J*J)
+    for (int i = 0; i < N; i++)
+      JTJ(i, i) *= 1.0f + lambda;
+
     // Solve J^T*J*dB = J^T*y.
     matrix_ref<float, N, 1> dB = solve(JTJ, JTy);
     
