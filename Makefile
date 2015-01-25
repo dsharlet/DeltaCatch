@@ -56,7 +56,7 @@ bin/matrix_test: obj/matrix_test.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 
-bin/trajectory_test: obj/trajectory_test.o obj/trajectory.o obj/debug.o
+bin/trajectory_test: obj/trajectory_test.o obj/trajectory.o obj/nxtcam.o obj/debug.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 
