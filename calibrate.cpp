@@ -13,6 +13,7 @@
 #include "nxtcam.h"
 #include "autodiff.h"
 #include "matrix.h"
+#include "circular_array.h"
 
 #include "calibration_data.h"
 
@@ -134,8 +135,8 @@ static cl::arg<float> sample_min_dx(
   cl::desc("Minimum distance between samples."),
   capture_group);
 static cl::arg<float> sample_max_dx(
-  20.0f,
-  cl::name("sample-max-dx"),
+  1.0f,
+  cl::name("sample-min-dx"),
   cl::desc("Maximum distance between samples."),
   capture_group);
 static cl::arg<float> sample_rate(
@@ -233,6 +234,28 @@ void set_unknown_centers(calibration_data<T> &cd, const vector<vector3<T>> &cent
       i.center = *c++;
 }
 
+template <size_t N>
+vector2f mean(const circular_array<vector2f, N> &x) {
+  vector2f mu(0.0f);
+  for (size_t i = x.begin(); i != x.end(); i++)
+    mu += x[i];
+  return mu/x.size();
+}
+
+template <size_t N>
+pair<vector2f, vector2f> min_max(const circular_array<vector2f, N> &x) {
+  vector2f min(numeric_limits<float>::infinity());
+  vector2f max(-numeric_limits<float>::infinity());
+  for (size_t i = x.begin(); i != x.end(); i++) {
+    min.x = std::min(min.x, x[i].x);
+    min.y = std::min(min.y, x[i].y);
+    max.x = std::max(max.x, x[i].x);
+    max.y = std::max(max.y, x[i].y);
+  }
+  return make_pair(min, max);
+}
+
+
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
   
@@ -273,24 +296,41 @@ int main(int argc, const char **argv) {
     cout << "Tracking objects..." << endl;
 
     chrono::milliseconds sample_period(static_cast<int>(1e3f/sample_rate + 0.5f));
-  
+
+    circular_array<vector2f, 8> x0, x1;
+
     // Capture samples.
     while (static_cast<int>(set.samples.size()) < sample_count) {
       nxtcam::blob_list blobs0 = cam0.blobs();
       nxtcam::blob_list blobs1 = cam1.blobs();
 
       if (blobs0.size() == 1 && blobs1.size() == 1) {
-        vector2f x0 = blobs0.front().center();
-        vector2f x1 = blobs1.front().center();
+        while(x0.size() + 1 >= x0.capacity()) x0.pop_front();
+        while(x1.size() + 1 >= x1.capacity()) x1.pop_front();
+        x0.push_back(blobs0.front().center());
+        x1.push_back(blobs1.front().center());
+        
+        vector2f x0_mean = mean(x0);
+        vector2f x1_mean = mean(x1);
 
-        if(set.samples.empty()) {
-          set.samples.emplace_back(x0, x1);
-          cout << "Sample " << set.samples.size() << ": " << x0 << ", " << x1 << endl;
-        } else {
-          float dx = max(abs(x0 - set.samples.back().px0), abs(x1 - set.samples.back().px1));
-          if (sample_min_dx <= dx && dx < sample_max_dx) {
-            set.samples.emplace_back(x0, x1);
-            cout << "Sample " << set.samples.size() << ": " << x0 << ", " << x1 << endl;
+        cout << "\rn=" << set.samples.size() << ", x0=" << x0_mean << ", x1=" << x1_mean << "                  ";
+        cout.flush();
+
+        vector2f x0_min, x0_max;
+        vector2f x1_min, x1_max;
+        tie(x0_min, x0_max) = min_max(x0);
+        tie(x1_min, x1_max) = min_max(x1);
+        if (abs(x0_max - x0_min) < sample_max_dx &&
+            abs(x1_max - x1_min) < sample_max_dx) {
+          if(set.samples.empty()) {
+            set.samples.emplace_back(x0_mean, x1_mean);
+            cout << endl;
+          } else { 
+            float dx = max(abs(x0_mean - set.samples.back().px0), abs(x1_mean - set.samples.back().px1));
+            if (sample_min_dx <= dx) {
+              set.samples.emplace_back(x0_mean, x1_mean);
+              cout << endl;
+            }
           }
         }
       }
