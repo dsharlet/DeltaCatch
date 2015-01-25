@@ -8,13 +8,12 @@
 
 #include "nxtcam.h"
 #include "stereo_config.h"
-#include "delta_robot.h"
+#include "delta_robot_args.h"
 
 using namespace ev3dev;
 using namespace std;
 
 static cl::group motor_control("Motor control");
-
 static cl::arg<mode_type> regulation_mode(
   "on", 
   cl::name("regulation-mode"), 
@@ -36,7 +35,7 @@ static cl::arg<int> ramp(
   cl::desc("Ramp time, in ms."),
   motor_control);
 
-#include "delta_config.h"
+static delta_robot_args delta_geometry("", "Delta robot geometry");
 
 static stereo_config stereo;
 
@@ -70,9 +69,7 @@ int main(int argc, const char **argv) {
   });
 
   // Initialize the delta robot.
-  delta_robot delta(
-    arm0, arm1, arm2,
-    base, effector, bicep, forearm, theta_max);
+  delta_robot delta(delta_geometry.geometry());
   delta.init();
 
   // Bask in the glory of the calibration result for a moment.

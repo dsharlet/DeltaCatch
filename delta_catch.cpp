@@ -15,6 +15,7 @@
 #include "trajectory.h"
 
 #include "stereo_config.h"
+#include "delta_robot_args.h"
 
 #include "viz_client.h"
 
@@ -22,7 +23,6 @@ using namespace ev3dev;
 using namespace std;
 
 static cl::group motor_control("Motor control");
-
 static cl::arg<mode_type> regulation_mode(
   "on", 
   cl::name("regulation-mode"), 
@@ -61,8 +61,7 @@ static arg_port hand(
   cl::name("hand"),
   cl::desc("Motor port for the grabber."));
 
-// Include delta robot command line config.
-#include "delta_config.h"
+static delta_robot_args delta_geometry("", "Delta robot geometry");
 
 static cl::arg<float> gravity(
   -1225.0f,
@@ -126,9 +125,7 @@ int main(int argc, const char **argv) {
   }
 
   // Initialize the delta robot.
-  delta_hand delta(
-    arm0, arm1, arm2, hand,
-    base, effector, bicep, forearm, theta_max);
+  delta_hand delta(delta_geometry.geometry(), hand);
   delta.init();
 
   // Bask in the glory of the calibration result for a moment.

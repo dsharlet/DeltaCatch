@@ -10,9 +10,7 @@ protected:
   int grab_open, grab_close;
 
 public:
-  delta_hand(
-      ev3::port_type a, ev3::port_type b, ev3::port_type c, ev3::port_type hand,
-      float base, float effector, float bicep, float forearm, int theta_max);
+  delta_hand(const delta_robot_geometry &geom, ev3::port_type hand);
 
   void init();
   

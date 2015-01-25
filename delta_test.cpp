@@ -5,27 +5,32 @@
 #include <thread>
 #include <iomanip>
 
-#include "delta_robot.h"
-#include "arg_port.h"
+#include "delta_robot_args.h"
 
 using namespace ev3dev;
 using namespace std;
 
-static cl::boolean regulation_on(
-  cl::name("regulation-on"), 
-  cl::desc("Set regulation mode to on."));
+static cl::group motor_control("Motor control");
+static cl::arg<mode_type> regulation_mode(
+  "on", 
+  cl::name("regulation-mode"), 
+  cl::desc("One of: 'on', 'off'."),
+  motor_control);
 static cl::arg<int> pulses_per_second(
   700, 
   cl::name("pulses-per-second"), 
-  cl::desc("Pulses/second for when --regulation-on is specified."));
+  cl::desc("Pulses/second for when --regulation-on is specified."),
+  motor_control);
 static cl::arg<int> duty_cycle(
   100,
   cl::name("duty-cycle"), 
-  cl::desc("Duty cycle for when --regulation-on is not specified."));
+  cl::desc("Duty cycle for when --regulation-on is not specified."),
+  motor_control);
 static cl::arg<int> ramp(
   0, 
   cl::name("ramp"), 
-  cl::desc("Ramp time, in ms."));
+  cl::desc("Ramp time, in ms."),
+  motor_control);
 
 // Trace out a n-sided polygon horizontally.
 static cl::arg<int> ngon_n(
@@ -56,8 +61,7 @@ static cl::boolean show_path(
   cl::name("show-path"),
   cl::desc("Write coordinates of paths to stdout."));
 
-// Include delta robot command line config.
-#include "delta_config.h"
+static delta_robot_args delta_geometry("", "Delta robot geometry");
 
 void main_show_position(delta_robot &delta) {
   delta.set_stop_mode(motor::stop_mode_coast);
@@ -155,16 +159,14 @@ int main(int argc, const char **argv) {
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
 
-  delta_robot delta(
-    arm0, arm1, arm2, 
-    base, effector, bicep, forearm, theta_max);
+  delta_robot delta(delta_geometry.geometry());
   delta.init();
 
   // Bask in the glory of the calibration result for a moment.
   this_thread::sleep_for(chrono::milliseconds(500));
 
   // Set the motor parameters.
-  delta.set_regulation_mode(regulation_on ? motor::mode_on : motor::mode_off);
+  delta.set_regulation_mode(regulation_mode);
   delta.set_pulses_per_second_setpoint(pulses_per_second);
   delta.set_duty_cycle_setpoint(duty_cycle);
   delta.set_ramp_up(ramp);

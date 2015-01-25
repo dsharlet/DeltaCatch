@@ -7,6 +7,13 @@
 
 namespace ev3 = ev3dev;
 
+// Mechanical parameters of a delta robot.
+struct delta_robot_geometry {
+  ev3::port_type arm0, arm1, arm2;
+  float base, effector, bicep, forearm;
+  int theta_max;
+};
+
 // This is a class to control a Delta robot. Tis class assumes that the 3 primary 
 // joints A, B, and C are on the XY plane centered at the origin, and the arms are located 
 // at -30, 90, and 210 degrees. In other words, the arms are given in counter-clockwise 
@@ -74,13 +81,11 @@ protected:
 
 public:
   // Constructor describes the geometry of the delta robot.
-  delta_robot(
-    ev3::port_type a, ev3::port_type b, ev3::port_type c,
-    float base, float effector, float bicep, float forearm, int theta_max) 
-      : arm0(a), arm1(b), arm2(c)
-      , base(base), effector(effector)
-      , bicep(bicep), forearm(forearm)
-      , theta_max(theta_max) {
+  delta_robot(const delta_robot_geometry &geom) 
+      : arm0(geom.arm0), arm1(geom.arm1), arm2(geom.arm2)
+      , base(geom.base), effector(geom.effector)
+      , bicep(geom.bicep), forearm(geom.forearm)
+      , theta_max(geom.theta_max) {
     // Can't construct an array with an initializer list :(
     arms[0] = &arm0;
     arms[1] = &arm1;

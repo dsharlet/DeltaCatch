@@ -24,9 +24,6 @@
     <ClInclude Include="trajectory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="delta_config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="delta_hand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -70,6 +67,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="calibration_data.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="delta_robot_args.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

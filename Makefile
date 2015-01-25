@@ -10,9 +10,9 @@ DEPS=\
 	camera.h \
 	circular_array.h \
 	debug.h \
-	delta_config.h \
 	delta_hand.h \
 	delta_robot.h \
+	delta_robot_args.h \
 	math.h \
 	matrix.h \
 	nxtcam.h \

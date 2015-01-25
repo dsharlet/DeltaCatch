@@ -53,7 +53,7 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="circular_array.h" />
     <ClInclude Include="debug.h" />
-    <ClInclude Include="delta_config.h" />
+    <ClInclude Include="delta_robot_args.h" />
     <ClInclude Include="delta_hand.h" />
     <ClInclude Include="delta_robot.h" />
     <ClInclude Include="stereo_config.h" />

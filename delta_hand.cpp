@@ -5,11 +5,8 @@
 using namespace std;
 using namespace ev3dev;
 
-delta_hand::delta_hand(
-    ev3::port_type a, ev3::port_type b, ev3::port_type c, ev3::port_type hand,
-    float base, float effector, float bicep, float forearm, int theta_max) 
-  : delta_robot(a, b, c, base, effector, bicep, forearm, theta_max)
-  , hand(hand), grab_open(0), grab_close(0) {
+delta_hand::delta_hand(const delta_robot_geometry &geom, ev3::port_type hand) 
+  : delta_robot(geom), hand(hand), grab_open(0), grab_close(0) {
 } 
 
 void delta_hand::init() {
