@@ -76,8 +76,7 @@ public:
   // Constructor describes the geometry of the delta robot.
   delta_robot(
     ev3::port_type a, ev3::port_type b, ev3::port_type c,
-    float base, float effector, float bicep, float forearm, int theta_max, 
-    bool find_limits_now = true) 
+    float base, float effector, float bicep, float forearm, int theta_max) 
       : arm0(a), arm1(b), arm2(c)
       , base(base), effector(effector)
       , bicep(bicep), forearm(forearm)
@@ -86,9 +85,6 @@ public:
     arms[0] = &arm0;
     arms[1] = &arm1;
     arms[2] = &arm2;
-   
-    if (find_limits_now)
-      find_limits();
   }
 
   // Forward some useful calls to the 3 arm motors.
@@ -124,7 +120,7 @@ public:
 
   // Find the range of motion of the motors according to the encoders. Moves to the topmost position 
   // first, then finds the lower limit of each arm in sequence.
-  virtual void find_limits();
+  virtual void init();
 };
 
 #endif

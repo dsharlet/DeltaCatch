@@ -73,6 +73,7 @@ int main(int argc, const char **argv) {
   delta_robot delta(
     arm0, arm1, arm2,
     base, effector, bicep, forearm, theta_max);
+  delta.init();
 
   // Bask in the glory of the calibration result for a moment.
   this_thread::sleep_for(chrono::milliseconds(500));

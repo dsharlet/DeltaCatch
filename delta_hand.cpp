@@ -7,20 +7,15 @@ using namespace ev3dev;
 
 delta_hand::delta_hand(
     ev3::port_type a, ev3::port_type b, ev3::port_type c, ev3::port_type hand,
-    float base, float effector, float bicep, float forearm, int theta_max,
-    bool find_limits_now) 
-  : delta_robot(a, b, c, base, effector, bicep, forearm, theta_max, false)
+    float base, float effector, float bicep, float forearm, int theta_max) 
+  : delta_robot(a, b, c, base, effector, bicep, forearm, theta_max)
   , hand(hand), grab_open(0), grab_close(0) {
-
-  // Don't use the base class because our overridden definition of find_limits won't be called.
-  if (find_limits_now)
-    find_limits();
 } 
 
-void delta_hand::find_limits() {
+void delta_hand::init() {
   // Run the base configuration in a separate thread.
   thread base([=]() { 
-    delta_robot::find_limits(); 
+    delta_robot::init(); 
   });
 
   const auto stall_time = chrono::milliseconds(200);
@@ -60,6 +55,6 @@ void delta_hand::find_limits() {
   hand.set_run_mode(motor::run_mode_position);
   hand.set_duty_cycle_setpoint(100);
    
-  // Wait for the base's find_limits.
+  // Wait for the base's init.
   base.join();
 }

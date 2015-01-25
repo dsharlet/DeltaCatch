@@ -110,7 +110,7 @@ vector3i delta_robot::position_to_raw(const vector3f &x) const {
     theta_max - static_cast<int>(floor(theta.z + 0.5f)));
 }
 
-void delta_robot::find_limits() {
+void delta_robot::init() {
   const auto stall_time = chrono::milliseconds(200);
 
   // Start running the motors indefinitely, reset the position to 0.

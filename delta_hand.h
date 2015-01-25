@@ -12,10 +12,9 @@ protected:
 public:
   delta_hand(
       ev3::port_type a, ev3::port_type b, ev3::port_type c, ev3::port_type hand,
-      float base, float effector, float bicep, float forearm, int theta_max,
-      bool find_limits_now = true);
+      float base, float effector, float bicep, float forearm, int theta_max);
 
-  void find_limits();
+  void init();
   
   void close_hand() { hand.set_position_setpoint(grab_close); hand.run(); }
   void open_hand() { hand.set_position_setpoint(grab_open); hand.run(); }
