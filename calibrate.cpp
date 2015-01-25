@@ -151,7 +151,7 @@ static camera_config cam_config0(
     4.0f, 1.33f, 3.5f,
     vector3f(0.0f, -cos(53.5*pi/180 + pi/2), -sin(53.5*pi/180 + pi/2)),
     vector3f(1.0f, 0.0f, 0.0f),
-    vector3f(-11.0f, 13.0f, -2.0f));
+    vector3f(-11.15f, 12.5f, -3.0f));
 static camera_config cam_config1(
     "cam1",
     ev3::INPUT_4,
@@ -159,7 +159,7 @@ static camera_config cam_config1(
     4.0f, 1.33f, 3.5f,
     vector3f(0.0f, cos(53.5*pi/180 + pi/2), sin(53.5*pi/180 + pi/2)),
     vector3f(-1.0f, 0.0f, 0.0f),
-    vector3f(11.0f, 13.0f, -2.0f));
+    vector3f(11.15f, 12.5f, -3.0f));
 
 static cl::group optimization_group("Optimization parameters");
 
@@ -173,15 +173,36 @@ static cl::arg<double> epsilon(
   cl::name("epsilon"),
   cl::desc("Number to consider to be zero when solving optimization problems."),
   optimization_group);
-static cl::arg<double> lambda_recovery(
+static cl::arg<double> lambda_init(
   1,
-  cl::name("lambda-recovery"),
-  cl::desc("Value of the Levenberg-Marquart damping parameter to use when recovering from a bad optimization step."),
+  cl::name("lambda-init"),
+  cl::desc("Initial value of the Levenberg-Marquart damping parameter."),
   optimization_group);
-static cl::arg<double> lambda_decay(
-  0.9,
-  cl::name("lambda-decay"),
-  cl::desc("Decay rate of the Levenberg-Marquart damping parameter for a successful optimization steps."),
+static cl::arg<double> lambda_gain(
+  0.1,
+  cl::name("lambda-gain"),
+  cl::desc("Proportional change in lambda due to change in residual error."),
+  optimization_group);
+
+static cl::boolean disable_distortion(
+  cl::name("disable-distortion"),
+  cl::desc("Disable optimization of the distortion parameters."),
+  optimization_group);
+static cl::boolean disable_calibration_a(
+  cl::name("disable-calibration-a"),
+  cl::desc("Disable optimization of the calibration matrix a parameter."),
+  optimization_group);
+static cl::boolean disable_calibration_s(
+  cl::name("disable-calibration-s"),
+  cl::desc("Disable optimization of the calibration matrix s parameter."),
+  optimization_group);
+static cl::boolean disable_calibration_t(
+  cl::name("disable-calibration-t"),
+  cl::desc("Disable optimization of the calibration matrix t parameter."),
+  optimization_group);
+static cl::boolean disable_orientation(
+  cl::name("disable-orientation"),
+  cl::desc("Disable optimization of the orientation parameters."),
   optimization_group);
 
 template <typename T, int N>
@@ -196,6 +217,7 @@ std::istream &operator >> (std::istream &is, diff<T, N> &d) {
 
 template <typename T>
 void dump_config(ostream &os, const char *prefix, const camera<T> &cam) {
+  os << prefix << "resolution " << cam.resolution << endl;
   os << prefix << "distortion " << cam.d << endl;
   os << prefix << "calibration " << cam.K() << endl;
   os << prefix << "orientation " << cam.R << endl;
@@ -295,17 +317,26 @@ int main(int argc, const char **argv) {
 
     // Construct the variables used in the optimization.
     int N = 0;
-    cam0.d.x.df[N++] = 1; cam0.d.y.df[N++] = 1;
-    cam0.a.x.df[N++] = 1; cam0.a.y.df[N++] = 1;
-    //cam0.s.df[N++] = 1;
-    cam0.t.x.df[N++] = 1; cam0.t.y.df[N++] = 1;
-    cam0.R.a.df[N++] = 1; cam0.R.b.x.df[N++] = 1; cam0.R.b.y.df[N++] = 1; cam0.R.b.z.df[N++] = 1;
-  
-    cam1.d.x.df[N++] = 1; cam1.d.y.df[N++] = 1;
-    cam1.a.x.df[N++] = 1; cam1.a.y.df[N++] = 1;
-    //cam1.s.df[N++] = 1;
-    cam1.t.x.df[N++] = 1; cam1.t.y.df[N++] = 1;
-    cam1.R.a.df[N++] = 1; cam1.R.b.x.df[N++] = 1; cam1.R.b.y.df[N++] = 1; cam1.R.b.z.df[N++] = 1;
+    if (!disable_distortion) {
+      cam0.d.x.df[N++] = 1; cam0.d.y.df[N++] = 1;
+      cam1.d.x.df[N++] = 1; cam1.d.y.df[N++] = 1;
+    }
+    if (!disable_calibration_a) {
+      cam0.a.x.df[N++] = 1; cam0.a.y.df[N++] = 1;
+      cam1.a.x.df[N++] = 1; cam1.a.y.df[N++] = 1;
+    }
+    if (!disable_calibration_s) {
+      cam0.s.df[N++] = 1;
+      cam1.s.df[N++] = 1;
+    }
+    if (!disable_calibration_t) {
+      cam0.t.x.df[N++] = 1; cam0.t.y.df[N++] = 1;
+      cam1.t.x.df[N++] = 1; cam1.t.y.df[N++] = 1;
+    }
+    if (!disable_orientation) {
+      cam0.R.a.df[N++] = 1; cam0.R.b.x.df[N++] = 1; cam0.R.b.y.df[N++] = 1; cam0.R.b.z.df[N++] = 1;
+      cam1.R.a.df[N++] = 1; cam1.R.b.x.df[N++] = 1; cam1.R.b.y.df[N++] = 1; cam1.R.b.z.df[N++] = 1;
+    }
 
     for (auto &set : cd.sets) {
       // If we don't know the center of the sphere for this set, we need to find it in the optimization.
@@ -317,7 +348,7 @@ int main(int argc, const char **argv) {
     }
   
     // Levenberg-Marquardt damping parameter.
-    double lambda = lambda_recovery;
+    double lambda = lambda_init;
     double prev_error = 1e20f;
 
     int it;
@@ -345,38 +376,28 @@ int main(int argc, const char **argv) {
 
           // Error in depth from the calibration sphere and x, for both samples.
           d r_s = set.radius - abs((x0 + x1)/2 - set.center);
-          //d r_0 = set.radius - abs(x0 - set.center);
-          //d r_1 = set.radius - abs(x1 - set.center);
           error += sqr(r_s.f);
         
           // Error in difference between the two projected points.
           d r_z = abs(x0 - x1);
           error += sqr(r_z.f);
 
-          //error += sqr(r_0.f) + sqr(r_1.f) + sqr(r_z.f);
-
           for (int i = 0; i < N; i++) {
-            //double Dr_0_i = D(r_0, i);
-            //double Dr_1_i = D(r_1, i);
             double Dr_s_i = D(r_s, i);
             double Dr_z_i = D(r_z, i);
             // Add this residual to J^T*y.
             JTy(i) -= Dr_s_i*r_s.f + Dr_z_i*r_z.f;
-            //JTy(i) -= Dr_0_i*r_0.f + Dr_1_i*r_1.f + Dr_z_i*r_z.f;
             // Add this residual to J^T*J
             for (int j = 0; j < N; j++)
               JTJ(i, j) += Dr_s_i*D(r_s, j) + Dr_z_i*D(r_z, j);
-              //JTJ(i, j) += Dr_0_i*D(r_0, j) + Dr_1_i*D(r_1, j) + Dr_z_i*D(r_z, j);
           }
         }
       }
       
       // Update Levenberg-Marquardt damping parameter based on whether the error
       // increased or decreased on this iteration.
-      if (error > prev_error)
-        lambda = lambda_recovery;
-      else
-        lambda *= lambda_decay;
+      if (it > 1)
+        lambda = error/prev_error;
       prev_error = error;
       
       // Add lambda*diag(J^J*J) to J^J*J.
@@ -393,21 +414,29 @@ int main(int argc, const char **argv) {
         << ", error=" << error << ", lambda=" << lambda << endl;
     
       int n = 0;
-      cam0.d.x += dB(n++); cam0.d.y += dB(n++);
-      cam0.a.x += dB(n++); cam0.a.y += dB(n++);
-      //cam0.s += dB(n++);
-      cam0.t.x += dB(n++); cam0.t.y += dB(n++);
-      cam0.R.a += dB(n++); cam0.R.b.x += dB(n++); cam0.R.b.y += dB(n++); cam0.R.b.z += dB(n++);
-  
-      cam1.d.x += dB(n++); cam1.d.y += dB(n++);
-      cam1.a.x += dB(n++); cam1.a.y += dB(n++);
-      //cam1.s += dB(n++);
-      cam1.t.x += dB(n++); cam1.t.y += dB(n++);
-      cam1.R.a += dB(n++); cam1.R.b.x += dB(n++); cam1.R.b.y += dB(n++); cam1.R.b.z += dB(n++);
-
-      // Renormalize quaternions.
-      cam0.R /= abs(cam0.R);
-      cam1.R /= abs(cam1.R);
+      if (!disable_distortion) {
+        cam0.d.x += dB(n++); cam0.d.y += dB(n++);
+        cam1.d.x += dB(n++); cam1.d.y += dB(n++);
+      }
+      if (!disable_calibration_a) {
+        cam0.a.x += dB(n++); cam0.a.y += dB(n++);
+        cam1.a.x += dB(n++); cam1.a.y += dB(n++);
+      }
+      if (!disable_calibration_s) {
+        cam0.s += dB(n++);
+        cam1.s += dB(n++);
+      }
+      if (!disable_calibration_t) {
+        cam0.t.x += dB(n++); cam0.t.y += dB(n++);
+        cam1.t.x += dB(n++); cam1.t.y += dB(n++);
+      }
+      if (!disable_orientation) {
+        cam0.R.a += dB(n++); cam0.R.b.x += dB(n++); cam0.R.b.y += dB(n++); cam0.R.b.z += dB(n++);
+        cam1.R.a += dB(n++); cam1.R.b.x += dB(n++); cam1.R.b.y += dB(n++); cam1.R.b.z += dB(n++);
+        // Renormalize quaternions.
+        cam0.R /= abs(cam0.R);
+        cam1.R /= abs(cam1.R);
+      }
   
       for (auto &i : cd.sets) {
         // If we don't know the center of the sphere for this set, we need to find them in the optimization.
