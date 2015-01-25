@@ -11,7 +11,7 @@
 
 using namespace std;
 
-nxtcam::nxtcam(const ev3dev::port_type &port, int address) : fd_(-1), address_(address), port_(port) {
+nxtcam::nxtcam(const ev3dev::port_type &port, int address) : fd_(-1), port_(port) {
   // Find the port number from the port string.
   if (port[0] != 'i' && port[1] != 'n')
     throw runtime_error("port is not an input port.");
@@ -21,6 +21,9 @@ nxtcam::nxtcam(const ev3dev::port_type &port, int address) : fd_(-1), address_(a
 
   fd_ = open(path, O_RDWR);
   if (fd_ < 0)
+    throw runtime_error(strerror(errno));
+
+  if (ioctl(fd_, I2C_SLAVE, address) < 0)
     throw runtime_error(strerror(errno));
 }
 
@@ -94,43 +97,17 @@ nxtcam::blob_list nxtcam::blobs() const {
 // Send an ordered sequence of commands to the device.
 void nxtcam::write(uint8_t reg, uint8_t data) {
   uint8_t buf[2] = { reg, data };
-
-  i2c_msg msg;
-  msg.addr  = address_;
-  msg.flags = 0;
-  msg.len   = sizeof(buf);
-  msg.buf   = buf;
-
-  i2c_rdwr_ioctl_data packets;
-  packets.msgs  = &msg;
-  packets.nmsgs = 1;
-  if(ioctl(fd_, I2C_RDWR, &packets) < 0)
+  if (::write(fd_, buf, sizeof(buf)) < 0)
     throw runtime_error(strerror(errno));
 
   // TODO: This really seems to be necessary, unfortunately.
-  this_thread::sleep_for(chrono::milliseconds(500));
+  this_thread::sleep_for(chrono::milliseconds(200));
 }
   
 void nxtcam::read(uint8_t reg, uint8_t *data, size_t size) const {
-  i2c_msg msgs[2];
-  msgs[0].addr  = address_;
-  msgs[0].flags = 0;
-  msgs[0].len   = sizeof(reg);
-  msgs[0].buf   = &reg;
-
-  msgs[1].addr  = address_;
-  msgs[1].flags = I2C_M_RD;
-  msgs[1].len   = size;
-  msgs[1].buf   = data;
-
-  i2c_rdwr_ioctl_data packets;
-  packets.nmsgs = 1;
-
-  // Attempting to send both messages in one packet hangs ev3dev.
-  packets.msgs  = &msgs[0];
-  if(ioctl(fd_, I2C_RDWR, &packets) < 0)
+  uint8_t addr[1] = { reg };
+  if (::write(fd_, addr, sizeof(addr)) < 0)
     throw runtime_error(strerror(errno));
-  packets.msgs = &msgs[1];
-  if(ioctl(fd_, I2C_RDWR, &packets) < 0)
+  if (::read(fd_, data, size) < 0)
     throw runtime_error(strerror(errno));
 }

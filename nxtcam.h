@@ -24,8 +24,7 @@ public:
   nxtcam(const ev3dev::port_type &port, int address = 0x01);
   ~nxtcam();
   
-  // The address and port this device is connected to.
-  int address() const { return address_; }
+  // The port this device is connected to.
   const ev3dev::port_type &port() const  { return port_; }
 
   // Query information about the connected device.
@@ -74,7 +73,6 @@ protected:
   }
 
   int fd_;
-  int address_;
   ev3dev::port_type port_;
 };
 
