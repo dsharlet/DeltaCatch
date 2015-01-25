@@ -70,18 +70,20 @@ int main(int argc, const char **argv) {
 
   // Initialize the delta robot.
   delta_robot delta(delta_geometry.geometry());
-  delta.init();
+  if (scale > 0.0f) {
+    delta.init();
 
-  // Bask in the glory of the calibration result for a moment.
-  this_thread::sleep_for(chrono::milliseconds(500));
+    // Bask in the glory of the calibration result for a moment.
+    this_thread::sleep_for(chrono::milliseconds(500));
 
-  // Set the motor parameters.
-  delta.set_regulation_mode(regulation_mode);
-  delta.set_pulses_per_second_setpoint(pulses_per_second);
-  delta.set_duty_cycle_setpoint(duty_cycle);
-  delta.set_ramp_up(ramp);
-  delta.set_ramp_down(ramp);
-  
+    // Set the motor parameters.
+    delta.set_regulation_mode(regulation_mode);
+    delta.set_pulses_per_second_setpoint(pulses_per_second);
+    delta.set_duty_cycle_setpoint(duty_cycle);
+    delta.set_ramp_up(ramp);
+    delta.set_ramp_down(ramp);
+  }
+
   nxtcam_init_thread.join();
 
   pair<vector3f, float> volume = delta.get_volume();
@@ -129,24 +131,26 @@ int main(int argc, const char **argv) {
         eraser = string(msg.length(), ' ');
       cout << msg << string(eraser.size() - msg.size(), ' ');
       
-      // The object moved outside the volume. Move the origin s.t. the volume contains x.
-      x = x*scale - origin;
-      if (x.z < volume.first.z) {
-        origin.z -= volume.first.z - x.z;
-        x.z = volume.first.z;
-      }
-      float r = abs(x - volume.first);
-      if (r >= volume.second) {
-        vector3f shift = unit(x - volume.first)*(r - volume.second);
-        origin += shift;
-        x -= shift;
-      }
+      if (scale > 0.0f) {
+        // The object moved outside the volume. Move the origin s.t. the volume contains x.
+        x = x*scale - origin;
+        if (x.z < volume.first.z) {
+          origin.z -= volume.first.z - x.z;
+          x.z = volume.first.z;
+        }
+        float r = abs(x - volume.first);
+        if (r >= volume.second) {
+          vector3f shift = unit(x - volume.first)*(r - volume.second);
+          origin += shift;
+          x -= shift;
+        }
   
-      try {
-        // Move to the position.
-        delta.run_to(x);
-      } catch(runtime_error &) {
-        origin = x;
+        try {
+          // Move to the position.
+          delta.run_to(x);
+        } catch(runtime_error &) {
+          origin = x;
+        }
       }
     } else {
       cout << eraser;
