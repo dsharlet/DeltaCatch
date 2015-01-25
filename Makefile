@@ -40,7 +40,7 @@ bin/calibrate: obj/calibrate.o obj/nxtcam.o obj/debug.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 
-bin/stereo_test: obj/stereo_test.o obj/nxtcam.o
+bin/stereo_test: obj/stereo_test.o obj/nxtcam.o obj/delta_robot.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 	

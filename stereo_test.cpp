@@ -8,8 +8,35 @@
 
 #include "nxtcam.h"
 #include "stereo_config.h"
+#include "delta_robot.h"
 
+using namespace ev3dev;
 using namespace std;
+
+static cl::group motor_control("Motor control");
+
+static cl::arg<mode_type> regulation_mode(
+  "on", 
+  cl::name("regulation-mode"), 
+  cl::desc("One of: 'on', 'off'."),
+  motor_control);
+static cl::arg<int> pulses_per_second(
+  700, 
+  cl::name("pulses-per-second"), 
+  cl::desc("Pulses/second for when --regulation-on is specified."),
+  motor_control);
+static cl::arg<int> duty_cycle(
+  100,
+  cl::name("duty-cycle"), 
+  cl::desc("Duty cycle for when --regulation-on is not specified."),
+  motor_control);
+static cl::arg<int> ramp(
+  0, 
+  cl::name("ramp"), 
+  cl::desc("Ramp time, in ms."),
+  motor_control);
+
+#include "delta_config.h"
 
 static stereo_config stereo;
 
@@ -18,6 +45,11 @@ static cl::arg<float> sample_rate(
   cl::name("sample-rate"),
   cl::desc("Frequency of camera observation samples, in Hz."));
 
+static cl::arg<float> scale(
+  0.5f,
+  cl::name("scale"),
+  cl::desc("Ratio of robot movement to object movement."));
+
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
 
@@ -25,6 +57,37 @@ int main(int argc, const char **argv) {
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
   
+  nxtcam nxtcam0(stereo.cam0.port);
+  nxtcam nxtcam1(stereo.cam1.port); 
+  cout << "Cameras:" << endl;
+  cout << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
+  cout << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;
+
+  thread nxtcam_init_thread([&] () {
+    nxtcam0.track_objects();
+    nxtcam1.track_objects();
+    cout << "Tracking objects..." << endl;
+  });
+
+  // Initialize the delta robot.
+  delta_robot delta(
+    arm0, arm1, arm2,
+    base, effector, bicep, forearm, theta_max);
+
+  // Bask in the glory of the calibration result for a moment.
+  this_thread::sleep_for(chrono::milliseconds(500));
+
+  // Set the motor parameters.
+  delta.set_regulation_mode(regulation_mode);
+  delta.set_pulses_per_second_setpoint(pulses_per_second);
+  delta.set_duty_cycle_setpoint(duty_cycle);
+  delta.set_ramp_up(ramp);
+  delta.set_ramp_down(ramp);
+  
+  nxtcam_init_thread.join();
+
+  pair<vector3f, float> volume = delta.get_volume();
+
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
   
@@ -33,21 +96,13 @@ int main(int argc, const char **argv) {
     throw runtime_error("camera baseline is zero");
   vector3f b = unit(cam1.x - cam0.x);
 
-  nxtcam nxtcam0(stereo.cam0.port);
-  nxtcam nxtcam1(stereo.cam1.port); 
-  cout << "Cameras:" << endl;
-  cout << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
-  cout << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;
-
-  nxtcam0.track_objects();
-  nxtcam1.track_objects();
-  cout << "Tracking objects..." << endl;
-
   // t will increment in regular intervals of T.
   typedef chrono::high_resolution_clock clock;
   auto t = clock::now();
   chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
-
+  
+  vector3f origin(0.0f, 0.0f, 0.0f);
+  
   string eraser;
   while (true) {
     nxtcam::blob_list blobs0 = nxtcam0.blobs();
@@ -66,15 +121,35 @@ int main(int argc, const char **argv) {
       // Move the points from the focal plane to the (parallel) plane containing z and add the camera origins.
       x0 = x0*z + cam0.x;
       x1 = x1*z + cam1.x;
+      vector3f x = (x0 + x1)/2;
       
       stringstream ss;
       ss << fixed << showpoint << setprecision(3);
-      ss << "x0=" << x0 << ",  x1=" << x1 << ", ||x0 - x1||=" << abs(x0 - x1);
+      ss << "x=" << x << ", ||x0 - x1||=" << abs(x0 - x1);
       string msg = ss.str();
       if (msg.length() > eraser.length())
         eraser = string(msg.length(), ' ');
-
       cout << msg << string(eraser.size() - msg.size(), ' ');
+      
+      // The object moved outside the volume. Move the origin s.t. the volume contains x.
+      x = x*scale - origin;
+      if (x.z < volume.first.z) {
+        origin.z -= volume.first.z - x.z;
+        x.z = volume.first.z;
+      }
+      float r = abs(x - volume.first);
+      if (r >= volume.second) {
+        vector3f shift = unit(x - volume.first)*(r - volume.second);
+        origin += shift;
+        x -= shift;
+      }
+  
+      try {
+        // Move to the position.
+        delta.run_to(x);
+      } catch(runtime_error &) {
+        origin = x;
+      }
     } else {
       cout << eraser;
     }
