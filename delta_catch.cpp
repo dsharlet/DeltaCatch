@@ -163,6 +163,7 @@ int main(int argc, const char **argv) {
 
       nxtcam0.track_objects();
       nxtcam1.track_objects();
+      cout << "Tracking objects..." << endl;
   
       // t will increment in regular intervals of T.
       auto t = clock::now();

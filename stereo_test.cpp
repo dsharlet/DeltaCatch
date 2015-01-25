@@ -9,7 +9,6 @@
 #include "nxtcam.h"
 #include "stereo_config.h"
 
-using namespace ev3dev;
 using namespace std;
 
 static stereo_config stereo;
@@ -42,18 +41,19 @@ int main(int argc, const char **argv) {
 
   nxtcam0.track_objects();
   nxtcam1.track_objects();
+  cout << "Tracking objects..." << endl;
 
   // t will increment in regular intervals of T.
   typedef chrono::high_resolution_clock clock;
   auto t = clock::now();
   chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
-  
+
   string eraser;
   while (true) {
     nxtcam::blob_list blobs0 = nxtcam0.blobs();
     nxtcam::blob_list blobs1 = nxtcam1.blobs();
 
-    if (!blobs0.empty() && !blobs1.empty()) {
+    if (blobs0.size() == 1 && blobs1.size() == 1) {
       const nxtcam::blob &b0 = blobs0.front();
       const nxtcam::blob &b1 = blobs1.front();
       
@@ -84,7 +84,6 @@ int main(int argc, const char **argv) {
     t += T;
     this_thread::sleep_until(t);
   }
-
 
   return 0;
 }

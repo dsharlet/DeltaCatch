@@ -267,6 +267,7 @@ int main(int argc, const char **argv) {
 
     cam0.track_objects();
     cam1.track_objects();
+    cout << "Tracking objects..." << endl;
 
     chrono::milliseconds sample_period(static_cast<int>(1e3f/sample_rate + 0.5f));
   
