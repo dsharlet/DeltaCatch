@@ -69,17 +69,21 @@ static cl::arg<float> gravity(
   cl::desc("Acceleration due to gravity, in studs/s^2."));
 
 static cl::arg<float> intercept_delay(
-  20.0f,
+  0.02f,
   cl::name("intercept-delay"),
-  cl::desc("Delay between commanding the delta robot to move and moving in reality, in ms."));
+  cl::desc("Delay between commanding the delta robot to move and moving in reality, in s."));
 static cl::arg<float> catch_delay(
-  30.0f,
+  0.03f,
   cl::name("catch-delay"),
-  cl::desc("Delay between commanding the effector to close and closing in reality, in ms."));
+  cl::desc("Delay between commanding the effector to close and closing in reality, in s."));
 static cl::arg<float> observation_delay(
-  16.67f,
+  0.016f,
   cl::name("observation-delay"),
-  cl::desc("Delay between observing the object and reality, in ms."));
+  cl::desc("Delay between observing the object and reality, in s."));
+static cl::arg<float> reset_delay(
+  1.0f,
+  cl::name("reset-delay"),
+  cl::desc("Delay between initiating a catch action and returning to the ready state."));
 
 static cl::arg<string> viz_host(
   "",
@@ -101,14 +105,16 @@ static cl::arg<vector3f> init_v(
 
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
-      
-  // Define the camera transforms.
-  cameraf cam0, cam1;
-  tie(cam0, cam1) = stereo.cameras();
-    
+
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
+    
+  typedef chrono::high_resolution_clock clock;
+
+  // Define the camera transforms.
+  cameraf cam0, cam1;
+  tie(cam0, cam1) = stereo.cameras();
     
   // Start a thread to find the visualization server address while we start up and calibrate the robot.
   thread find_host;
@@ -123,6 +129,52 @@ int main(int argc, const char **argv) {
     });
     std::swap(find_host, t);
   }
+  
+  observation_buffer obs0, obs1;
+  float obs_t0 = 0.0f;
+  mutex obs_lock;
+
+  auto t0 = clock::now();
+  thread tracking_thread([&]() {
+    nxtcam nxtcam0(stereo.cam0.port);
+    nxtcam nxtcam1(stereo.cam1.port); 
+    cout << "Cameras:" << endl;
+    cout << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
+    cout << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;
+
+    nxtcam0.track_objects();
+    nxtcam1.track_objects();
+    cout << "Tracking objects..." << endl;
+  
+    // t will increment in regular intervals of T.
+    auto t = clock::now();
+    chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
+    while (true) {
+      nxtcam::blob_list blobs0 = nxtcam0.blobs();
+      float t_obs = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count() + observation_delay*1e-3f;
+      nxtcam::blob_list blobs1 = nxtcam1.blobs();
+
+      obs_lock.lock();
+      while(!obs0.empty() && obs_t0 + obs0.front().t + max_flight_time < t_obs) 
+        obs0.pop_front();
+      while(!obs1.empty() && obs_t0 + obs1.front().t + max_flight_time < t_obs)
+        obs1.pop_front();
+      if (obs0.empty() && obs1.empty())
+        obs_t0 = t_obs;
+      for (nxtcam::blob &i : blobs0) {
+        obs0.push_back(observation(t_obs - obs_t0, cam0.sensor_to_focal_plane(i.center())));
+        dbg(1) << "cam0 n=" << obs0.size() << ", x=" << obs0.back().f << endl;
+      }
+      for (nxtcam::blob &i : blobs1) {
+        obs1.push_back(observation(t_obs - obs_t0, cam1.sensor_to_focal_plane(i.center())));
+        dbg(1) << "cam1 n=" << obs1.size() << ", x=" << obs1.back().f << endl;
+      }
+      obs_lock.unlock();
+
+      t += T;
+      this_thread::sleep_until(t);
+    }
+  });
 
   // Initialize the delta robot.
   delta_hand delta(delta_geometry.geometry(), hand);
@@ -144,166 +196,159 @@ int main(int argc, const char **argv) {
   if (!viz_host->empty())
     viz.connect(viz_host, viz_port);
   
-  volatile bool run = true;
-  observation_buffer obs0, obs1;
-  float obs_t0 = 0.0f;
-  mutex obs_lock;
+  pair<vector3f, float> volume = delta.get_volume();
 
-  typedef chrono::high_resolution_clock clock;
-  auto t0 = clock::now();
-  try {
-    thread tracking_thread([&]() {
-      nxtcam nxtcam0(stereo.cam0.port);
-      nxtcam nxtcam1(stereo.cam1.port); 
-      dbg(1) << "Cameras:" << endl;
-      dbg(1) << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
-      dbg(1) << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;
+  // Use a reasonable initial guess for the trajectory.  
+  trajectoryf tj_init;
+  tj_init.x = vector3f(0.0f, 200.0f, 0.0f);
+  tj_init.v = -tj_init.x;
+  tj_init.v /= max_flight_time;
+  tj_init.v.z += -0.5f*gravity*max_flight_time;
 
-      nxtcam0.track_objects();
-      nxtcam1.track_objects();
-      cout << "Tracking objects..." << endl;
-  
-      // t will increment in regular intervals of T.
-      auto t = clock::now();
-      chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
-      while (run) {
-        nxtcam::blob_list blobs0 = nxtcam0.blobs();
-        float t_obs = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count() + observation_delay*1e-3f;
-        nxtcam::blob_list blobs1 = nxtcam1.blobs();
+  trajectoryf tj = tj_init;
+  float dt = 0.0f;
+  float current_obs = 0.0f;
 
-        obs_lock.lock();
-        while(!obs0.empty() && obs_t0 + obs0.front().t + max_flight_time < t_obs) 
-          obs0.pop_front();
-        while(!obs1.empty() && obs_t0 + obs1.front().t + max_flight_time < t_obs)
-          obs1.pop_front();
-        if (obs0.empty() && obs1.empty())
-          obs_t0 = t_obs;
-        for (nxtcam::blob &i : blobs0)
-          obs0.push_back(observation(t_obs - obs_t0, cam0.sensor_to_focal_plane(i.center())));
-        for (nxtcam::blob &i : blobs1)
-          obs1.push_back(observation(t_obs - obs_t0, cam1.sensor_to_focal_plane(i.center())));
-        obs_lock.unlock();
+  // Remember the expected intercepts of the delta robot volume and the z plane. 
+  struct intercept {
+    float t;
+    vector3f x;
+  };
+  const float t_none = numeric_limits<float>::infinity();
 
-        t += T;
-        this_thread::sleep_until(t);
-      }
-    });
-    
-    pair<vector3f, float> volume = delta.get_volume();
+  intercept entry, exit;
+  entry.t = exit.t = t_none;
+  float reset_at = t_none;
 
-    // Use a reasonable initial guess for the trajectory.
-    trajectoryf tj_init;
-    tj_init.v = vector3f(0.0f, 0.0f, 0.0f);
-    tj_init.x = vector3f(0.0f, 80.0f, 40.0f);//volume.first - tj_init.v;
-    //tj_init.v /= max_flight_time;
-    tj_init.v.z += -0.5f*gravity*1.0f;//max_flight_time;
+  while (true) {
+    float t_now = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count();
 
-    trajectoryf tj = tj_init;
-    float dt = 0.0f;
-    float current_obs = 0.0f;
+    // Don't bother trying to estimate a new trajectory if we are closer than the 
+    // observation delay to intercept, new observations will not matter if we have
+    // them anyways.
+    if (t_now + observation_delay < entry.t) {
+      observation_buffer obs0_, obs1_;
+      float obs_t0_;
 
-    // Remember the expected intercepts of the delta robot volume and the z plane. 
-    struct intercept {
-      float t;
-      vector3f x;
-    };
-    intercept intercept_a, intercept_b;
+      // Copy the observation buffers from the background thread.
+      obs_lock.lock();
+      obs_t0_ = obs_t0;
+      for (size_t i = obs0.begin(); i != obs0.end(); i++)
+        obs0_.push_back(obs0[i]);
+      for (size_t i = obs1.begin(); i != obs1.end(); i++)
+        obs1_.push_back(obs1[i]);
+      obs_lock.unlock();
 
-    while (run) {
-      if (obs0.size() + obs1.size() < 7) {
-        intercept_a.t = intercept_b.t = numeric_limits<float>::infinity();
+      if (obs0_.empty() || obs1_.empty() || obs0_.size() + obs1_.size() < 7) {
+        entry.t = exit.t = t_none;
         this_thread::sleep_for(chrono::milliseconds(50));
-        continue;
-      }
-      
-      float t_now = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count();
-
-      // Don't bother trying to estimate a new trajectory if we are closer than the 
-      // observation delay to intercept, new observations will not matter if we have
-      // them anyways.
-      if (t_now + observation_delay < intercept_a.t) {
+      } else {
         bool update_tj = false;
-        if (!obs0.empty() && obs_t0 + obs0.back().t > current_obs) {
-          current_obs = obs_t0 + obs0.back().t;
+        if (obs_t0_ + obs0_.back().t > current_obs) {
+          current_obs = obs_t0 + obs0_.back().t;
           update_tj = true;
         }
-        if (!obs1.empty() && obs_t0 + obs1.back().t > current_obs) {
-          current_obs = obs_t0 + obs1.back().t;
+        if (obs_t0_ + obs1_.back().t > current_obs) {
+          current_obs = obs_t0 + obs1_.back().t;
           update_tj = true;
         }
 
         // Find the trajectory of the ball given the observations.
         if (update_tj) {
           try {
-            intercept_a.t = intercept_b.t = numeric_limits<float>::infinity();
-            {
-              lock_guard<mutex> lock(obs_lock);
-              if (obs0.size() + obs1.size() > 20) {
-                for (size_t i = obs0.begin(); i != obs0.end(); i++)
-                  dbg(1) << "0\t" << obs0.at(i).t << "\t" << obs0.at(i).f.x << '\t' << obs0.at(i).f.y << endl;
-                for (size_t i = obs1.begin(); i != obs1.end(); i++)
-                  dbg(1) << "1\t" << obs1.at(i).t << "\t" << obs1.at(i).f.x << "\t" << obs1.at(i).f.y << endl;
-              }
-              estimate_trajectory(
-                  gravity, 
-                  cam0, cam1,
-                  obs0, obs1, 
-                  dt, tj);
-            }
+            entry.t = exit.t = t_none;
+            estimate_trajectory(
+                gravity, 
+                cam0, cam1,
+                obs0_, obs1_, 
+                dt, tj);
 
             // Intersect the trajectory with the z plane, the last place on the trajectory we can reach.
-            intercept_b.t = intersect_trajectory_zplane(gravity, tj, volume.first.z);
-            intercept_b.x = tj.position(gravity, intercept_b.t);
-            intercept_b.t += obs_t0;
+            exit.t = intersect_trajectory_zplane(gravity, tj, volume.first.z);
+            exit.x = tj.position(gravity, exit.t);
 
             // If the trajectory intercepts the z plane where we can reach it, find the first intercept with the volume.
-            if (abs(intercept_b.x - volume.first) < volume.second) {
-              intercept_a.t = intersect_trajectory_sphere(gravity, tj, volume, 0.0f, intercept_b.t);
-              intercept_a.x = tj.position(gravity, intercept_a.t);
-              intercept_a.t += obs_t0;
+            if (abs(exit.x - volume.first) < volume.second) {
+              entry.t = intersect_trajectory_sphere(gravity, tj, volume, 0.0f, exit.t);
+              assert(entry.t < exit.t);
+              entry.x = tj.position(gravity, entry.t);
 
-              dbg(2) << "trajectory found with intercept expected at t=+" << intercept_a.t - t_now << " s at x=" << intercept_a.x << endl;
+              // Adjust the intercepts from local trajectory time to global time.
+              exit.t += obs_t0_;
+              entry.t += obs_t0_;
+
+              cout << "trajectory found with expected intercepts at:" << endl;
+              cout << "  t=" << entry.t << " s (+" << entry.t - t_now << " s) at x=" << entry.x << endl;
+              cout << "  t=" << exit.t << " s (+" << exit.t - t_now << " s) at x=" << exit.x << endl;
             } else {
-              dbg(2) << "trajectory found with unreachable intercept expected at t=+" << intercept_b.t - t_now << " s at x=" << intercept_b.x << endl;
-              dbg(2) << tj.x << " " << tj.v << endl;
+              cout << "trajectory found with unreachable intercept expected at:" << endl;
+              cout << "  t=" << exit.t << " s (+" << exit.t - t_now << ") s at x=" << exit.x << endl;
+              entry.t = exit.t = t_none;
             }
+            dbg(1) << "  trajectory x=" << tj.x << ", v=" << tj.v << endl;
           } catch(runtime_error &ex) {
-            dbg(3) << ex.what() << endl;
+            dbg(1) << ex.what() << endl;
             tj = tj_init;
             dt = 0.0f;
             delta.run_to(volume.first);
           }
         }
       }
-      // If the intercept is later than now, don't bother trying to catch it.
-      if (t_now > intercept_b.t) {
-        // Move to where we expect the ball to intersect the volume.
-        delta.run_to(intercept_a.x);
-
-        // If the current time has passed the expected intercept delay at the delta volume,
-        // move to the intersection with the z plane in the hopes that we roughly match the
-        // trajectory of the ball.
-        if (t_now + intercept_delay > intercept_a.t) {
-          delta.run_to(intercept_b.x);
+    }
+    try {
+      if (t_now < exit.t) {
+        if (t_now + intercept_delay > entry.t) {
+          // If the first intercept has passed, move to the second intercept in an attempt to match the trajectory of the ball.
+          if (sqr_abs(delta.position_setpoint() - exit.x) > 0.5f) {
+            delta.run_to(exit.x);
+            dbg(1) << "moving to intercept entry (t=" << t_now << " s)" << endl;
+            reset_at = t_now + reset_delay;
+          }
+        } else if (entry.t != t_none) {
+          // Move to prepare for the first intercept.
+          if (sqr_abs(delta.position_setpoint() - entry.x) > 0.5f) {
+            delta.run_to(entry.x);
+            dbg(1) << "moving to intercept exit (t=" << t_now << " s)" << endl;
+            reset_at = t_now + reset_delay;
+          }
         }
+
         // If the current time is half way between the intercepts including the effector delay, catch the ball!
-        if (t_now + catch_delay > (intercept_a.t + intercept_b.t)/2.0f) {
+        if (t_now + catch_delay > (entry.t + exit.t)/2.0f) {
+          cout << "catching the ball!" << endl;
           delta.close_hand();
-          intercept_a.t = intercept_b.t = numeric_limits<float>::infinity();
+          entry.t = exit.t = t_none;
+          reset_at = t_now + reset_delay;
+
+          // Clear out the trajectory data
+          obs_lock.lock();
+          obs0.clear();
+          obs1.clear();
+          obs_lock.unlock();
         }
       } else {
-        // If the trajectory does not have an intercept we can reach, reset the trajectory just in case
-        // it was something wacky.
-        tj = tj_init;
-        dt = 0.0f;
-        delta.run_to(volume.first);
-      } 
+        throw runtime_error("intercept has passed");
+      }
+    } catch(runtime_error &ex) {
+      // If the trajectory does not have an intercept we can reach, reset the trajectory just in case
+      // it was something wacky.
+      dbg(1) << ex.what() << endl;
+
+      tj = tj_init;
+      dt = 0.0f;
+      entry.t = exit.t = t_none;
+      delta.run_to(volume.first);
     }
-  } catch(exception &ex) {
-    cerr << ex.what() << endl;
-    return -1;
+    if (t_now > reset_at) {
+      dbg(1) << "resetting...";
+      delta.run_to(volume.first);
+      while (delta.running())
+        this_thread::sleep_for(chrono::milliseconds(50));
+      this_thread::sleep_for(chrono::milliseconds(100));
+      delta.open_hand();
+      reset_at = t_none;
+    }
   }
-  
-  run = false;
+
   return 0;
 }
