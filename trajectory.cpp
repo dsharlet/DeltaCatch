@@ -67,15 +67,22 @@ float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vec
   vector3f Z = vector3f(0.0f, 0.0f, 1.0f);
   vector3f Y = cross(X, Z);
 
+  vector3f s0 = s.first - tj.x;
   // Map the sphere into the basis given by the trajectory.
-  vector3f s0 = vector3f(dot(s.first, X), dot(s.first, Y), dot(s.first, Z)) + tj.x;
+  s0 = vector3f(dot(s0, X), dot(s0, Y), dot(s0, Z));
 
   // Now we need to solve this:
   // 
   //   (v_x*t - s0.x)^2 + (g*t^2 + tj.v.z*t - s0.z)^2 + s0.y^2 = r^2
   //
   // It's a quartic. Rather than use the quartic formula (pain in the ass), let's use Newton's method.
-  return intersect_trajectory_sphere_XZ(g/2.0f, v_x, tj.v.z, s0, s.second, (t_min + t_max)/2.0f);
+  float dt = (t_max - t_min)/20.0f;
+  for (float t0 = t_min; t0 < t_max; t0 += dt) {
+    float t = intersect_trajectory_sphere_XZ(g/2.0f, v_x, tj.v.z, s0, s.second, t0);
+    if (t_min <= t && t <= t_max)
+      return t;
+  }
+  throw runtime_error("no trajectory-sphere intersection found");
 }
 
 // Find the intersection of a trajectory with the z plane. This function computes the 
