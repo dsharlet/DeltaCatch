@@ -34,6 +34,12 @@ template <typename T, typename U> vector3<T> operator / (vector3<T> l, U r) { re
 template <typename T, typename U> vector3<T> operator * (vector3<T> l, const vector3<U> &r) { return l *= r; }
 template <typename T, typename U> vector3<T> operator / (vector3<T> l, const vector3<U> &r) { return l /= r; }
 
+template <typename T, typename U> bool operator == (const vector3<T> &l, const vector3<U> &r) { return l.x == r.x && l.y == r.y && l.z == r.z; }
+template <typename T, typename U> bool operator != (const vector3<T> &l, const vector3<U> &r) { return l.x != r.x && l.y != r.y && l.z != r.z; }
+template <typename T, typename U> bool operator == (const T &l, const vector3<U> &r) { return l == r.x && l == r.y && l == r.z; }
+template <typename T, typename U> bool operator != (const T &l, const vector3<U> &r) { return l != r.x && l != r.y && l != r.z; }
+template <typename T, typename U> bool operator == (const vector3<T> &l, const U &r) { return l.x == r && l.y == r && l.z == r; }
+template <typename T, typename U> bool operator != (const vector3<T> &l, const U &r) { return l.x != r && l.y != r && l.z != r; }
 
 template <typename T, typename U> 
 T dot(const vector3<T> &l, const vector3<U> &r) { 
