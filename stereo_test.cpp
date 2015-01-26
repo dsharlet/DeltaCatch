@@ -131,7 +131,7 @@ int main(int argc, const char **argv) {
         eraser = string(msg.length(), ' ');
       cout << msg << string(eraser.size() - msg.size(), ' ');
       
-      if (origin == 0.0f)
+      if (dot(origin, origin) == 0.0f)
         origin = x*scale - volume.first;
 
       x = x*scale - origin;

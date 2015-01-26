@@ -9,11 +9,13 @@
 // Mapping of 3D coordinates to the 2D projection observed by a camera.
 template <typename T>
 struct camera {
-  // Distortion
   vector2<T> resolution;
-  vector2<T> d;
 
-  // Defines the camera calibration matrix (intrinsic parameters):
+  // Distortion is modeled by u' = u*(1 + d1*|u|^2), where u' is the distorted
+  // version of the normalized pixel coordinate u.
+  vector2<T> d1;
+
+  // Intrinsic camera parameters used to define the calibration matrix:
   //     [ a.x  s  t.x ]
   // K = [ 0   a.y t.y ]
   //     [ 0    0   1  ]
@@ -21,35 +23,34 @@ struct camera {
   T s;
   vector2<T> t;
 
-  // Defines the basis of the camera space.
+  // Defines the position and orientation of the camera.
   quaternion<T> R;
   vector3<T> x;
 
   camera() : resolution(200, 100), a(1), s(0), R(1) {}
   camera(
       const vector2<T> &resolution,
-      const vector2<T> &d,
+      const vector2<T> &d1,
       const matrix<T, 3, 3> &K,
       const quaternion<T> &R = quaternionf(1.0f, 0.0f),
       const vector3<T> &x = vector3f(0.0f)) 
-    : resolution(resolution), d(d)
+    : resolution(resolution), d1(d1)
     , a(K(0, 0), K(1, 1)), s(K(0, 1)), t(K(0, 2), K(1, 2))
     , R(R), x(x) {
   }
   camera(
       const vector2<T> &resolution,
-      const vector2<T> &d,
+      const vector2<T> &d1,
       const vector2<T> &sensor_size,
       const T &focal_length,
       const quaternion<T> &R = quaternionf(1.0f, 0.0f),
       const vector3<T> &x = vector3f(0.0f)) 
-    : resolution(resolution), d(d)
+    : resolution(resolution), d1(d1)
     , a(sensor_size/(2*focal_length)), s(0), t(0, 0)
     , R(R), x(x) {
   }
-      
  
-  // Realize the actual K matrix.
+  // Realize the actual K matrix from the intrinsic parameters.
   matrix<T, 3, 3> K() const {
     matrix<T, 3, 3> k;
     k(0, 0) = a.x; k(0, 1) = s;   k(0, 2) = t.x;
@@ -66,8 +67,8 @@ struct camera {
         a.y*P.y + t.y);
     
     // Apply distortion correction.
-    u *= vector2<U>(1) + d*dot(u, u);
-        
+    u *= vector2<U>(1) + d1*dot(u, u);
+
     return vector2<U>(
         (u.x + U(1))*(T(0.5)*resolution.x),
         (u.y + U(1))*(T(0.5)*resolution.y));
@@ -81,12 +82,13 @@ struct camera {
         px.y*(T(2)/resolution.y) - U(1));
     
     // Apply distortion model.
-    // Inverse of distortion model via newton's method.
+    // Compute inverse of distortion model via newton's method.
+    // TODO: Try to optimize this... lots of FLOPs here if U is a diff<>.
     vector2<U> u_ = u;
     for (int i = 0; i < 3; i++) {
-      vector2<U> d_uu = d*dot(u, u);
-      vector2<U> fu = u*(vector2<U>(1) + d_uu) - u_;
-      vector2<U> df_du = d_uu + U(2)*d*u*u + vector2<U>(1);
+      vector2<U> d1_uu = d1*dot(u, u);
+      vector2<U> fu = u*(vector2<U>(1) + d1_uu) - u_;
+      vector2<U> df_du = d1_uu + U(2)*d1*u*u + vector2<U>(1);
       u -= fu/df_du;
     }
 
@@ -111,7 +113,7 @@ struct camera {
     return focal_plane_to_sensor(project_to_focal_plane(g));
   }
 
-  // Unproject a point on the focal plane.
+  // Unproject a point on the plane containing z.
   template <typename U>
   vector3<U> focal_plane_to_projection(const vector2<U> &P, const U &z) const {
     return (R*quaternion<U>(0, P.x*z, P.y*z, z)*~R).b + x;
@@ -122,6 +124,7 @@ struct camera {
     return focal_plane_to_projection(sensor_to_focal_plane(px), z);
   }
 
+  // Test if a point is visible to this camera.
   bool is_visible(const vector3<T> &g) const {
     // Unfortunately, positive z is behind the camera, not in front.
     if ((~R*(g - x)*R).b.z >= T(-1e-6))
@@ -136,7 +139,7 @@ template <typename T, typename U>
 camera<T> camera_cast(const camera<U> &x) {
   camera<T> y;
   y.resolution = vector_cast<T>(x.resolution);
-  y.d = vector_cast<T>(x.d);
+  y.d1 = vector_cast<T>(x.d1);
   y.a = vector_cast<T>(x.a);
   y.t = vector_cast<T>(x.t);
   y.s = scalar_cast<T>(x.s);

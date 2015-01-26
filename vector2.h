@@ -34,14 +34,6 @@ template <typename T, typename U> vector2<T> operator / (vector2<T> l, U r) { re
 template <typename T, typename U> vector2<T> operator * (vector2<T> l, const vector2<U> &r) { return l *= r; }
 template <typename T, typename U> vector2<T> operator / (vector2<T> l, const vector2<U> &r) { return l /= r; }
 
-template <typename T, typename U> bool operator == (const vector2<T> &l, const vector2<U> &r) { return l.x == r.x && l.y == r.y; }
-template <typename T, typename U> bool operator != (const vector2<T> &l, const vector2<U> &r) { return l.x != r.x && l.y != r.y; }
-template <typename T, typename U> bool operator == (const T &l, const vector2<U> &r) { return l == r.x && l == r.y; }
-template <typename T, typename U> bool operator != (const T &l, const vector2<U> &r) { return l != r.x && l != r.y; }
-template <typename T, typename U> bool operator == (const vector2<T> &l, const U &r) { return l.x == r && l.y == r; }
-template <typename T, typename U> bool operator != (const vector2<T> &l, const U &r) { return l.x != r && l.y != r; }
-
-
 template <typename T, typename U> 
 T dot(const vector2<T> &l, const vector2<U> &r) { 
   return l.x*r.x + l.y*r.y;

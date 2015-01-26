@@ -12,7 +12,7 @@ int main(int argc, const char **argv) {
     // Generate a (reasonable) random camera.
     camera<double> cam;
     cam.resolution = vector_cast<double>(randv2f(1.0f, 1000.0f));
-    cam.d = vector_cast<double>(randv2f(-1e-1, 1e-1));
+    cam.d1 = vector_cast<double>(randv2f(-1e-1, 1e-1));
 
     cam.a = vector_cast<double>(randv2f(1e-6f, 1.0f));
     cam.s = randf(-1.0f, 1.0f);

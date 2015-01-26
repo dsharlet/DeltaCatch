@@ -186,25 +186,15 @@ static cl::arg<double> lambda_decay(
   optimization_group);
 
 static cl::arg<string> enable(
-  "dastR",
+  "d1|a|s|t|R",
   cl::name("enable"),
   cl::desc("Which calibration parameters to allow optimization over."),
   optimization_group);
 
-template <typename T, int N>
-std::ostream &operator << (std::ostream &os, const diff<T, N> &d) {
-  return os << d.f;
-}
-
-template <typename T, int N>
-std::istream &operator >> (std::istream &is, diff<T, N> &d) {
-  return is >> d.f;
-}
-
 template <typename T>
 void dump_config(ostream &os, const std::string &prefix, const camera<T> &cam) {
   os << prefix << "resolution " << cam.resolution << endl;
-  os << prefix << "distortion " << cam.d << endl;
+  os << prefix << "distortion " << cam.d1 << endl;
   os << prefix << "calibration " << cam.K() << endl;
   os << prefix << "orientation " << cam.R << endl;
   os << prefix << "position " << cam.x << endl;
@@ -360,40 +350,46 @@ int main(int argc, const char **argv) {
     camera<d> cam0 = camera_cast<d>(cam_config0.to_camera());
     camera<d> cam1 = camera_cast<d>(cam_config1.to_camera());
 
-    bool enable_d = enable->find('d') != string::npos;
-    bool enable_a = enable->find('a') != string::npos;
-    bool enable_s = enable->find('s') != string::npos;
-    bool enable_t = enable->find('t') != string::npos;
-    bool enable_R = enable->find('R') != string::npos;
+    bool enable_d = enable->find("d1") != string::npos;
+    bool enable_a = enable->find("a") != string::npos;
+    bool enable_s = enable->find("s") != string::npos;
+    bool enable_t = enable->find("t") != string::npos;
+    bool enable_R = enable->find("R") != string::npos;
+    bool enable_x = enable->find("x") != string::npos;
 
     cout << "Optimization variables:" << endl;
 
     // Construct the variables used in the optimization.
     int N = 0;
     if (enable_d) {
-      cam0.d.x.df[N++] = 1; cam0.d.y.df[N++] = 1;
-      cam1.d.x.df[N++] = 1; cam1.d.y.df[N++] = 1;
-      cout << "   d" << endl;
+      cam0.d1.x.df[N++] = 1; cam0.d1.y.df[N++] = 1;
+      cam1.d1.x.df[N++] = 1; cam1.d1.y.df[N++] = 1;
+      cout << "  d1" << endl;
     }
     if (enable_a) {
       cam0.a.x.df[N++] = 1; cam0.a.y.df[N++] = 1;
       cam1.a.x.df[N++] = 1; cam1.a.y.df[N++] = 1;
-      cout << "   a" << endl;
+      cout << "  a" << endl;
     }
     if (enable_s) {
       cam0.s.df[N++] = 1;
       cam1.s.df[N++] = 1;
-      cout << "   s" << endl;
+      cout << "  s" << endl;
     }
     if (enable_t) {
       cam0.t.x.df[N++] = 1; cam0.t.y.df[N++] = 1;
       cam1.t.x.df[N++] = 1; cam1.t.y.df[N++] = 1;
-      cout << "   t" << endl;
+      cout << "  t" << endl;
     }
     if (enable_R) {
       cam0.R.a.df[N++] = 1; cam0.R.b.x.df[N++] = 1; cam0.R.b.y.df[N++] = 1; cam0.R.b.z.df[N++] = 1;
       cam1.R.a.df[N++] = 1; cam1.R.b.x.df[N++] = 1; cam1.R.b.y.df[N++] = 1; cam1.R.b.z.df[N++] = 1;
-      cout << "   R" << endl;
+      cout << "  R" << endl;
+    }
+    if (enable_x) {
+      cam0.x.x.df[N++] = 1; cam0.x.y.df[N++] = 1; cam0.x.z.df[N++] = 1;
+      cam1.x.x.df[N++] = 1; cam1.x.y.df[N++] = 1; cam1.x.z.df[N++] = 1;
+      cout << "  x" << endl;
     }
 
     for (size_t i = 0; i < cd.sets.size(); i++) {
@@ -403,7 +399,7 @@ int main(int argc, const char **argv) {
         set.center.x.df[N++] = 1;
         set.center.y.df[N++] = 1;
         set.center.z.df[N++] = 1;
-        cout << "   xyz" << i << " (r = " << set.radius << ")" << endl;
+        cout << "  xyz" << i << " (r = " << set.radius << ")" << endl;
       }
     }
 
@@ -462,7 +458,7 @@ int main(int argc, const char **argv) {
       // If error increased, throw away the previous iteration and 
       // reset the Levenberg-Marquardt damping parameter.
       if (error > prev_error) {
-        cout << "  it=" << it << ", ||dB||=0, error=" 
+        cout << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
           << error << ", lambda=" << lambda << endl;
         lambda = lambda_recovery;
         prev_error = error;
@@ -494,8 +490,8 @@ int main(int argc, const char **argv) {
 
       int n = 0;
       if (enable_d) {
-        cam0.d.x += dB(n++); cam0.d.y += dB(n++);
-        cam1.d.x += dB(n++); cam1.d.y += dB(n++);
+        cam0.d1.x += dB(n++); cam0.d1.y += dB(n++);
+        cam1.d1.x += dB(n++); cam1.d1.y += dB(n++);
       }
       if (enable_a) {
         cam0.a.x += dB(n++); cam0.a.y += dB(n++);
@@ -515,6 +511,10 @@ int main(int argc, const char **argv) {
         // Renormalize quaternions.
         cam0.R /= abs(cam0.R);
         cam1.R /= abs(cam1.R);
+      }
+      if (enable_x) {
+        cam0.x.x += dB(n++); cam0.x.y += dB(n++); cam0.x.z += dB(n++);
+        cam1.x.x += dB(n++); cam1.x.y += dB(n++); cam1.x.z += dB(n++);
       }
   
       for (auto &i : cd.sets) {
@@ -538,7 +538,7 @@ int main(int argc, const char **argv) {
 
     for (size_t i = 0; i < cd.sets.size(); i++) {
       if (!cd.sets[i].center_valid)
-        cout << "   xyz" << i << " center=" << cd.sets[i].center << ", radius=" << cd.sets[i].radius << endl;
+        cout << "  xyz" << i << " center=" << cd.sets[i].center << ", radius=" << cd.sets[i].radius << endl;
     }
     
     // Dump results to output file too.

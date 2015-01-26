@@ -1,9 +1,11 @@
 #ifndef AUTODIFF_H
 #define AUTODIFF_H
 
+#include <iostream>
+
 #include "math.h"
 
-// Implementation of automatic differentiation via operator overloading.
+// Implementation of forward automatic differentiation via operator overloading.
 template <typename T, int N>
 class diff {
 public:
@@ -124,6 +126,16 @@ diff<T, N> abs(const diff<T, N> &x) {
 template <typename T, typename U, int N>
 T scalar_cast(const diff<U, N> &x) {
   return scalar_cast<T>(x.f);
+}
+
+template <typename T, int N>
+std::ostream &operator << (std::ostream &os, const diff<T, N> &d) {
+  return os << d.f;
+}
+
+template <typename T, int N>
+std::istream &operator >> (std::istream &is, diff<T, N> &d) {
+  return is >> d.f;
 }
 
 #endif

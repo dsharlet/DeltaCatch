@@ -37,11 +37,6 @@ std::ostream &operator <<(std::ostream &os, const observation &obs) {
   return os << obs.t << " (" << obs.f << ")";
 }
 
-template <typename T, int N>
-std::ostream &operator << (std::ostream &os, const diff<T, N> &d) {
-  return os << d.x;
-}
-
 // Defines the objective function for a trajectory/sphere intersection.
 template <typename T>
 T trajectory_sphere_XZ(float half_g, float v_x, float v_z, const vector3f &s, float r, const T &t) {
@@ -149,7 +144,7 @@ float estimate_trajectory(
   size_t M1 = static_cast<int>(obs1.size());
   size_t M = M0 + M1;
   
-  dbg(3) << "estimate_trajectory, M=" << M << " (" << M0 << " + " << M1 << ")..." << endl;
+  dbg(1) << "estimate_trajectory, M=" << M << " (" << M0 << " + " << M1 << ")..." << endl;
 
   // Levenberg-Marquardt state.
   trajectory<d> prev_tj = tj;
@@ -187,7 +182,7 @@ float estimate_trajectory(
     // If error increased, throw away the previous iteration and 
     // reset the Levenberg-Marquardt damping parameter.
     if (error > prev_error) {
-      dbg(2) << "  it=" << it << ", ||dB||=0, error=" 
+      dbg(2) << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
         << error << ", lambda=" << lambda << endl;
       lambda = lambda_recovery;
       prev_error = error;
