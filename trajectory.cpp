@@ -154,7 +154,7 @@ float estimate_trajectory(
   // Levenberg-Marquardt state.
   trajectory<d> prev_tj = tj;
   float prev_error = std::numeric_limits<float>::infinity();
-  float lambda = lambda_recovery/lambda_decay;
+  float lambda = lambda_recovery;
 
   int it;
   for (it = 1; it <= max_iterations; it++) {
@@ -184,16 +184,14 @@ float estimate_trajectory(
       }
     }
 
-    // Update Levenberg-Marquardt damping parameter.
-    if (error < prev_error) {
-      lambda *= lambda_decay;
-      prev_error = error;
-      prev_tj = tj;
-    } else {
-      lambda = lambda_recovery/lambda_decay;
+    // If error increased, throw away the previous iteration and 
+    // reset the Levenberg-Marquardt damping parameter.
+    if (error > prev_error) {
+      dbg(2) << "  it=" << it << ", ||dB||=0, error=" 
+        << error << ", lambda=" << lambda << endl;
+      lambda = lambda_recovery;
       prev_error = error;
       tj = prev_tj;
-      dbg(2) << "  it=" << it << ", ||dB||=0, error=" << error << ", lambda=" << lambda << endl;
       continue;
     }
 
@@ -212,6 +210,11 @@ float estimate_trajectory(
       dbg(4) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
           << ", error=" << error << ", lambda=" << lambda << endl;
     }
+
+    // Update Levenberg-Marquardt damping parameter.
+    lambda *= lambda_decay;
+    prev_error = error;
+    prev_tj = tj;
 
     tj.x += vector3f(dB(x_x), dB(x_y), dB(x_z));
     tj.v += vector3f(dB(v_x), dB(v_y), dB(v_z));

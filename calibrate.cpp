@@ -398,7 +398,7 @@ int main(int argc, const char **argv) {
     }
   
     // Levenberg-Marquardt damping parameter.
-    double lambda = lambda_recovery/lambda_decay;
+    double lambda = lambda_recovery;
     double prev_error = numeric_limits<double>::infinity();
     camera<d> prev_cam0 = cam0;
     camera<d> prev_cam1 = cam1;
@@ -446,21 +446,17 @@ int main(int argc, const char **argv) {
           }
         }
       }
-
-      // Update Levenberg-Marquardt damping parameter.
-      if (error < prev_error) {
-        lambda *= lambda_decay;
-        prev_error = error;
-        prev_cam0 = cam0;
-        prev_cam1 = cam1;
-        prev_centers = unknown_centers(cd);
-      } else {
-        lambda = lambda_recovery/lambda_decay;
+      
+      // If error increased, throw away the previous iteration and 
+      // reset the Levenberg-Marquardt damping parameter.
+      if (error > prev_error) {
+        dbg(2) << "  it=" << it << ", ||dB||=0, error=" 
+          << error << ", lambda=" << lambda << endl;
+        lambda = lambda_recovery;
         prev_error = error;
         cam0 = prev_cam0;
         cam1 = prev_cam1;
         set_unknown_centers(cd, prev_centers);
-        dbg(2) << "  it=" << it << ", ||dB||=0, error=" << error << ", lambda=" << lambda << endl;
         continue;
       }
 
@@ -476,7 +472,14 @@ int main(int argc, const char **argv) {
     
       dbg(2) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
         << ", error=" << error << ", lambda=" << lambda << endl;
-    
+
+      // Update Levenberg-Marquardt damping parameter.
+      lambda *= lambda_decay;
+      prev_error = error;
+      prev_cam0 = cam0;
+      prev_cam1 = cam1;
+      prev_centers = unknown_centers(cd);
+
       int n = 0;
       if (enable_d) {
         cam0.d.x += dB(n++); cam0.d.y += dB(n++);
