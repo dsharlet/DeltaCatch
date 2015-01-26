@@ -45,6 +45,11 @@ T abs(const vector2<T> &x) {
 }
 
 template <typename T>
+T sqr_abs(const vector2<T> &x) {
+  return dot(x, x);
+}
+
+template <typename T>
 vector2<T> unit(const vector2<T> &x) {
   return x/abs(x);
 }
