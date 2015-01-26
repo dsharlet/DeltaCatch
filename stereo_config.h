@@ -46,7 +46,7 @@ struct camera_config {
     stereo_group),
   x(
     vector3f(0.0f),
-    cl::name(prefix + "-origin"),
+    cl::name(prefix + "-position"),
     cl::desc("Camera position."),
     stereo_group)
   {}

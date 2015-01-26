@@ -202,18 +202,18 @@ std::istream &operator >> (std::istream &is, diff<T, N> &d) {
 }
 
 template <typename T>
-void dump_config(ostream &os, const char *prefix, const camera<T> &cam) {
+void dump_config(ostream &os, const std::string &prefix, const camera<T> &cam) {
   os << prefix << "resolution " << cam.resolution << endl;
   os << prefix << "distortion " << cam.d << endl;
   os << prefix << "calibration " << cam.K() << endl;
   os << prefix << "orientation " << cam.R << endl;
-  os << prefix << "origin " << cam.x << endl;
+  os << prefix << "position " << cam.x << endl;
 }
 
 template <typename T>
-void dump_config(ostream &os, const camera<T> &cam0, const camera<T> &cam1) {
-  dump_config(os, "--cam0-", cam0);
-  dump_config(os, "--cam1-", cam1);
+void dump_config(ostream &os, const std::string &prefix, camera<T> &cam0, const camera<T> &cam1) {
+  dump_config(os, prefix + "cam0-", cam0);
+  dump_config(os, prefix + "cam1-", cam1);
 }
 
 template <typename T>
@@ -352,7 +352,8 @@ int main(int argc, const char **argv) {
 
     if (cd.sets.empty()) 
       throw runtime_error("no calibration data");
-
+    cout << "Read calibration data with " << cd.sets.size() << " sets, " << cd.sample_count() << " samples." << endl;
+    
     // Get a list of samples corresponding to observations of an object lying somewhere on the sampling sphere. 
     const double epsilon_sq = epsilon*epsilon;
  
@@ -365,38 +366,49 @@ int main(int argc, const char **argv) {
     bool enable_t = enable->find('t') != string::npos;
     bool enable_R = enable->find('R') != string::npos;
 
+    cout << "Optimization variables:" << endl;
+
     // Construct the variables used in the optimization.
     int N = 0;
     if (enable_d) {
       cam0.d.x.df[N++] = 1; cam0.d.y.df[N++] = 1;
       cam1.d.x.df[N++] = 1; cam1.d.y.df[N++] = 1;
+      cout << "   d" << endl;
     }
     if (enable_a) {
       cam0.a.x.df[N++] = 1; cam0.a.y.df[N++] = 1;
       cam1.a.x.df[N++] = 1; cam1.a.y.df[N++] = 1;
+      cout << "   a" << endl;
     }
     if (enable_s) {
       cam0.s.df[N++] = 1;
       cam1.s.df[N++] = 1;
+      cout << "   s" << endl;
     }
     if (enable_t) {
       cam0.t.x.df[N++] = 1; cam0.t.y.df[N++] = 1;
       cam1.t.x.df[N++] = 1; cam1.t.y.df[N++] = 1;
+      cout << "   t" << endl;
     }
     if (enable_R) {
       cam0.R.a.df[N++] = 1; cam0.R.b.x.df[N++] = 1; cam0.R.b.y.df[N++] = 1; cam0.R.b.z.df[N++] = 1;
       cam1.R.a.df[N++] = 1; cam1.R.b.x.df[N++] = 1; cam1.R.b.y.df[N++] = 1; cam1.R.b.z.df[N++] = 1;
+      cout << "   R" << endl;
     }
 
-    for (auto &set : cd.sets) {
+    for (size_t i = 0; i < cd.sets.size(); i++) {
+      auto &set = cd.sets[i];
       // If we don't know the center of the sphere for this set, we need to find it in the optimization.
       if (!set.center_valid) {
         set.center.x.df[N++] = 1;
         set.center.y.df[N++] = 1;
         set.center.z.df[N++] = 1;
+        cout << "   xyz" << i << " (r = " << set.radius << ")" << endl;
       }
     }
-  
+
+    cout << "Running optimization..." << endl;
+
     // Levenberg-Marquardt damping parameter.
     double lambda = lambda_recovery;
     double prev_error = numeric_limits<double>::infinity();
@@ -450,7 +462,7 @@ int main(int argc, const char **argv) {
       // If error increased, throw away the previous iteration and 
       // reset the Levenberg-Marquardt damping parameter.
       if (error > prev_error) {
-        dbg(2) << "  it=" << it << ", ||dB||=0, error=" 
+        cout << "  it=" << it << ", ||dB||=0, error=" 
           << error << ", lambda=" << lambda << endl;
         lambda = lambda_recovery;
         prev_error = error;
@@ -470,7 +482,7 @@ int main(int argc, const char **argv) {
       if (!isfinite(dB))
         throw runtime_error("optimization diverged");
     
-      dbg(2) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
+      cout << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
         << ", error=" << error << ", lambda=" << lambda << endl;
 
       // Update Levenberg-Marquardt damping parameter.
@@ -515,24 +527,23 @@ int main(int argc, const char **argv) {
       }
         
       if (dot(dB, dB) < epsilon_sq) {
-        dbg(1) << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
+        cout << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
         break;
       }
     }
     
-    dump_config(cout, cam0, cam1);
+    cout << "Optimization done:" << endl;
+
+    dump_config(cout, "   ", cam0, cam1);
 
     for (size_t i = 0; i < cd.sets.size(); i++) {
-      if (cd.sets[i].center_valid)
-        cout << "Known sampling sphere ";
-      else
-        cout << "Estimated sampling sphere ";
-      cout << i << " center=" << cd.sets[i].center << ", radius=" << cd.sets[i].radius << endl;
+      if (!cd.sets[i].center_valid)
+        cout << "   xyz" << i << " center=" << cd.sets[i].center << ", radius=" << cd.sets[i].radius << endl;
     }
     
     // Dump results to output file too.
     ofstream output(output_file);
-    dump_config(output, cam0, cam1);
+    dump_config(output, "--", cam0, cam1);
   }  
 
   return 0;
