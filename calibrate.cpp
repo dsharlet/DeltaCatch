@@ -165,7 +165,7 @@ static camera_config cam_config1(
 static cl::group optimization_group("Optimization parameters");
 
 static cl::arg<int> max_iterations(
-  50,
+  100,
   cl::name("max-iterations"),
   cl::desc("Maximum number of iterations allowed when solving optimization problems."),
   optimization_group);
@@ -180,7 +180,7 @@ static cl::arg<double> lambda_recovery(
   cl::desc("Initial value of Levenberg-Marquardt damping parameter."),
   optimization_group);
 static cl::arg<double> lambda_decay(
-  0.5,
+  0.9,
   cl::name("lambda-decay"),
   cl::desc("Decay ratio of the Levenberg-Marquardt damping parameter on a successful iteration."),
   optimization_group);
