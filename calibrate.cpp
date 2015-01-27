@@ -130,14 +130,14 @@ static cl::arg<float> sample_radius(
   cl::desc("Radius of the sampling sphere."),
   capture_group);
 static cl::arg<float> sample_min_dx(
-  10.0f,
+  20.0f,
   cl::name("sample-min-dx"),
   cl::desc("Minimum distance between samples."),
   capture_group);
-static cl::arg<float> sample_max_dx(
+static cl::arg<float> sample_noise_tolerance(
   1.0f,
-  cl::name("sample-min-dx"),
-  cl::desc("Maximum distance between samples."),
+  cl::name("sample-noise-tolerance"),
+  cl::desc("Maximum allowed error in a set of observations to be taken as a sample."),
   capture_group);
 static cl::arg<float> sample_rate(
   30.0f,
@@ -287,7 +287,7 @@ int main(int argc, const char **argv) {
 
     chrono::milliseconds sample_period(static_cast<int>(1e3f/sample_rate + 0.5f));
 
-    circular_array<vector2f, 8> x0, x1;
+    circular_array<vector2f, 4> x0, x1;
 
     // Capture samples.
     while (static_cast<int>(set.samples.size()) < sample_count) {
@@ -295,34 +295,43 @@ int main(int argc, const char **argv) {
       nxtcam::blob_list blobs1 = cam1.blobs();
 
       if (blobs0.size() == 1 && blobs1.size() == 1) {
-        while(x0.size() + 1 >= x0.capacity()) x0.pop_front();
-        while(x1.size() + 1 >= x1.capacity()) x1.pop_front();
+        while(x0.size() >= x0.capacity()) x0.pop_front();
+        while(x1.size() >= x1.capacity()) x1.pop_front();
         x0.push_back(blobs0.front().center());
         x1.push_back(blobs1.front().center());
-        
+
         vector2f x0_mean = mean(x0);
         vector2f x1_mean = mean(x1);
 
         cout << "\rn=" << set.samples.size() << ", x0=" << x0_mean << ", x1=" << x1_mean << "                  ";
         cout.flush();
 
-        vector2f x0_min, x0_max;
-        vector2f x1_min, x1_max;
-        tie(x0_min, x0_max) = min_max(x0);
-        tie(x1_min, x1_max) = min_max(x1);
-        if (abs(x0_max - x0_min) < sample_max_dx &&
-            abs(x1_max - x1_min) < sample_max_dx) {
-          if(set.samples.empty()) {
-            set.samples.emplace_back(x0_mean, x1_mean);
-            cout << endl;
-          } else { 
-            float dx = max(abs(x0_mean - set.samples.back().px0), abs(x1_mean - set.samples.back().px1));
-            if (sample_min_dx <= dx) {
+        // Only take a sample if we have a full set of observations to filter.
+        if (x0.size() >= x0.capacity() || x1.size() >= x1.capacity()) {
+          // Only take a sample if the min and max of the observations in the buffer are within noise tolerances.
+          vector2f x0_min, x0_max;
+          vector2f x1_min, x1_max;
+          tie(x0_min, x0_max) = min_max(x0);
+          tie(x1_min, x1_max) = min_max(x1);
+          if (abs(x0_max - x0_min) < sample_noise_tolerance &&
+              abs(x1_max - x1_min) < sample_noise_tolerance) {
+            if(set.samples.empty()) {
               set.samples.emplace_back(x0_mean, x1_mean);
               cout << endl;
+            } else { 
+              float dx = max(abs(x0_mean - set.samples.back().px0), abs(x1_mean - set.samples.back().px1));
+              if (sample_min_dx <= dx) {
+                set.samples.emplace_back(x0_mean, x1_mean);
+                cout << endl;
+              }
             }
           }
         }
+      } else {
+        x0.clear();
+        x1.clear();
+        cout << "\r" << string(79, ' ');
+        cout.flush();
       }
 
       this_thread::sleep_for(sample_period);

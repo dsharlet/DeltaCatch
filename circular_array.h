@@ -27,12 +27,12 @@ public:
   bool empty() const { return size() == 0; }
   
   void push_back(const T &obs) {
-    assert(size() + 1 < N);
+    assert(size() < N);
     at(end_++) = obs;
   }
 
   void push_back(T &&obs) {
-    assert(size() + 1 < N);
+    assert(size() < N);
     at(end_++) = std::move(obs);
   }
 
