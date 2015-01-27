@@ -115,6 +115,7 @@ void delta_robot::init() {
 
   // Start running the motors indefinitely, reset the position to 0.
   for (auto i : arms) {
+    i->reset();
     i->set_run_mode(motor::run_mode_forever);
     i->set_stop_mode(motor::stop_mode_hold);
     i->set_regulation_mode(motor::mode_on);
