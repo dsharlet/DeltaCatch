@@ -72,6 +72,12 @@
     <ClInclude Include="delta_robot_args.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pid_motor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pid_controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="trajectory.cpp">
@@ -98,9 +104,6 @@
     <ClCompile Include="debug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="viz_client.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="stereo_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -114,6 +117,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="trajectory_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="viz_client.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pid_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pid_motor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

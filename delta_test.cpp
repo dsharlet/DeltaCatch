@@ -10,53 +10,29 @@
 using namespace ev3dev;
 using namespace std;
 
-static cl::group motor_control("Motor control");
-static cl::arg<mode_type> regulation_mode(
-  "on", 
-  cl::name("regulation-mode"), 
-  cl::desc("One of: 'on', 'off'."),
-  motor_control);
-static cl::arg<int> pulses_per_second(
-  700, 
-  cl::name("pulses-per-second"), 
-  cl::desc("Pulses/second for when --regulation-on is specified."),
-  motor_control);
-static cl::arg<int> duty_cycle(
-  100,
-  cl::name("duty-cycle"), 
-  cl::desc("Duty cycle for when --regulation-on is not specified."),
-  motor_control);
-static cl::arg<int> ramp(
-  0, 
-  cl::name("ramp"), 
-  cl::desc("Ramp time, in ms."),
-  motor_control);
+static cl::arg<vector3i> pid(
+  vector3i(5000, 5000, 0),
+  cl::name("pid"),
+  cl::desc("PID parameters Kp, Ki, Kd."));
 
-// Trace out a n-sided polygon horizontally.
-static cl::arg<int> ngon_n(
-  0,
-  cl::name("ngon-n"),
-  cl::desc("Repeatedly trace out an n-sided polygon with the effector."));
-static cl::arg<float> ngon_r(
+// Trace out a circle
+static cl::boolean circle(
+  cl::name("circle"),
+  cl::desc("Trace out circles."));
+static cl::arg<float> circle_r(
   0.0f,
-  cl::name("ngon-r"),
-  cl::desc("Radius of the n-gon to trace out, in studs."));
-static cl::arg<float> ngon_z(
+  cl::name("circle-r"),
+  cl::desc("Radius of the circle to trace out, in studs."));
+static cl::arg<float> circle_z(
   0.0f,
-  cl::name("ngon-z"),
-  cl::desc("z axis offset from volume center of the n-gon to trace out, in studs."));
-
-// Trace out random lines broken into steps.
-static cl::arg<float> lines_dx(
-  0.0f,
-  cl::name("lines-dx"),
-  cl::desc("Generate and move along random lines, split into steps of 'lines-dx' studs."));
+  cl::name("circle-z"),
+  cl::desc("z axis offset from volume center of the circle to trace out, in studs."));
 
 // Generic options.
-static cl::arg<int> pause(
-  0,
-  cl::name("pause"),
-  cl::desc("How long to pause in between each test position, in ms."));
+static cl::arg<float> speed(
+  5.0f,
+  cl::name("speed"),
+  cl::desc("How quickly to move, in studs/s."));
 static cl::boolean show_path(
   cl::name("show-path"),
   cl::desc("Write coordinates of paths to stdout."));
@@ -65,6 +41,7 @@ static delta_robot_args delta_geometry("", "Delta robot geometry");
 
 void main_show_position(delta_robot &delta) {
   delta.set_stop_mode(motor::stop_mode_coast);
+  delta.stop();
   
   const int w = 8;
 
@@ -79,76 +56,35 @@ void main_show_position(delta_robot &delta) {
         << endl;
       x0 = x;
     }
-    this_thread::sleep_for(chrono::milliseconds(pause));
+    this_thread::sleep_for(chrono::milliseconds(30));
   }
 }
 
-void main_ngon(delta_robot &delta) {
+void main_circle(delta_robot &delta) {
   static const float pi = 3.14159265f;
+  const int sample_rate = 50;
+
 
   // Get the volume of the delta bot.
   vector3f center;
   float radius;
   tie(center, radius) = delta.get_volume();
   
-  center.z += ngon_z;
+  center.z += circle_z;
 
-  if (ngon_r > 0.0f)
-    radius = ngon_r;
+  if (circle_r > 0.0f)
+    radius = circle_r;
 
-  delta.set_stop_mode(motor::stop_mode_hold);
+  float rads = 2*pi*speed/(radius*sample_rate);
 
-  for (int i = 0; ; i++) {
-    float theta = 2*pi*i/ngon_n + pi/2;
-    
+  for (float theta = 0.0f; ; theta += rads) {
     // Compute a circle around the circumference of the volume.
     vector3f x(cos(theta), sin(theta), 0.0f);
     x = x*radius + center;
-
     if (show_path)
       cout << x << endl;
-
-    delta.run_to(x);
-    while (delta.running())
-      this_thread::sleep_for(chrono::milliseconds(5));
-
-    if (pause > 0)
-      this_thread::sleep_for(chrono::milliseconds(pause));
-  }
-}
-
-void main_random_lines(delta_robot &delta) {
-  // Get the volume of the delta bot.
-  vector3f center;
-  float radius;
-  tie(center, radius) = delta.get_volume();
-  
-  delta.set_stop_mode(motor::stop_mode_hold);
-
-  while(true) {
-    if (pause > 0)
-      this_thread::sleep_for(chrono::milliseconds(pause));
-
-    vector3f x0 = delta.position();
-
-    // Pick a random point.
-    vector3f x1 = x0;
-    for (int i = 0; i < 20 && abs(x1 - x0) < radius*1.5f; i++) {
-      x1 = radius*unit(randv3f(-1.0f, 1.0f));
-      x1.z = abs(x1.z);
-      x1 += center;
-    };
-    if (show_path)
-      cout << x1 << endl;
-
-    float steps = ceil(abs(x1 - x0)/lines_dx);
-    vector3f dx = (x1 - x0)/steps;
-
-    for (float i = 0; i < steps; i += 1.0f) {
-      delta.run_to(x0 + dx*i);
-      while (delta.running())
-        this_thread::sleep_for(chrono::milliseconds(5));
-    }
+    delta.set_position_setpoint(x);
+    this_thread::sleep_for(chrono::milliseconds(1000/sample_rate));
   }
 }
 
@@ -166,17 +102,11 @@ int main(int argc, const char **argv) {
   this_thread::sleep_for(chrono::milliseconds(500));
 
   // Set the motor parameters.
-  delta.set_regulation_mode(regulation_mode);
-  delta.set_pulses_per_second_setpoint(pulses_per_second);
-  delta.set_duty_cycle_setpoint(duty_cycle);
-  delta.set_ramp_up(ramp);
-  delta.set_ramp_down(ramp);
+  delta.set_pid(pid->x, pid->y, pid->z);
 
   // Figure out what we're doing.
-  if (ngon_n > 2) {
-    main_ngon(delta);
-  } else if (lines_dx > 0.0f) {
-    main_random_lines(delta);
+  if (circle) {
+    main_circle(delta);
   } else {
     main_show_position(delta);
   }

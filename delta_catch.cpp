@@ -22,27 +22,10 @@
 using namespace ev3dev;
 using namespace std;
 
-static cl::group motor_control("Motor control");
-static cl::arg<mode_type> regulation_mode(
-  "on", 
-  cl::name("regulation-mode"), 
-  cl::desc("One of: 'on', 'off'."),
-  motor_control);
-static cl::arg<int> pulses_per_second(
-  700, 
-  cl::name("pulses-per-second"), 
-  cl::desc("Pulses/second for when --regulation-on is specified."),
-  motor_control);
-static cl::arg<int> duty_cycle(
-  100,
-  cl::name("duty-cycle"), 
-  cl::desc("Duty cycle for when --regulation-on is not specified."),
-  motor_control);
-static cl::arg<int> ramp(
-  0, 
-  cl::name("ramp"), 
-  cl::desc("Ramp time, in ms."),
-  motor_control);
+static cl::arg<vector3i> pid(
+  vector3i(5000, 5000, 0),
+  cl::name("pid"),
+  cl::desc("PID parameters Kp, Ki, Kd."));
 
 static stereo_config stereo;
 
@@ -184,11 +167,7 @@ int main(int argc, const char **argv) {
   this_thread::sleep_for(chrono::milliseconds(500));
 
   // Set the motor parameters.
-  delta.set_regulation_mode(regulation_mode);
-  delta.set_pulses_per_second_setpoint(pulses_per_second);
-  delta.set_duty_cycle_setpoint(duty_cycle);
-  delta.set_ramp_up(ramp);
-  delta.set_ramp_down(ramp);
+  delta.set_pid(pid->x, pid->y, pid->z);
 
   // Check to see if we should connect to a visualization host.
   find_host.join();
@@ -290,7 +269,7 @@ int main(int argc, const char **argv) {
             dbg(1) << ex.what() << endl;
             tj = tj_init;
             dt = 0.0f;
-            delta.run_to(volume.first);
+            delta.set_position_setpoint(volume.first);
           }
         }
       }
@@ -300,14 +279,14 @@ int main(int argc, const char **argv) {
         if (t_now + intercept_delay > entry.t) {
           // If the first intercept has passed, move to the second intercept in an attempt to match the trajectory of the ball.
           if (sqr_abs(delta.position_setpoint() - exit.x) > 0.5f) {
-            delta.run_to(exit.x);
+            delta.set_position_setpoint(exit.x);
             dbg(1) << "moving to intercept entry (t=" << t_now << " s)" << endl;
             reset_at = t_now + reset_delay;
           }
         } else if (entry.t != t_none) {
           // Move to prepare for the first intercept.
           if (sqr_abs(delta.position_setpoint() - entry.x) > 0.5f) {
-            delta.run_to(entry.x);
+            delta.set_position_setpoint(entry.x);
             dbg(1) << "moving to intercept exit (t=" << t_now << " s)" << endl;
             reset_at = t_now + reset_delay;
           }
@@ -337,11 +316,11 @@ int main(int argc, const char **argv) {
       tj = tj_init;
       dt = 0.0f;
       entry.t = exit.t = t_none;
-      delta.run_to(volume.first);
+      delta.set_position_setpoint(volume.first);
     }
     if (t_now > reset_at) {
       dbg(1) << "resetting...";
-      delta.run_to(volume.first);
+      delta.set_position_setpoint(volume.first);
       while (delta.running())
         this_thread::sleep_for(chrono::milliseconds(50));
       this_thread::sleep_for(chrono::milliseconds(100));

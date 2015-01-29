@@ -13,27 +13,11 @@
 using namespace ev3dev;
 using namespace std;
 
-static cl::group motor_control("Motor control");
-static cl::arg<mode_type> regulation_mode(
-  "on", 
-  cl::name("regulation-mode"), 
-  cl::desc("One of: 'on', 'off'."),
-  motor_control);
-static cl::arg<int> pulses_per_second(
-  700, 
-  cl::name("pulses-per-second"), 
-  cl::desc("Pulses/second for when --regulation-on is specified."),
-  motor_control);
-static cl::arg<int> duty_cycle(
-  100,
-  cl::name("duty-cycle"), 
-  cl::desc("Duty cycle for when --regulation-on is not specified."),
-  motor_control);
-static cl::arg<int> ramp(
-  0, 
-  cl::name("ramp"), 
-  cl::desc("Ramp time, in ms."),
-  motor_control);
+static cl::arg<vector3i> pid(
+  vector3i(5000, 5000, 0),
+  cl::name("pid"),
+  cl::desc("PID parameters Kp, Ki, Kd."));
+
 
 static delta_robot_args delta_geometry("", "Delta robot geometry");
 
@@ -77,11 +61,7 @@ int main(int argc, const char **argv) {
     this_thread::sleep_for(chrono::milliseconds(500));
 
     // Set the motor parameters.
-    delta.set_regulation_mode(regulation_mode);
-    delta.set_pulses_per_second_setpoint(pulses_per_second);
-    delta.set_duty_cycle_setpoint(duty_cycle);
-    delta.set_ramp_up(ramp);
-    delta.set_ramp_down(ramp);
+    delta.set_pid(pid->x, pid->y, pid->z);
   }
 
   nxtcam_init_thread.join();
@@ -139,7 +119,7 @@ int main(int argc, const char **argv) {
       if (scale > 0.0f) {
         try {
           // Move to the position.
-          delta.run_to(x);
+          delta.set_position_setpoint(x);
         } catch(runtime_error &) {
 
         }

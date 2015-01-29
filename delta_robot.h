@@ -1,9 +1,8 @@
 #ifndef DELTA_ROBOT_H
 #define DELTA_ROBOT_H
 
-#include "ev3dev.h"
-
 #include "vector3.h"
+#include "pid_motor.h"
 
 namespace ev3 = ev3dev;
 
@@ -21,11 +20,11 @@ struct delta_robot_geometry {
 // base to the effector.
 class delta_robot {
 protected:
-  class arm : public ev3::motor {
+  class arm : public pid_motor {
   public:
     int min;
 
-    arm(ev3::port_type p) : ev3::motor(p), min(0) {}
+    arm(ev3::port_type p) : pid_motor(p), min(0) {}
   };
 
 private:
@@ -65,10 +64,6 @@ protected:
     arms[2]->set_position_setpoint(x.z);
   }
   
-  void run() {
-    for (auto i : arms) i->run();
-  }
-
   bool is_raw_position_reachable(const vector3i &x) const {
     return 
       0 <= x.x && x.x <= arms[0]->min &&
@@ -76,6 +71,11 @@ protected:
       0 <= x.z && x.z <= arms[2]->min;
   }
   
+  void run() {
+    for (auto i : arms)
+      i->run();
+  }
+
   // Test forward/inverse kinematics for consistency.
   void test() const;
 
@@ -93,12 +93,13 @@ public:
   }
 
   // Forward some useful calls to the 3 arm motors.
-  void set_ramp_up(int v) { for (auto i : arms) i->set_ramp_up(v); }
-  void set_ramp_down(int v) { for (auto i : arms) i->set_ramp_down(v); }
-  void set_duty_cycle_setpoint(int v) { for (auto i : arms) i->set_duty_cycle_setpoint(v); }
-  void set_regulation_mode(const ev3::mode_type &v) { for (auto i : arms) i->set_regulation_mode(v); }
-  void set_pulses_per_second_setpoint(int v) { for (auto i : arms) i->set_pulses_per_second_setpoint(v); }
+  void stop() {
+    for (auto i : arms)
+      i->stop();
+  }
+  void set_max_duty_cycle(int v) { for (auto i : arms) i->set_max_duty_cycle(v); }
   void set_stop_mode(const ev3::mode_type &v) { for (auto i : arms) i->set_stop_mode(v); }
+  void set_pid(int Kp, int Ki, int Kd) { for (auto i : arms) i->set_K(Kp, Ki, Kd); }
   bool running() const {
     for (auto i : arms) 
       if (i->running()) 
@@ -114,10 +115,6 @@ public:
   // Inverse kinematics: find the raw motor positions given a spatial location.
   vector3i position_to_raw(const vector3f &x) const;
   void set_position_setpoint(const vector3f &x) { set_raw_position_setpoint(position_to_raw(x)); }
-  void run_to(const vector3f &x) {
-    set_position_setpoint(x);
-    run();
-  }
   
   // Compute a conservative bounding sphere of reachable effector positions. Inverse
   // kinematics is guaranteed to succeed within the z > 0 half of this sphere.

@@ -56,6 +56,8 @@
     <ClInclude Include="delta_robot_args.h" />
     <ClInclude Include="delta_hand.h" />
     <ClInclude Include="delta_robot.h" />
+    <ClInclude Include="pid_controller.h" />
+    <ClInclude Include="pid_motor.h" />
     <ClInclude Include="stereo_config.h" />
     <ClInclude Include="math.h" />
     <ClInclude Include="matrix.h" />
@@ -78,6 +80,8 @@
     <ClCompile Include="delta_test.cpp" />
     <ClCompile Include="matrix_test.cpp" />
     <ClCompile Include="nxtcam.cpp" />
+    <ClCompile Include="pid_motor.cpp" />
+    <ClCompile Include="pid_test.cpp" />
     <ClCompile Include="stereo_test.cpp" />
     <ClCompile Include="trajectory.cpp" />
     <ClCompile Include="trajectory_test.cpp" />

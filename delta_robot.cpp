@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <thread>
 
+#include "debug.h"
 #include "delta_robot.h"
 #include "vector2.h"
 
@@ -111,72 +112,71 @@ vector3i delta_robot::position_to_raw(const vector3f &x) const {
 }
 
 void delta_robot::init() {
-  const auto stall_time = chrono::milliseconds(200);
+  const auto timestep = chrono::milliseconds(20);
+  const int speed = 4;
 
-  // Start running the motors indefinitely, reset the position to 0.
-  for (auto i : arms) {
-    i->reset();
-    i->set_run_mode(motor::run_mode_forever);
-    i->set_stop_mode(motor::stop_mode_hold);
-    i->set_regulation_mode(motor::mode_on);
-    i->set_pulses_per_second_setpoint(-200);
-    i->set_position(0);
-    i->run();
+  dbg(1) << "initializing delta robot..." << endl;
+
+  // Start running the motors.
+  for (auto a : arms) {
+    a->reset();
+    a->set_stop_mode(ev3::motor::stop_mode_hold);
+    a->run();
+
+    dbg(2) << "  arm " << a->port_name() << " reset" << endl;
   }
 
-  // Wait until all the motors hit the zero position.
-  while(running()) {
-    this_thread::sleep_for(stall_time);
-    for (auto i : arms) {
-      // If the motor is still greater than 0, assume it stopped at the limit. Otherwise, this is the new zero.
-      if (i->position() >= 0)
-        i->stop();
-      else
-        i->set_position(0);
+  dbg(2) << "  finding theta_max..." << endl;
+  for (int i = 0; running(); i -= speed) {
+    for (auto a : arms) {
+      a->set_position_setpoint(i);
+      if (a->running() && a->position() - i > speed * 20) {
+        a->set_position(0);
+        a->stop();
+        dbg(2) << "  found theta_max for arm " << a->port_name() << endl;
+      }
     }
+    this_thread::sleep_for(timestep);
   }
-
+  
   // Find the lower limits of each arm.
-  for (auto i : arms) {
-    for (auto j : arms) {
-      if (i != j) {
+  for (auto a : arms) {
+    dbg(2) << "  finding theta_min for arm " << a->port_name() << "..." << endl;
+
+    for (auto i : arms) {
+      if (a != i) {
         // Set the motor to hold at the top.
-        j->set_run_mode(motor::run_mode_position);
-        j->set_position_setpoint(0);
-        j->set_stop_mode(motor::stop_mode_hold);
-        j->run();
+        i->set_position_setpoint(0);
       }
+      a->run();
     }
 
-    i->set_pulses_per_second_setpoint(200);
-    i->set_run_mode(motor::run_mode_forever);
-    i->run();
-
-    while(i->running()) {
-      this_thread::sleep_for(stall_time);
-      int pos = i->position();
-      if (pos <= i->min) {
-        i->stop();
-        i->min -= 1;
+    for (int i = 0; a->running(); i += speed) {
+      a->set_position_setpoint(i);
+      if (i - a->position() > speed * 20) {
+        a->min = a->position();
+        a->set_position_setpoint(0);
+        dbg(2) << "  found theta_min=" << a->min << endl;
         break;
-      } else {
-        i->min = pos;
       }
+
+      this_thread::sleep_for(timestep);
     }
   }
 
   // Reset the motors.
-  for (auto i : arms) {
-    i->set_run_mode(motor::run_mode_position);
-    i->set_stop_mode(motor::stop_mode_hold);
+  for (auto a : arms) {
+    a->set_stop_mode(motor::stop_mode_hold);
+    a->run();
   }
 
-  run_to(get_volume().first);
+  dbg(1) << "  done" << endl;
+  set_position_setpoint(get_volume().first);
 
   // While waiting for the effector to center, run some tests.
   test();
 
-  while(running()) this_thread::sleep_for(chrono::milliseconds(50));
+  this_thread::sleep_for(chrono::milliseconds(50));
 }
 
 void delta_robot::test() const {
