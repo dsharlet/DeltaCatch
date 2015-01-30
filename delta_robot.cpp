@@ -111,9 +111,19 @@ vector3i delta_robot::position_to_raw(const vector3f &x) const {
     theta_max - static_cast<int>(floor(theta.z + 0.5f)));
 }
 
+void delta_robot::set_raw_position_setpoint(const vector3i &x) {
+  if (!is_raw_position_reachable(x))
+    throw std::runtime_error("position is unreachable.");
+  dbg(3) << "delta_robot setpoint -> " << x << endl;
+  arms[0]->set_position_setpoint(x.x);
+  arms[1]->set_position_setpoint(x.y);
+  arms[2]->set_position_setpoint(x.z);
+}
+
 void delta_robot::init() {
-  const auto timestep = chrono::milliseconds(20);
-  const int speed = 4;
+  const auto timestep = chrono::milliseconds(100);
+  const int stall_threshold = 20; // steps.
+  const int speed = 150; // steps per second.
 
   dbg(1) << "initializing delta robot..." << endl;
 
@@ -127,11 +137,15 @@ void delta_robot::init() {
   }
 
   dbg(2) << "  finding theta_max..." << endl;
-  for (int i = 0; running(); i -= speed) {
+  // Set the motors to run in reverse indefinitely.
+  for (auto a : arms)
+    a->set_position_setpoint([=](int t, int x) { return (t*-speed)/1000; });
+
+  while (running()) {
     for (auto a : arms) {
-      a->set_position_setpoint(i);
-      if (a->running() && a->position() - i > speed * 20) {
-        a->set_position(0);
+      if (a->running() && abs(a->position() - a->position_setpoint()) > stall_threshold) {
+        a->set_position(-1);
+        a->set_position_setpoint(0);
         a->stop();
         dbg(2) << "  found theta_max for arm " << a->port_name() << endl;
       }
@@ -145,17 +159,18 @@ void delta_robot::init() {
 
     for (auto i : arms) {
       if (a != i) {
-        // Set the motor to hold at the top.
-        i->set_position_setpoint(0);
+        int x0 = i->position();
+        // Move the motor to the top.
+        i->set_position_setpoint([=] (int t, int x) { return max(0, x0 - (t*speed)/1000); });
+      } else {
+        i->set_position_setpoint([=] (int t, int x) { return (t*speed)/1000; });
       }
-      a->run();
+      i->run();
     }
 
-    for (int i = 0; a->running(); i += speed) {
-      a->set_position_setpoint(i);
-      if (i - a->position() > speed * 20) {
+    while (true) {
+      if (abs(a->position_setpoint() - a->position()) > stall_threshold) {
         a->min = a->position();
-        a->set_position_setpoint(0);
         dbg(2) << "  found theta_min=" << a->min << endl;
         break;
       }

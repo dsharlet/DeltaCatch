@@ -56,13 +56,7 @@ protected:
       arms[2]->position_setpoint());
   }
 
-  void set_raw_position_setpoint(const vector3i &x) const {
-    if (!is_raw_position_reachable(x))
-      throw std::runtime_error("position is unreachable.");
-    arms[0]->set_position_setpoint(x.x);
-    arms[1]->set_position_setpoint(x.y);
-    arms[2]->set_position_setpoint(x.z);
-  }
+  void set_raw_position_setpoint(const vector3i &x);
   
   bool is_raw_position_reachable(const vector3i &x) const {
     return 
@@ -97,7 +91,6 @@ public:
     for (auto i : arms)
       i->stop();
   }
-  void set_max_duty_cycle(int v) { for (auto i : arms) i->set_max_duty_cycle(v); }
   void set_stop_mode(const ev3::mode_type &v) { for (auto i : arms) i->set_stop_mode(v); }
   void set_pid(int Kp, int Ki, int Kd) { for (auto i : arms) i->set_K(Kp, Ki, Kd); }
   bool running() const {

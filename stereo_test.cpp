@@ -55,13 +55,12 @@ int main(int argc, const char **argv) {
   // Initialize the delta robot.
   delta_robot delta(delta_geometry.geometry());
   if (scale > 0.0f) {
+    // Set the motor parameters.
+    delta.set_pid(pid->x, pid->y, pid->z);
     delta.init();
 
     // Bask in the glory of the calibration result for a moment.
     this_thread::sleep_for(chrono::milliseconds(500));
-
-    // Set the motor parameters.
-    delta.set_pid(pid->x, pid->y, pid->z);
   }
 
   nxtcam_init_thread.join();

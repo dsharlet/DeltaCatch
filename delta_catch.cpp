@@ -161,13 +161,13 @@ int main(int argc, const char **argv) {
 
   // Initialize the delta robot.
   delta_hand delta(delta_geometry.geometry(), hand);
+  // Set the motor parameters.
+  delta.set_pid(pid->x, pid->y, pid->z);
   delta.init();
 
   // Bask in the glory of the calibration result for a moment.
   this_thread::sleep_for(chrono::milliseconds(500));
 
-  // Set the motor parameters.
-  delta.set_pid(pid->x, pid->y, pid->z);
 
   // Check to see if we should connect to a visualization host.
   find_host.join();

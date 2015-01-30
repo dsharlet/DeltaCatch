@@ -28,6 +28,10 @@ static cl::arg<float> circle_z(
   cl::name("circle-z"),
   cl::desc("z axis offset from volume center of the circle to trace out, in studs."));
 
+static cl::boolean hold(
+  cl::name("hold"),
+  cl::desc("Hold position at the center."));
+
 // Generic options.
 static cl::arg<float> speed(
   5.0f,
@@ -64,7 +68,6 @@ void main_circle(delta_robot &delta) {
   static const float pi = 3.14159265f;
   const int sample_rate = 50;
 
-
   // Get the volume of the delta bot.
   vector3f center;
   float radius;
@@ -96,17 +99,18 @@ int main(int argc, const char **argv) {
   cerr << fixed << showpoint << setprecision(3);
 
   delta_robot delta(delta_geometry.geometry());
+  // Set the motor parameters.
+  delta.set_pid(pid->x, pid->y, pid->z);
   delta.init();
 
   // Bask in the glory of the calibration result for a moment.
   this_thread::sleep_for(chrono::milliseconds(500));
-
-  // Set the motor parameters.
-  delta.set_pid(pid->x, pid->y, pid->z);
-
+  
   // Figure out what we're doing.
   if (circle) {
     main_circle(delta);
+  } else if (hold) {
+    this_thread::sleep_for(chrono::seconds(10));
   } else {
     main_show_position(delta);
   }
