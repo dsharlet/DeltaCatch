@@ -12,6 +12,8 @@ static const float pi = 3.1415926535897f;
 template <typename T> T sqr(T x) { return x*x; }
 template <typename T> T rcp(T x) { return 1/x; }
 
+template <typename T> T clamp(T x, T a, T b) { return min(max(x, a), b); }
+
 inline float randf(float a = 0.0f, float b = 1.0f) { return (static_cast<float>(rand()) / RAND_MAX)*(b - a) + a; }
 
 template <typename T, typename U>
