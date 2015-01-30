@@ -3,9 +3,9 @@
 #include <mutex>
 #include <algorithm>
 #include <signal.h>
-#include <iostream>
 
 #include "pid_motor.h"
+#include "math.h"
 
 namespace {
   
@@ -91,14 +91,17 @@ void pid_motor::reset() {
 
 void pid_motor::tick(int dt) {
   std::lock_guard<std::mutex> lock(this->lock_);
-  pid_.tick(dt, position());
-  int y = pid_.output()/1024;
-  y = std::min(std::max(y, -max_duty_cycle_), max_duty_cycle_);
-  m_.set_duty_cycle_setpoint(y);
+  int x = position();
+  if (position_fn_) {
+    fn_t_ += dt;
+    pid_.set_setpoint(position_fn_(fn_t_, x));
+  }
+  int y = pid_.tick(dt, x)/1024;
+  m_.set_duty_cycle_setpoint(clamp(y, -max_duty_cycle_, max_duty_cycle_));
 }
 
 std::tuple<int, int, int> pid_motor::K() const {
-  // Controller thread doesn't write this values, so we don't need to lock our mutex.
+  // Controller thread doesn't write these values, so we don't need to lock our mutex.
   return std::tie(pid_.Kp, pid_.Ki, pid_.Kd);
 }
 
@@ -107,6 +110,21 @@ void pid_motor::set_K(int Kp, int Ki, int Kd) {
   pid_.Kp = Kp;
   pid_.Ki = Ki;
   pid_.Kd = Kd;
+}
+
+int pid_motor::position_setpoint() const { 
+  return pid_.setpoint(); 
+}
+
+void pid_motor::set_position_setpoint(int sp) { 
+  position_fn_ = nullptr; 
+  pid_.set_setpoint(sp); 
+}
+
+void pid_motor::set_position_setpoint(std::function<int(int, int)> sp_fn) { 
+  position_fn_ = sp_fn; 
+  fn_t_ = 0; 
+  pid_.set_setpoint(sp_fn(fn_t_, position()));
 }
 
 void pid_motor::set_max_duty_cycle(int x) {

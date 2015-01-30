@@ -11,13 +11,15 @@
 class pid_motor {
 protected:
   ev3dev::motor m_;
-  // The PID controller uses units of milliseconds.
-  pid_controller<int, 1000> pid_;
-
-  std::mutex lock_;
-
   int max_duty_cycle_;
 
+  // The PID controller uses units of milliseconds.
+  pid_controller<int, 1000> pid_;
+  std::function<int(int, int)> position_fn_;
+  int fn_t_;
+
+  std::mutex lock_;
+  
 public:
   void tick(int ms);
 
@@ -44,9 +46,10 @@ public:
   void set_position(int p) { m_.set_position(p); }
 
   // Get or set the position setpoint.
-  int position_setpoint() const { return pid_.setpoint(); }
-  void set_position_setpoint(int sp) { pid_.set_setpoint(sp); }
-
+  int position_setpoint() const;
+  void set_position_setpoint(int sp);
+  void set_position_setpoint(std::function<int(int, int)> sp_fn);
+  
   int max_duty_cycle() const { return max_duty_cycle_; }
   void set_max_duty_cycle(int x);
 
