@@ -11,7 +11,7 @@ using namespace ev3dev;
 using namespace std;
 
 static cl::arg<vector3i> pid(
-  vector3i(5000, 5000, 0),
+  vector3i(5000, 5000, 100),
   cl::name("pid"),
   cl::desc("PID parameters Kp, Ki, Kd."));
 
@@ -74,6 +74,7 @@ void main_circle(delta_robot &delta) {
   tie(center, radius) = delta.get_volume();
   
   center.z += circle_z;
+  radius = sqrt(sqr(radius) - sqr(circle_z));
 
   if (circle_r > 0.0f)
     radius = circle_r;

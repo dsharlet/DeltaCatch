@@ -14,7 +14,7 @@ using namespace ev3dev;
 using namespace std;
 
 static cl::arg<vector3i> pid(
-  vector3i(5000, 5000, 0),
+  vector3i(5000, 5000, 100),
   cl::name("pid"),
   cl::desc("PID parameters Kp, Ki, Kd."));
 
