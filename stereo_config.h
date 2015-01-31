@@ -7,6 +7,9 @@
 
 static cl::group stereo_group("Stereo camera parameters");
 
+typedef matrix<float, 2, 2> matrix2x2f;
+typedef matrix<float, 3, 3> matrix3x3f;
+
 struct camera_config {
   arg_port port;
   cl::arg<vector2i> resolution;

@@ -411,6 +411,4 @@ std::istream &operator >> (std::istream &is, matrix_ref<T, M, N> A) {
   return is;
 }
 
-typedef matrix<float, 3, 3> matrix3x3f;
-
 #endif
