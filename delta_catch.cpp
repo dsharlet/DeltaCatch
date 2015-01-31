@@ -90,8 +90,8 @@ int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
 
   // Reduce clutter of insignificant digits.
-  cout << fixed << showpoint << setprecision(3);
-  cerr << fixed << showpoint << setprecision(3);
+  cout << fixed << showpoint << showpos << setprecision(3);
+  cerr << fixed << showpoint << showpos << setprecision(3);
     
   typedef chrono::high_resolution_clock clock;
 
@@ -246,22 +246,33 @@ int main(int argc, const char **argv) {
             exit.t = intersect_trajectory_zplane(gravity, tj, volume.first.z);
             exit.x = tj.position(gravity, exit.t);
 
-            // If the trajectory intercepts the z plane where we can reach it, find the first intercept with the volume.
-            if (abs(exit.x - volume.first) < volume.second) {
+            // If the trajectory intercepts the z plane, find the first intercept with the volume.
+            try {
               entry.t = intersect_trajectory_sphere(gravity, tj, volume, 0.0f, exit.t);
-              assert(entry.t < exit.t);
               entry.x = tj.position(gravity, entry.t);
+              try {
+                // If the trajectory exits the sphere before crossing the z plane, use that as the exit intercept.
+                exit.t = intersect_trajectory_sphere(gravity, tj, volume, entry.t + 1e-3f, exit.t);
+                exit.x = tj.position(gravity, exit.t);
+              } catch (runtime_error &ex) {
+                // If the trajectory does not exit the sphere before crossing the z plane, use the z plane crossing
+                // as the exit intercept. It must lie in the volume to be a valid intercept.
+                if (abs(exit.x - volume.first) > volume.second)
+                  throw runtime_error("z plane intercept is unreachable");                
+              }
 
               // Adjust the intercepts from local trajectory time to global time.
               exit.t += obs_t0_;
               entry.t += obs_t0_;
 
               cout << "trajectory found with expected intercepts at:" << endl;
-              cout << "  t=" << entry.t << " s (+" << entry.t - t_now << " s) at x=" << entry.x << endl;
-              cout << "  t=" << exit.t << " s (+" << exit.t - t_now << " s) at x=" << exit.x << endl;
-            } else {
+              cout << "  t=" << entry.t << " s (" << entry.t - t_now << " s) at x=" << entry.x << endl;
+              cout << "  t=" << exit.t << " s (" << exit.t - t_now << " s) at x=" << exit.x << endl;
+              assert(entry.t < exit.t);
+            } catch(runtime_error &ex) {
+              dbg(1) << ex.what() << endl;
               cout << "trajectory found with unreachable intercept expected at:" << endl;
-              cout << "  t=" << exit.t << " s (+" << exit.t - t_now << ") s at x=" << exit.x << endl;
+              cout << "  t=" << exit.t << " s (" << exit.t - t_now << ") s at x=" << exit.x << endl;
               entry.t = exit.t = t_none;
             }
             dbg(1) << "  trajectory x=" << tj.x << ", v=" << tj.v << endl;
@@ -319,13 +330,12 @@ int main(int argc, const char **argv) {
       delta.set_position_setpoint(volume.first);
     }
     if (t_now > reset_at) {
-      dbg(1) << "resetting...";
+      dbg(1) << "resetting..." << endl;
       delta.set_position_setpoint(volume.first);
-      while (delta.running())
-        this_thread::sleep_for(chrono::milliseconds(50));
-      this_thread::sleep_for(chrono::milliseconds(100));
+      this_thread::sleep_for(chrono::milliseconds(500));
       delta.open_hand();
       reset_at = t_none;
+      dbg(1) << "reset done" << endl;
     }
   }
 

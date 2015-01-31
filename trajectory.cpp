@@ -53,9 +53,9 @@ float intersect_trajectory_sphere_XZ(float half_g, float v_x, float v_z, const v
     t -= ft.f/D(ft, 0);
 
     if (abs(ft.f) < epsilon)
-      break;
+      return t;
   }
-  return t;
+  throw runtime_error("no trajectory-sphere intersection found");
 }
 
 // This function finds the first intersection after t of a trajectory and a sphere.
@@ -79,7 +79,7 @@ float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vec
   float dt = (t_max - t_min)/20.0f;
   for (float t0 = t_min; t0 < t_max; t0 += dt) {
     float t = intersect_trajectory_sphere_XZ(g/2.0f, v_x, tj.v.z, s0, s.second, t0);
-    if (t_min <= t && t <= t_max)
+    if (t_min < t && t < t_max)
       return t;
   }
   throw runtime_error("no trajectory-sphere intersection found");
