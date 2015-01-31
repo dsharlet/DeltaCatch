@@ -72,7 +72,7 @@ void servo::run() {
     pid_.reset();
   }
   m_.set_run_mode(ev3dev::motor::run_mode_forever);
-  tick(1);
+  tick(0);
   m_.run();
 }
 
@@ -92,11 +92,11 @@ void servo::reset() {
 void servo::tick(int dt) {
   std::lock_guard<std::mutex> lock(this->lock_);
   int x = position();
-  if (position_fn_) {
-    fn_t_ += dt;
-    pid_.set_setpoint(position_fn_(fn_t_, x));
+  if (sp_fn_) {
+    t_ += dt;
+    pid_.set_setpoint(sp_fn_(x, t_, dt));
   }
-  int y = pid_.tick(dt, x)/1024;
+  int y = pid_.tick(x, dt)/1024;
   m_.set_duty_cycle_setpoint(clamp(y, -max_duty_cycle_, max_duty_cycle_));
 }
 
@@ -117,14 +117,14 @@ int servo::position_setpoint() const {
 }
 
 void servo::set_position_setpoint(int sp) { 
-  position_fn_ = nullptr; 
+  sp_fn_ = nullptr; 
   pid_.set_setpoint(sp); 
 }
 
-void servo::set_position_setpoint(std::function<int(int, int)> sp_fn) { 
-  position_fn_ = sp_fn; 
-  fn_t_ = 0; 
-  pid_.set_setpoint(sp_fn(fn_t_, position()));
+void servo::set_position_setpoint(std::function<int(int, int, int)> sp_fn) { 
+  sp_fn_ = sp_fn; 
+  t_ = 0; 
+  pid_.set_setpoint(sp_fn(position(), t_, 0));
 }
 
 void servo::set_max_duty_cycle(int x) {

@@ -15,8 +15,8 @@ protected:
 
   // The PID controller uses units of milliseconds.
   pid_controller<int, 1000> pid_;
-  std::function<int(int, int)> position_fn_;
-  int fn_t_;
+  std::function<int(int, int, int)> sp_fn_;
+  int t_;
 
   std::mutex lock_;
   
@@ -48,7 +48,7 @@ public:
   // Get or set the position setpoint.
   int position_setpoint() const;
   void set_position_setpoint(int sp);
-  void set_position_setpoint(std::function<int(int, int)> sp_fn);
+  void set_position_setpoint(std::function<int(int, int, int)> sp_fn);
   
   int max_duty_cycle() const { return max_duty_cycle_; }
   void set_max_duty_cycle(int x);

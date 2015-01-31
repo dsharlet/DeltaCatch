@@ -139,7 +139,7 @@ void delta_robot::init() {
   dbg(2) << "  finding theta_max..." << endl;
   // Set the motors to run in reverse indefinitely.
   for (auto a : arms)
-    a->set_position_setpoint([=](int t, int x) { return (t*-speed)/1000; });
+    a->set_position_setpoint([=](int x, int t, int dt) { return (t*-speed)/1000; });
 
   while (running()) {
     for (auto a : arms) {
@@ -161,9 +161,9 @@ void delta_robot::init() {
       if (a != i) {
         int x0 = i->position();
         // Move the motor to the top.
-        i->set_position_setpoint([=] (int t, int x) { return max(0, x0 - (t*speed)/1000); });
+        i->set_position_setpoint([=] (int x, int t, int dt) { return max(0, x0 - (t*speed)/1000); });
       } else {
-        i->set_position_setpoint([=] (int t, int x) { return (t*speed)/1000; });
+        i->set_position_setpoint([=] (int x, int t, int dt) { return (t*speed)/1000; });
       }
       i->run();
     }

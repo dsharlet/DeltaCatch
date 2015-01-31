@@ -21,14 +21,19 @@ public:
 
   // Update the state of the PID controller. 
   // dt is the timestep, x is the current measurement of the process variable.
-  const T &tick(T dt, T x) {
-    T e = sp_ - x;
-    // Divide out the period here, otherwise this calculation is prone to overflow.
-    i_ += (e*dt)/period;
-    T d = e - e_;
-    e_ = e;
+  const T &tick(T x, T dt) {
+    if ( dt > 0) {
+      T e = sp_ - x;
+      // Divide out the period here, otherwise this calculation is prone to overflow.
+      i_ += (e*dt)/period;
+      T d = e - e_;
+      e_ = e;
 
-    y_ = Kp*e + Ki*i_ + (Kd*d*period)/dt;
+      y_ = Kp*e + Ki*i_ + (Kd*d*period)/dt;
+    } else {
+      y_ = 0;
+    }
+
     return y_;
   }
 
