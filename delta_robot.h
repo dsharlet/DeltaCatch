@@ -2,7 +2,7 @@
 #define DELTA_ROBOT_H
 
 #include "vector3.h"
-#include "pid_motor.h"
+#include "servo.h"
 
 namespace ev3 = ev3dev;
 
@@ -20,11 +20,11 @@ struct delta_robot_geometry {
 // base to the effector.
 class delta_robot {
 protected:
-  class arm : public pid_motor {
+  class arm : public servo {
   public:
     int min;
 
-    arm(ev3::port_type p) : pid_motor(p), min(0) {}
+    arm(ev3::port_type p) : servo(p), min(0) {}
   };
 
 private:

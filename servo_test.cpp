@@ -3,7 +3,7 @@
 #include <signal.h>
 
 #include "arg_port.h"
-#include "pid_motor.h"
+#include "servo.h"
 #include "vector3.h"
 
 using namespace std;
@@ -31,7 +31,7 @@ cl::arg<float> amplitude(
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
 
-  pid_motor m(*port);
+  servo m(*port);
   m.set_K(K->x, K->y, K->z);
   m.run();
 

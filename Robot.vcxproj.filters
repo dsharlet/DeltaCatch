@@ -72,10 +72,10 @@
     <ClInclude Include="delta_robot_args.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pid_motor.h">
+    <ClInclude Include="pid_controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pid_controller.h">
+    <ClInclude Include="servo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -122,10 +122,10 @@
     <ClCompile Include="viz_client.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pid_test.cpp">
+    <ClCompile Include="servo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pid_motor.cpp">
+    <ClCompile Include="servo_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

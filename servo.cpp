@@ -4,13 +4,13 @@
 #include <algorithm>
 #include <signal.h>
 
-#include "pid_motor.h"
+#include "servo.h"
 #include "math.h"
 
 namespace {
   
-std::vector<pid_motor *> live_motors;
-std::mutex motors_lock;
+std::vector<servo *> servos;
+std::mutex servos_lock;
 
 std::thread controller_thread;
 void controller_main() {
@@ -23,11 +23,11 @@ void controller_main() {
   auto t0 = clock::now();
   for(auto t = t0; ; t += dt) {
     if (dt.count() > 0) {
-      std::lock_guard<std::mutex> lock(motors_lock);
-      for (auto i : live_motors) {
+      std::lock_guard<std::mutex> lock(servos_lock);
+      for (auto i : servos) {
         i->tick(dt.count());
       }
-      if (live_motors.empty())
+      if (servos.empty())
         break;
     }
     std::this_thread::sleep_until(t);
@@ -36,12 +36,12 @@ void controller_main() {
 
 }
 
-pid_motor::pid_motor(const ev3dev::port_type &port) : m_(port), pid_(10000, 10000, 0) {
+servo::servo(const ev3dev::port_type &port) : m_(port), pid_(10000, 10000, 0) {
   reset();
   
   {
-    std::lock_guard<std::mutex> lock(motors_lock);
-    live_motors.push_back(this);
+    std::lock_guard<std::mutex> lock(servos_lock);
+    servos.push_back(this);
   }
 
   // If we don't have a controller thread, make one.
@@ -51,22 +51,22 @@ pid_motor::pid_motor(const ev3dev::port_type &port) : m_(port), pid_(10000, 1000
   }
 }
 
-pid_motor::~pid_motor() {
-  motors_lock.lock();
-  live_motors.erase(std::find(live_motors.begin(), live_motors.end(), this));
+servo::~servo() {
+  servos_lock.lock();
+  servos.erase(std::find(servos.begin(), servos.end(), this));
 
   // If there are no more live motors, wait for the controller thread to complete.
-  if (live_motors.empty()) {
-    motors_lock.unlock();
+  if (servos.empty()) {
+    servos_lock.unlock();
     controller_thread.join();
   } else {
-    motors_lock.unlock();
+    servos_lock.unlock();
   }
 
   m_.reset();
 }
 
-void pid_motor::run() {
+void servo::run() {
   {
     std::lock_guard<std::mutex> lock(this->lock_);
     pid_.reset();
@@ -76,20 +76,20 @@ void pid_motor::run() {
   m_.run();
 }
 
-void pid_motor::stop() {
+void servo::stop() {
   std::lock_guard<std::mutex> lock(this->lock_);
   pid_.reset();
   m_.stop();
 }
 
-void pid_motor::reset() {
+void servo::reset() {
   std::lock_guard<std::mutex> lock(this->lock_);
   pid_.reset();
   m_.reset();
   max_duty_cycle_ = 100;
 }
 
-void pid_motor::tick(int dt) {
+void servo::tick(int dt) {
   std::lock_guard<std::mutex> lock(this->lock_);
   int x = position();
   if (position_fn_) {
@@ -100,34 +100,34 @@ void pid_motor::tick(int dt) {
   m_.set_duty_cycle_setpoint(clamp(y, -max_duty_cycle_, max_duty_cycle_));
 }
 
-std::tuple<int, int, int> pid_motor::K() const {
+std::tuple<int, int, int> servo::K() const {
   // Controller thread doesn't write these values, so we don't need to lock our mutex.
   return std::tie(pid_.Kp, pid_.Ki, pid_.Kd);
 }
 
-void pid_motor::set_K(int Kp, int Ki, int Kd) {
+void servo::set_K(int Kp, int Ki, int Kd) {
   std::lock_guard<std::mutex> lock(this->lock_);
   pid_.Kp = Kp;
   pid_.Ki = Ki;
   pid_.Kd = Kd;
 }
 
-int pid_motor::position_setpoint() const { 
+int servo::position_setpoint() const { 
   return pid_.setpoint(); 
 }
 
-void pid_motor::set_position_setpoint(int sp) { 
+void servo::set_position_setpoint(int sp) { 
   position_fn_ = nullptr; 
   pid_.set_setpoint(sp); 
 }
 
-void pid_motor::set_position_setpoint(std::function<int(int, int)> sp_fn) { 
+void servo::set_position_setpoint(std::function<int(int, int)> sp_fn) { 
   position_fn_ = sp_fn; 
   fn_t_ = 0; 
   pid_.set_setpoint(sp_fn(fn_t_, position()));
 }
 
-void pid_motor::set_max_duty_cycle(int x) {
+void servo::set_max_duty_cycle(int x) {
   std::lock_guard<std::mutex> lock(this->lock_);
   max_duty_cycle_ = x;
 }

@@ -8,7 +8,7 @@
 #include "pid_controller.h"
 
 // Controls an EV3 motor with a PID controller.
-class pid_motor {
+class servo {
 protected:
   ev3dev::motor m_;
   int max_duty_cycle_;
@@ -24,8 +24,8 @@ public:
   void tick(int ms);
 
 public:
-  pid_motor(const ev3dev::port_type &port);
-  ~pid_motor();
+  servo(const ev3dev::port_type &port);
+  ~servo();
 
   // Basic motor attributes.
   bool connected() const { return m_.connected(); }
