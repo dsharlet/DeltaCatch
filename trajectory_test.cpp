@@ -9,9 +9,10 @@
 #include <iomanip>
 #include <random>
 
+#include <vision/nxtcam.h>
+
 #include "debug.h"
 #include "trajectory.h"
-#include "nxtcam.h"
 
 #include "stereo_config.h"
 

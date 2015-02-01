@@ -24,15 +24,6 @@
     <ClInclude Include="delta_robot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="nxtcam.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="arg_port.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="circular_array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -48,34 +39,10 @@
     <ClInclude Include="test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="calibration_data.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="delta_robot_args.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="servo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ev3cv\math\autodiff.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ev3cv\math\matrix.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ev3cv\math\pid_controller.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ev3cv\math\quaternion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ev3cv\math\vector2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ev3cv\math\vector3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ev3cv\ev3cv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -95,25 +62,10 @@
     <ClCompile Include="delta_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="nxtcam.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="autodiff_test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="debug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stereo_test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="camera_test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="matrix_test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="calibrate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="trajectory_test.cpp">
@@ -126,6 +78,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="servo_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="calibrate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

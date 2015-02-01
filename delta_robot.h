@@ -1,7 +1,7 @@
 #ifndef DELTA_ROBOT_H
 #define DELTA_ROBOT_H
 
-#include "ev3cv/ev3cv.h"
+#include <ev3cv.h>
 #include "servo.h"
 
 

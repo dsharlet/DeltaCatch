@@ -1,11 +1,9 @@
-#include <iostream>
-#include <cassert>
-#include <cmath>
+#include <ev3cv.h>
+#include <vision/camera.h>
+#include "test.h"
 
 using namespace std;
-
-#include "camera.h"
-#include "test.h"
+using namespace ev3cv;
 
 int main(int argc, const char **argv) {
   for (int i = 0; i < 10; i++) {

@@ -5,36 +5,8 @@
 #include <vector>
 #include <stdexcept>
 
-#include "ev3cv/ev3cv.h"
+#include <ev3cv.h>
 
-// Calibration data is a list of sets of samples from spheres.
-template <typename T>
-struct calibration_data {
-
-  struct sample {
-    vector2<T> px0, px1;
-
-    sample() {}
-    sample(const vector2<T> &px0, const vector2<T> &px1) : px0(px0), px1(px1) {}
-  };
-
-  struct set {
-    bool center_valid;
-    vector3<T> center;
-    T radius;
-    std::vector<sample> samples;
-
-    set() : center_valid(false) {}
-  };
-  std::vector<set> sets;
-
-  std::size_t sample_count() const {
-    std::size_t samples = 0;
-    for (const auto &i : sets) 
-      samples += i.samples.size();
-    return samples;
-  }
-};
 
 template <typename T>
 void write_calibration_data(std::ostream &os, const calibration_data<T> &cd) {

@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <chrono>
 
-#include "nxtcam.h"
+#include <vision/nxtcam.h>
 #include "stereo_config.h"
 #include "delta_robot_args.h"
 

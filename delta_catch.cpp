@@ -8,10 +8,10 @@
 #include <memory>
 #include <iomanip>
 
+#include <vision/nxtcam.h>
+
 #include "debug.h"
 #include "delta_hand.h"
-#include "nxtcam.h"
-#include "arg_port.h"
 #include "trajectory.h"
 
 #include "stereo_config.h"
@@ -39,7 +39,7 @@ static cl::arg<float> max_flight_time(
   cl::name("max-flight-time"),
   cl::desc("The longest time allowed for a single trajectory."));
 
-static arg_port hand(
+static cl::arg_port hand(
   ev3::OUTPUT_D,
   cl::name("hand"),
   cl::desc("Motor port for the grabber."));

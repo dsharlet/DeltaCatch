@@ -1,7 +1,7 @@
 #ifndef TRAJECTORY_H
 #define TRAJECTORY_H
 
-#include "camera.h"
+#include <vision/camera.h>
 #include "circular_array.h"
 
 // Represents a 3D trajectory with an initial position and velocity.

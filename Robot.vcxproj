@@ -38,7 +38,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <NMakeOutput>Robot.exe</NMakeOutput>
     <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
-    <IncludePath>C:\cygwin64\home\Dillon\Util;$(IncludePath)</IncludePath>
+    <IncludePath>C:\cygwin64\home\Dillon\DeltaRobot\Robot\ev3cv\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <NMakeOutput>Robot.exe</NMakeOutput>
@@ -47,39 +47,24 @@
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="arg_port.h" />
-    <ClInclude Include="calibration_data.h" />
-    <ClInclude Include="camera.h" />
     <ClInclude Include="circular_array.h" />
     <ClInclude Include="debug.h" />
     <ClInclude Include="delta_robot_args.h" />
     <ClInclude Include="delta_hand.h" />
     <ClInclude Include="delta_robot.h" />
-    <ClInclude Include="ev3cv\ev3cv.h" />
-    <ClInclude Include="ev3cv\math\autodiff.h" />
-    <ClInclude Include="ev3cv\math\matrix.h" />
-    <ClInclude Include="ev3cv\math\pid_controller.h" />
-    <ClInclude Include="ev3cv\math\quaternion.h" />
-    <ClInclude Include="ev3cv\math\vector2.h" />
-    <ClInclude Include="ev3cv\math\vector3.h" />
     <ClInclude Include="servo.h" />
     <ClInclude Include="stereo_config.h" />
-    <ClInclude Include="nxtcam.h" />
     <ClInclude Include="test.h" />
     <ClInclude Include="trajectory.h" />
     <ClInclude Include="viz_client.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="autodiff_test.cpp" />
     <ClCompile Include="calibrate.cpp" />
-    <ClCompile Include="camera_test.cpp" />
     <ClCompile Include="debug.cpp" />
     <ClCompile Include="delta_catch.cpp" />
     <ClCompile Include="delta_hand.cpp" />
     <ClCompile Include="delta_robot.cpp" />
     <ClCompile Include="delta_test.cpp" />
-    <ClCompile Include="matrix_test.cpp" />
-    <ClCompile Include="nxtcam.cpp" />
     <ClCompile Include="servo.cpp" />
     <ClCompile Include="servo_test.cpp" />
     <ClCompile Include="stereo_test.cpp" />

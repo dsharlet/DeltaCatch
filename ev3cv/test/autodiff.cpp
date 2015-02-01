@@ -1,11 +1,8 @@
-#include <iostream>
-#include <cassert>
-#include <cmath>
+#include <ev3cv.h>
+#include "test.h"
 
 using namespace std;
-
-#include "ev3cv/ev3cv.h"
-#include "test.h"
+using namespace ev3cv;
 
 template <typename T> T f1_x(T x) { return x; }
 template <typename T> T f1_Ax(T x) { return T(3)*x; }

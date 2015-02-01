@@ -7,20 +7,26 @@
 #include <chrono>
 #include <thread>
 
-#include "arg_port.h"
-#include "debug.h"
-#include "camera.h"
-#include "nxtcam.h"
-#include "circular_array.h"
-
-#include "calibration_data.h"
-
 using namespace std;
+
+#include <cl/arg_port.h>
+#include <vision/camera.h>
+#include <vision/nxtcam.h>
+#include <vision/calibration.h>
+
+using namespace ev3cv;
+
+#include <ev3dev.h>
+
+using namespace ev3dev;
+
+#include "debug.h"
+#include "circular_array.h"
 
 static cl::group stereo_group("Camera configuration estimate");
 
 struct camera_config {
-  arg_port port;
+  cl::arg_port port;
   cl::arg<vector2i> resolution;
   cl::arg<vector2f> distortion;
 
@@ -32,8 +38,8 @@ struct camera_config {
   cl::arg<vector3f> position;
 
   camera_config(
-      const std::string &prefix,
-      const ev3::port_type &port,
+      const string &prefix,
+      const port_type &port,
       const vector2i &resolution,
       float sensor_size, float aspect_ratio, float focal_length,
       const vector3f &x,
@@ -163,7 +169,7 @@ static cl::arg<vector2i> cam1_max(
 
 static camera_config cam_config0(
     "cam0",
-    ev3::INPUT_1,
+    INPUT_1,
     vector2i(176, 144),
     4.0f, 1.33f, 3.5f,
     vector3f(0.0f, -cos(53.5*pi/180 + pi/2), -sin(53.5*pi/180 + pi/2)),
@@ -171,7 +177,7 @@ static camera_config cam_config0(
     vector3f(-11.15f, 12.5f, -3.0f));
 static camera_config cam_config1(
     "cam1",
-    ev3::INPUT_4,
+    INPUT_4,
     vector2i(176, 144),
     4.0f, 1.33f, 3.5f,
     vector3f(0.0f, cos(53.5*pi/180 + pi/2), sin(53.5*pi/180 + pi/2)),
@@ -185,18 +191,18 @@ static cl::arg<int> max_iterations(
   cl::name("max-iterations"),
   cl::desc("Maximum number of iterations allowed when solving optimization problems."),
   optimization_group);
-static cl::arg<double> epsilon(
-  1e-4,
+static cl::arg<float> epsilon(
+  1e-3f,
   cl::name("epsilon"),
   cl::desc("Number to consider to be zero when solving optimization problems."),
   optimization_group);
-static cl::arg<double> lambda_recovery(
-  1.0,
+static cl::arg<float> lambda_init(
+  1.0f,
   cl::name("lambda-init"),
   cl::desc("Initial value of Levenberg-Marquardt damping parameter."),
   optimization_group);
-static cl::arg<double> lambda_decay(
-  0.9,
+static cl::arg<float> lambda_decay(
+  0.9f,
   cl::name("lambda-decay"),
   cl::desc("Decay ratio of the Levenberg-Marquardt damping parameter on a successful iteration."),
   optimization_group);
@@ -207,8 +213,43 @@ static cl::arg<string> enable(
   cl::desc("Which calibration parameters to allow optimization over."),
   optimization_group);
 
-template <typename T>
-void dump_config(ostream &os, const std::string &prefix, const camera<T> &cam) {
+void write_sphere_observations(
+    ostream &os, 
+    const vector<sphere_observation_set> &spheres) {
+  for (const auto &sphere : spheres) {
+    os << "set " << sphere.radius << " " << sphere.center << endl;
+    for (const auto &s : sphere.samples)
+      os << "sample " << s.x0 << " " << s.x1 << endl;
+  }
+}
+
+vector<sphere_observation_set> read_sphere_observations(istream &is) {
+  vector<sphere_observation_set> spheres;
+  while (is.good()) {
+    string line_buf;
+    getline(is, line_buf);
+    stringstream line(line_buf);
+
+    string cmd;
+    line >> cmd;
+    if (cmd == "set") {
+      sphere_observation_set sphere;
+      line >> sphere.radius >> sphere.center;
+      spheres.push_back(sphere);
+    } else if (cmd == "sample") {
+      if (spheres.empty())
+        throw runtime_error("calibration data missing set descriptor");
+      stereo_observation s;
+      line >> s.x0 >> s.x1;
+      if (!line.bad())
+        spheres.back().samples.push_back(s);
+    }
+  }
+  return spheres;
+}
+
+
+void dump_config(ostream &os, const string &prefix, const cameraf &cam) {
   os << prefix << "resolution " << cam.resolution << endl;
   os << prefix << "distortion " << cam.d1 << endl;
   os << prefix << "calibration " << cam.K() << endl;
@@ -216,28 +257,9 @@ void dump_config(ostream &os, const std::string &prefix, const camera<T> &cam) {
   os << prefix << "position " << cam.x << endl;
 }
 
-template <typename T>
-void dump_config(ostream &os, const std::string &prefix, camera<T> &cam0, const camera<T> &cam1) {
+void dump_config(ostream &os, const string &prefix, cameraf &cam0, const cameraf &cam1) {
   dump_config(os, prefix + "cam0-", cam0);
   dump_config(os, prefix + "cam1-", cam1);
-}
-
-template <typename T>
-vector<vector3<T>> unknown_centers(const calibration_data<T> &cd) {
-  vector<vector3<T>> c;
-  c.reserve(cd.sets.size());
-  for (const auto &i : cd.sets)
-    if (!i.center_valid)
-      c.push_back(i.center);
-  return c;
-}
-
-template <typename T>
-void set_unknown_centers(calibration_data<T> &cd, const vector<vector3<T>> &centers) {
-  typename vector<vector3<T>>::const_iterator c = centers.begin();
-  for (auto &i : cd.sets)
-    if (!i.center_valid)
-      i.center = *c++;
 }
 
 template <size_t N>
@@ -250,17 +272,16 @@ vector2f mean(const circular_array<vector2f, N> &x) {
 
 template <size_t N>
 pair<vector2f, vector2f> min_max(const circular_array<vector2f, N> &x) {
-  vector2f min(numeric_limits<float>::infinity());
-  vector2f max(-numeric_limits<float>::infinity());
+  vector2f a(numeric_limits<float>::infinity());
+  vector2f b(-numeric_limits<float>::infinity());
   for (size_t i = x.begin(); i != x.end(); i++) {
-    min.x = std::min(min.x, x[i].x);
-    min.y = std::min(min.y, x[i].y);
-    max.x = std::max(max.x, x[i].x);
-    max.y = std::max(max.y, x[i].y);
+    a.x = min(a.x, x[i].x);
+    a.y = min(a.y, x[i].y);
+    b.x = max(b.x, x[i].x);
+    b.y = max(b.y, x[i].y);
   }
-  return make_pair(min, max);
+  return make_pair(a, b);
 }
-
 
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
@@ -271,23 +292,20 @@ int main(int argc, const char **argv) {
 
   if (capture) {
     // Read in the existing data.
-    calibration_data<float> cd;
+    vector<sphere_observation_set> spheres;
     try {
       ifstream input(calibration_data_file);
-      cd = read_calibration_data<float>(input);
-      cout << "Read calibration data with " << cd.sets.size() << " sets, " << cd.sample_count() << " samples." << endl;
+      spheres = read_sphere_observations(input);
+      cout << "Read calibration data with " << spheres.size() << " sets" << endl;
     } catch (exception &ex) {
       cout << "Warning, failed to read calibration data file '" << *calibration_data_file << "'" << endl;
     }
     
     // Add a new dataset.
-    cd.sets.emplace_back();
-    calibration_data<float>::set &set = cd.sets.back();
+    spheres.emplace_back();
+    sphere_observation_set &set = spheres.back();
     set.radius = sample_radius;
-    if (sample_center.parsed()) {
-      set.center = sample_center;
-      set.center_valid = true;
-    }
+    set.center = *sample_center;
     set.samples.reserve(sample_count);
 
     // Turn on the cameras.
@@ -341,12 +359,12 @@ int main(int argc, const char **argv) {
           if (abs(x0_max - x0_min) < sample_noise_tolerance &&
               abs(x1_max - x1_min) < sample_noise_tolerance) {
             if(set.samples.empty()) {
-              set.samples.emplace_back(x0_mean, x1_mean);
+              set.samples.push_back({x0_mean, x1_mean});
               cout << endl;
             } else { 
-              float dx = max(abs(x0_mean - set.samples.back().px0), abs(x1_mean - set.samples.back().px1));
+              float dx = max(abs(x0_mean - set.samples.back().x0), abs(x1_mean - set.samples.back().x1));
               if (sample_min_dx <= dx) {
-                set.samples.emplace_back(x0_mean, x1_mean);
+                set.samples.push_back({x0_mean, x1_mean});
                 cout << endl;
               }
             }
@@ -367,222 +385,28 @@ int main(int argc, const char **argv) {
 
     // Write out the updated calibration data.
     ofstream output(calibration_data_file);
-    write_calibration_data(output, cd);
+    write_sphere_observations(output, spheres);
   } else {
-    typedef diff<double, 40> d;
-
     ifstream input(calibration_data_file);
-    calibration_data<d> cd = read_calibration_data<d>(input);
+    vector<sphere_observation_set> spheres = read_sphere_observations(input);
 
-    if (cd.sets.empty()) 
+    if (spheres.empty()) 
       throw runtime_error("no calibration data");
-    cout << "Read calibration data with " << cd.sets.size() << " sets, " << cd.sample_count() << " samples." << endl;
+    cout << "Read calibration data with " << spheres.size() << " sets" << endl;
     
-    // Get a list of samples corresponding to observations of an object lying somewhere on the sampling sphere. 
-    const double epsilon_sq = epsilon*epsilon;
- 
-    camera<d> cam0 = camera_cast<d>(cam_config0.to_camera());
-    camera<d> cam1 = camera_cast<d>(cam_config1.to_camera());
+    cameraf cam0 = cam_config0.to_camera();
+    cameraf cam1 = cam_config1.to_camera();
 
-    bool enable_d = enable->find("d1") != string::npos;
-    bool enable_a = enable->find("a") != string::npos;
-    bool enable_s = enable->find("s") != string::npos;
-    bool enable_t = enable->find("t") != string::npos;
-    bool enable_R = enable->find("R") != string::npos;
-    bool enable_x = enable->find("x") != string::npos;
-
-    cout << "Optimization variables:" << endl;
-
-    // Construct the variables used in the optimization.
-    int N = 0;
-    if (enable_d) {
-      cam0.d1.x.df[N++] = 1; cam0.d1.y.df[N++] = 1;
-      cam1.d1.x.df[N++] = 1; cam1.d1.y.df[N++] = 1;
-      cout << "  d1" << endl;
-    }
-    if (enable_a) {
-      cam0.a.x.df[N++] = 1; cam0.a.y.df[N++] = 1;
-      cam1.a.x.df[N++] = 1; cam1.a.y.df[N++] = 1;
-      cout << "  a" << endl;
-    }
-    if (enable_s) {
-      cam0.s.df[N++] = 1;
-      cam1.s.df[N++] = 1;
-      cout << "  s" << endl;
-    }
-    if (enable_t) {
-      cam0.t.x.df[N++] = 1; cam0.t.y.df[N++] = 1;
-      cam1.t.x.df[N++] = 1; cam1.t.y.df[N++] = 1;
-      cout << "  t" << endl;
-    }
-    if (enable_R) {
-      cam0.R.a.df[N++] = 1; cam0.R.b.x.df[N++] = 1; cam0.R.b.y.df[N++] = 1; cam0.R.b.z.df[N++] = 1;
-      cam1.R.a.df[N++] = 1; cam1.R.b.x.df[N++] = 1; cam1.R.b.y.df[N++] = 1; cam1.R.b.z.df[N++] = 1;
-      cout << "  R" << endl;
-    }
-    if (enable_x) {
-      cam0.x.x.df[N++] = 1; cam0.x.y.df[N++] = 1; cam0.x.z.df[N++] = 1;
-      cam1.x.x.df[N++] = 1; cam1.x.y.df[N++] = 1; cam1.x.z.df[N++] = 1;
-      cout << "  x" << endl;
-    }
-
-    for (size_t i = 0; i < cd.sets.size(); i++) {
-      auto &set = cd.sets[i];
-      // If we don't know the center of the sphere for this set, we need to find it in the optimization.
-      if (!set.center_valid) {
-        set.center.x.df[N++] = 1;
-        set.center.y.df[N++] = 1;
-        set.center.z.df[N++] = 1;
-        cout << "  xyz" << i << " (r = " << set.radius << ")" << endl;
-      }
-    }
-
-    cout << "Running optimization..." << endl;
-
-    // Levenberg-Marquardt damping parameter.
-    double lambda = lambda_recovery;
-    double prev_error = numeric_limits<double>::infinity();
-    camera<d> prev_cam0 = cam0;
-    camera<d> prev_cam1 = cam1;
-    vector<vector3<d>> prev_centers = unknown_centers(cd);
-
-    int it;
-    for (it = 1; it <= max_iterations; it++) {
-      d baseline = abs(cam1.x - cam0.x);
-      vector3<d> b = unit(cam1.x - cam0.x);
-    
-      double error = 0;
-
-      // Compute J^T*J and b.
-      matrix<double> JTJ(N, N);
-      matrix<double> JTy(N, 1);
-    
-      for (const auto &set : cd.sets) {
-        for (const auto &s : set.samples) {
-          vector3<d> x0 = cam0.sensor_to_projection(s.px0, d(1.0)) - cam0.x;
-          vector3<d> x1 = cam1.sensor_to_projection(s.px1, d(1.0)) - cam1.x;
-
-          // z is determined by the stereo disparity.
-          d z = baseline/(dot(x0, b) - dot(x1, b));
-
-          // Move the points from the focal plane to the (parallel) plane containing z and add the camera origins.
-          x0 = x0*z + cam0.x;
-          x1 = x1*z + cam1.x;
-
-          // Error in depth from the calibration sphere and x, for both samples.
-          d r_s0 = set.radius - abs(x0 - set.center);
-          d r_s1 = set.radius - abs(x1 - set.center);
-          error += sqr(r_s0.f);
-          error += sqr(r_s1.f);
-        
-          // Error in difference between the two projected points.
-          d r_z = abs(x0 - x1);
-          error += sqr(r_z.f);
-
-          for (int i = 0; i < N; i++) {
-            double Dr_s0_i = D(r_s0, i);
-            double Dr_s1_i = D(r_s1, i);
-            double Dr_z_i = D(r_z, i);
-            // Add this residual to J^T*y.
-            JTy(i) -= Dr_s0_i*r_s0.f;
-            JTy(i) -= Dr_s1_i*r_s1.f;
-            JTy(i) -= Dr_z_i*r_z.f;
-            // Add this residual to J^T*J
-            for (int j = 0; j < N; j++) {
-              JTJ(i, j) += Dr_s0_i*D(r_s0, j);
-              JTJ(i, j) += Dr_s1_i*D(r_s1, j);
-              JTJ(i, j) += Dr_z_i*D(r_z, j);
-            }
-          }
-        }
-      }
-      
-      // If error increased, throw away the previous iteration and 
-      // reset the Levenberg-Marquardt damping parameter.
-      if (error > prev_error) {
-        cout << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
-          << error << ", lambda=" << lambda << endl;
-        lambda = lambda_recovery;
-        prev_error = error;
-        cam0 = prev_cam0;
-        cam1 = prev_cam1;
-        set_unknown_centers(cd, prev_centers);
-        continue;
-      }
-
-      // J^T*J <- J^J*J + lambda*diag(J^J*J)
-      for (int i = 0; i < N; i++)
-        JTJ(i, i) *= 1 + lambda;
-
-      // Solve J^T*J*dB = J^T*y.
-      matrix_ref<double> dB = solve(JTJ, JTy);
-    
-      if (!isfinite(dB))
-        throw runtime_error("optimization diverged");
-    
-      cout << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
-        << ", error=" << error << ", lambda=" << lambda << endl;
-
-      // Update Levenberg-Marquardt damping parameter.
-      lambda *= lambda_decay;
-      prev_error = error;
-      prev_cam0 = cam0;
-      prev_cam1 = cam1;
-      prev_centers = unknown_centers(cd);
-
-      int n = 0;
-      if (enable_d) {
-        cam0.d1.x += dB(n++); cam0.d1.y += dB(n++);
-        cam1.d1.x += dB(n++); cam1.d1.y += dB(n++);
-      }
-      if (enable_a) {
-        cam0.a.x += dB(n++); cam0.a.y += dB(n++);
-        cam1.a.x += dB(n++); cam1.a.y += dB(n++);
-      }
-      if (enable_s) {
-        cam0.s += dB(n++);
-        cam1.s += dB(n++);
-      }
-      if (enable_t) {
-        cam0.t.x += dB(n++); cam0.t.y += dB(n++);
-        cam1.t.x += dB(n++); cam1.t.y += dB(n++);
-      }
-      if (enable_R) {
-        cam0.R.a += dB(n++); cam0.R.b.x += dB(n++); cam0.R.b.y += dB(n++); cam0.R.b.z += dB(n++);
-        cam1.R.a += dB(n++); cam1.R.b.x += dB(n++); cam1.R.b.y += dB(n++); cam1.R.b.z += dB(n++);
-        // Renormalize quaternions.
-        cam0.R /= abs(cam0.R);
-        cam1.R /= abs(cam1.R);
-      }
-      if (enable_x) {
-        cam0.x.x += dB(n++); cam0.x.y += dB(n++); cam0.x.z += dB(n++);
-        cam1.x.x += dB(n++); cam1.x.y += dB(n++); cam1.x.z += dB(n++);
-      }
-  
-      for (auto &i : cd.sets) {
-        // If we don't know the center of the sphere for this set, we need to find them in the optimization.
-        if (!i.center_valid) {
-          i.center.x += dB(n++);
-          i.center.y += dB(n++);
-          i.center.z += dB(n++);
-        }
-      }
-        
-      if (dot(dB, dB) < epsilon_sq) {
-        cout << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
-        break;
-      }
-    }
-    
-    cout << "Optimization done:" << endl;
+    calibrate(
+        spheres, 
+        cam0, cam1, 
+        cout, 
+        enable, 
+        lambda_init, lambda_decay, 
+        epsilon, max_iterations);
 
     dump_config(cout, "   ", cam0, cam1);
-
-    for (size_t i = 0; i < cd.sets.size(); i++) {
-      if (!cd.sets[i].center_valid)
-        cout << "  xyz" << i << " center=" << cd.sets[i].center << ", radius=" << cd.sets[i].radius << endl;
-    }
-    
+        
     // Dump results to output file too.
     ofstream output(output_file);
     dump_config(output, "--", cam0, cam1);

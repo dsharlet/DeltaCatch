@@ -1,7 +1,8 @@
 #include <fstream>
 
-#include "arg_port.h"
-#include "camera.h"
+#include <ev3dev.h>
+#include <cl/arg_port.h>
+#include <vision/camera.h>
 
 static cl::group stereo_group("Stereo camera parameters");
 
@@ -9,7 +10,7 @@ typedef matrix<float, 2, 2> matrix2x2f;
 typedef matrix<float, 3, 3> matrix3x3f;
 
 struct camera_config {
-  arg_port port;
+  cl::arg_port port;
   cl::arg<vector2i> resolution;
   cl::arg<vector2f> distortion;
   cl::arg<matrix<float, 3, 3>> calibration;
@@ -19,7 +20,7 @@ struct camera_config {
 
   camera_config(
       const std::string &prefix,
-      const ev3::port_type &port) : 
+      const ev3dev::port_type &port) : 
   port(
     port,
     cl::name(prefix + "-port"),
@@ -90,8 +91,8 @@ public:
 };
 
 struct stereo_config {
-  camera_config cam0{"cam0", ev3::INPUT_1};
-  camera_config cam1{"cam1", ev3::INPUT_4};
+  camera_config cam0{"cam0", ev3dev::INPUT_1};
+  camera_config cam1{"cam1", ev3dev::INPUT_4};
   stereo_config_file_arg config_file;
   
   std::pair<cameraf, cameraf> cameras() const {

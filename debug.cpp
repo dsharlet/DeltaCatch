@@ -1,9 +1,10 @@
 #include <fstream>
-#include <cl.h>
+#include <cl/cl.h>
 
 #include "debug.h"
 
 using namespace std;
+using namespace ev3cv;
 
 static cl::arg<int> debug(
   0,

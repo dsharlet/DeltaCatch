@@ -1,7 +1,9 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#ifndef EV3CV_VISION_CAMERA_H
+#define EV3CV_VISION_CAMERA_H
 
-#include "ev3cv/ev3cv.h"
+#include "../ev3cv.h"
+
+namespace ev3cv {
 
 // Mapping of 3D coordinates to the 2D projection observed by a camera.
 template <typename T>
@@ -146,5 +148,7 @@ camera<T> camera_cast(const camera<U> &x) {
 }
 
 typedef camera<float> cameraf;
+
+}  // namespace ev3cv
 
 #endif

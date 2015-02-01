@@ -1,4 +1,4 @@
-#include "nxtcam.h"
+#include <vision/nxtcam.h>
 
 #include <string.h>
 #include <thread>
@@ -11,11 +11,12 @@
 
 using namespace std;
 
-nxtcam::nxtcam(const ev3dev::port_type &port, int address) : fd_(-1), port_(port) {
+namespace ev3cv {
+
+nxtcam::nxtcam(const std::string &port, int address) : fd_(-1), port_(port) {
   // Find the port number from the port string.
   if (port[0] != 'i' && port[1] != 'n')
     throw runtime_error("port is not an input port.");
-
   char path[32];
   sprintf(path, "/dev/i2c-%d", port[2] - '0' + 2);
 
@@ -111,3 +112,5 @@ void nxtcam::read(uint8_t reg, uint8_t *data, size_t size) const {
   if (::read(fd_, data, size) < 0)
     throw runtime_error(strerror(errno));
 }
+
+}  // namespace ev3cv

@@ -2,13 +2,13 @@
 #include <set>
 #include <signal.h>
 
-#include "arg_port.h"
+#include <cl/arg_port.h>
 #include "servo.h"
 
 using namespace std;
 
-arg_port port(
-  ev3::OUTPUT_A,
+cl::arg_port port(
+  ev3dev::OUTPUT_A,
   cl::name("port"),
   cl::desc("Port the motor is attached to."));
 

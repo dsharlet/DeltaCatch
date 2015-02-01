@@ -5,7 +5,7 @@
 #include <signal.h>
 
 #include "servo.h"
-#include "ev3cv/ev3cv.h"
+#include <ev3cv.h>
 
 namespace {
   

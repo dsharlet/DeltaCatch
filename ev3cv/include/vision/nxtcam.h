@@ -1,12 +1,12 @@
-#ifndef NXTCAM_H
-#define NXTCAM_H
-
-#include <ev3dev.h>
+#ifndef EV3CV_VISION_NXTCAM_H
+#define EV3CV_VISION_NXTCAM_H
 
 #include <vector>
 #include <string>
 
-#include "ev3cv/ev3cv.h"
+#include "../ev3cv.h"
+
+namespace ev3cv {
 
 // Talks to an NXTcam device to perform image based tracking of 'blobs'.
 class nxtcam {
@@ -21,11 +21,11 @@ public:
   // Type of a list of blobs.
   typedef std::vector<blob> blob_list;
 
-  nxtcam(const ev3dev::port_type &port, int address = 0x01);
+  nxtcam(const std::string &port, int address = 0x01);
   ~nxtcam();
   
   // The port this device is connected to.
-  const ev3dev::port_type &port() const  { return port_; }
+  const std::string &port() const  { return port_; }
 
   // Query information about the connected device.
   std::string version() const;
@@ -73,7 +73,9 @@ protected:
   }
 
   int fd_;
-  ev3dev::port_type port_;
+  std::string port_;
 };
+
+}  // namespace ev3cv
 
 #endif

@@ -1,11 +1,8 @@
-#include <iostream>
-#include <cassert>
-#include <cmath>
+#include <ev3cv.h>
+#include "test.h"
 
 using namespace std;
-
-#include "ev3cv/ev3cv.h"
-#include "test.h"
+using namespace ev3cv;
 
 template <typename T, int N_>
 void test_solve(int N) {
@@ -31,16 +28,26 @@ void test_solve(int N) {
   }
 }
 
+template <typename T, int N>
+void test_solve() {
+  test_solve<T, N>(N);
+}
+
 int main(int argc, const char **argv) {
   for (int i = 0; i < 100; i++) {
-    for (int N = 0; N < 10; N++)
+    for (int N = 0; N < 50; N++)
       test_solve<double, 0>(N);
 
-    test_solve<double, 2>(2);
-    test_solve<double, 5>(5);
-    test_solve<double, 7>(7);
-    test_solve<double, 10>(10);
-    test_solve<double, 16>(16);
+    test_solve<double, 2>();
+    test_solve<double, 5>();
+    test_solve<double, 7>();
+    test_solve<double, 10>();
+    test_solve<double, 16>();
+    test_solve<double, 20>();
+    test_solve<double, 25>();
+    test_solve<double, 30>();
+    test_solve<double, 40>();
+    test_solve<double, 50>();
   }  
   return 0;
 }

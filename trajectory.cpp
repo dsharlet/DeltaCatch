@@ -1,7 +1,7 @@
 #include <random>
 #include <chrono>
 
-#include <cl.h>
+#include <cl/cl.h>
 
 #include "debug.h"
 #include "trajectory.h"
