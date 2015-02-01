@@ -272,7 +272,7 @@ int main(int argc, const char **argv) {
             } catch(runtime_error &ex) {
               dbg(1) << ex.what() << endl;
               cout << "trajectory found with unreachable intercept expected at:" << endl;
-              cout << "  t=" << exit.t << " s (" << exit.t - t_now << ") s at x=" << exit.x << endl;
+              cout << "  t=" << exit.t << " s (" << exit.t + obs_t0 - t_now << ") s at x=" << exit.x << endl;
               entry.t = exit.t = t_none;
             }
             dbg(1) << "  trajectory x=" << tj.x << ", v=" << tj.v << endl;
