@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 
-#include "vector2.h"
+#include "ev3cv/ev3cv.h"
 
 // Talks to an NXTcam device to perform image based tracking of 'blobs'.
 class nxtcam {

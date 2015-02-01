@@ -11,8 +11,6 @@
 #include "debug.h"
 #include "camera.h"
 #include "nxtcam.h"
-#include "autodiff.h"
-#include "matrix.h"
 #include "circular_array.h"
 
 #include "calibration_data.h"

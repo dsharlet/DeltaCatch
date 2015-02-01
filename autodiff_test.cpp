@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#include "autodiff.h"
+#include "ev3cv/ev3cv.h"
 #include "test.h"
 
 template <typename T> T f1_x(T x) { return x; }

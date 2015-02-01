@@ -1,9 +1,7 @@
-#ifndef AUTODIFF_H
-#define AUTODIFF_H
+#ifndef EV3CV_MATH_AUTODIFF_H
+#define EV3CV_MATH_AUTODIFF_H
 
-#include <iostream>
-
-#include "math.h"
+namespace ev3cv {
 
 // Implementation of forward automatic differentiation via operator overloading.
 template <typename T, int N>
@@ -137,5 +135,7 @@ template <typename T, int N>
 std::istream &operator >> (std::istream &is, diff<T, N> &d) {
   return is >> d.f;
 }
+
+}  // namespace ev3cv
 
 #endif

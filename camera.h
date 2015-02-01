@@ -1,10 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "vector2.h"
-#include "vector3.h"
-#include "quaternion.h"
-#include "matrix.h"
+#include "ev3cv/ev3cv.h"
 
 // Mapping of 3D coordinates to the 2D projection observed by a camera.
 template <typename T>

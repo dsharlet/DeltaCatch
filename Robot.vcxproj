@@ -48,7 +48,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="arg_port.h" />
-    <ClInclude Include="autodiff.h" />
     <ClInclude Include="calibration_data.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="circular_array.h" />
@@ -56,17 +55,18 @@
     <ClInclude Include="delta_robot_args.h" />
     <ClInclude Include="delta_hand.h" />
     <ClInclude Include="delta_robot.h" />
-    <ClInclude Include="pid_controller.h" />
+    <ClInclude Include="ev3cv\ev3cv.h" />
+    <ClInclude Include="ev3cv\math\autodiff.h" />
+    <ClInclude Include="ev3cv\math\matrix.h" />
+    <ClInclude Include="ev3cv\math\pid_controller.h" />
+    <ClInclude Include="ev3cv\math\quaternion.h" />
+    <ClInclude Include="ev3cv\math\vector2.h" />
+    <ClInclude Include="ev3cv\math\vector3.h" />
     <ClInclude Include="servo.h" />
     <ClInclude Include="stereo_config.h" />
-    <ClInclude Include="math.h" />
-    <ClInclude Include="matrix.h" />
     <ClInclude Include="nxtcam.h" />
-    <ClInclude Include="quaternion.h" />
     <ClInclude Include="test.h" />
     <ClInclude Include="trajectory.h" />
-    <ClInclude Include="vector2.h" />
-    <ClInclude Include="vector3.h" />
     <ClInclude Include="viz_client.h" />
   </ItemGroup>
   <ItemGroup>

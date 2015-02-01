@@ -5,7 +5,7 @@
 
 #include <ev3dev.h>
 
-#include "pid_controller.h"
+#include "ev3cv/ev3cv.h"
 
 // Controls an EV3 motor with a PID controller.
 class servo {

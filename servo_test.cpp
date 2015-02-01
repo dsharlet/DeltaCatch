@@ -4,7 +4,6 @@
 
 #include "arg_port.h"
 #include "servo.h"
-#include "vector3.h"
 
 using namespace std;
 

@@ -4,8 +4,6 @@
 
 using namespace std;
 
-#include "autodiff.h"
-
 template <typename T, typename U>
 inline void assert_lt(T l, U r, const char *msg) {
   if (!(l < r)) {

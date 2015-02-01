@@ -1,20 +1,14 @@
-#ifndef MATRIX_H
-#define MATRIX_H
+#ifndef EV3CV_MATH_MATRIX_H
+#define EV3CV_MATH_MATRIX_H
 
-#include <iostream>
 #include <iomanip>
-#include <cassert>
 #include <initializer_list>
-#include <limits>
 #include <vector>
-#include <stdexcept>
 
-#include "math.h"
-
-// Defines compile time constant dimension 2D matrices.
+namespace ev3cv {
 
 // A constant reference to a matrix. This is intended to be passed by value,
-// as it is itself a reference. Copies are shallow.
+// as it is itself a reference type, i.e. copies are shallow.
 // If the template dimensions are 0, the matrix is dynamically sized.
 template <typename T, int M_ = 0, int N_ = 0>
 class const_matrix_ref {
@@ -410,5 +404,7 @@ std::istream &operator >> (std::istream &is, matrix_ref<T, M, N> A) {
   is.ignore(std::numeric_limits<std::streamsize>::max(), ']');
   return is;
 }
+
+}  // namespace ev3cv
 
 #endif

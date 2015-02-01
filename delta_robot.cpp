@@ -6,7 +6,6 @@
 
 #include "debug.h"
 #include "delta_robot.h"
-#include "vector2.h"
 
 using namespace ev3;
 using namespace std;

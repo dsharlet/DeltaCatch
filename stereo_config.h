@@ -2,8 +2,6 @@
 
 #include "arg_port.h"
 #include "camera.h"
-#include "vector2.h"
-#include "vector3.h"
 
 static cl::group stereo_group("Stereo camera parameters");
 

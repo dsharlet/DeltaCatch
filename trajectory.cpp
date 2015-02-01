@@ -4,8 +4,6 @@
 #include <cl.h>
 
 #include "debug.h"
-#include "matrix.h"
-#include "autodiff.h"
 #include "trajectory.h"
 
 using namespace std;

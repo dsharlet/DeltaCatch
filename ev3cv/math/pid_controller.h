@@ -1,5 +1,5 @@
-#ifndef PID_CONTROLLER_H
-#define PID_CONTROLLER_H
+#ifndef EV3CV_MATH_PID_CONTROLLER_H
+#define EV3CV_MATH_PID_CONTROLLER_H
 
 // Basic PID controller:
 //

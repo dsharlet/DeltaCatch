@@ -1,11 +1,10 @@
 
 CFLAGS=-O2 -march=armv5
-CCFLAGS=-std=c++11 -Wall -D_GLIBCXX_USE_NANOSLEEP -I../../ev3dev-lang/cpp -I../../Util
+CCFLAGS=-std=c++11 -Wall -D_GLIBCXX_USE_NANOSLEEP -I../../ev3dev-lang/cpp -I../../Util -Iev3cv
 OBJ=
 LIBS=-lstdc++ -L../../Util/lib -lutil -L../../ev3dev-lang/cpp -lev3dev -lpthread -lm
 DEPS=\
 	arg_port.h \
-	autodiff.h \
 	calibration_data.h \
 	camera.h \
 	circular_array.h \
@@ -13,17 +12,11 @@ DEPS=\
 	delta_hand.h \
 	delta_robot.h \
 	delta_robot_args.h \
-	math.h \
-	matrix.h \
 	nxtcam.h \
-	pid_controller.h \
 	servo.h \
-	quaternion.h \
 	stereo_config.h \
 	test.h \
 	trajectory.h \
-	vector2.h \
-	vector3.h \
 	viz_client.h \
 
 obj/%.o: %.cpp $(DEPS)

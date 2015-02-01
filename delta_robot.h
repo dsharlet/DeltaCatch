@@ -1,8 +1,9 @@
 #ifndef DELTA_ROBOT_H
 #define DELTA_ROBOT_H
 
-#include "vector3.h"
+#include "ev3cv/ev3cv.h"
 #include "servo.h"
+
 
 namespace ev3 = ev3dev;
 

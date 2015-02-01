@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="vector2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vector3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="trajectory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -30,16 +24,10 @@
     <ClInclude Include="delta_robot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="matrix.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="nxtcam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="arg_port.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="autodiff.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="camera.h">
@@ -54,12 +42,6 @@
     <ClInclude Include="viz_client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="math.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="quaternion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="stereo_config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -72,10 +54,28 @@
     <ClInclude Include="delta_robot_args.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pid_controller.h">
+    <ClInclude Include="servo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="servo.h">
+    <ClInclude Include="ev3cv\math\autodiff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ev3cv\math\matrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ev3cv\math\pid_controller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ev3cv\math\quaternion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ev3cv\math\vector2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ev3cv\math\vector3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ev3cv\ev3cv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

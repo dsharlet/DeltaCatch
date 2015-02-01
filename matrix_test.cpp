@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#include "matrix.h"
+#include "ev3cv/ev3cv.h"
 #include "test.h"
 
 template <typename T, int N_>

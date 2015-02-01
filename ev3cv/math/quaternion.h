@@ -1,10 +1,7 @@
-#ifndef QUATERNION_H
-#define QUATERNION_H
+#ifndef EV3CV_MATH_QUATERNION_H
+#define EV3CV_MATH_QUATERNION_H
 
-#include <iostream>
-#include <limits>
-
-#include "vector3.h"
+namespace ev3cv {
 
 template <typename T>
 class quaternion {
@@ -121,5 +118,7 @@ std::istream &operator >> (std::istream &is, quaternion<T> &q) {
 }
 
 typedef quaternion<float> quaternionf;
+
+}  // namespace ev3cv
 
 #endif

@@ -1,10 +1,7 @@
-#ifndef VECTOR3_H
-#define VECTOR3_H
+#ifndef EV3CV_MATH_VECTOR3_H
+#define EV3CV_MATH_VECTOR3_H
 
-#include <iostream>
-#include <limits>
-
-#include "math.h"
+namespace ev3cv {
 
 template <typename T>
 class vector3 {
@@ -90,5 +87,7 @@ typedef vector3<int> vector3i;
 inline vector3f randv3f(const vector3f &a = 0.0f, const vector3f &b = 1.0f) {
   return vector3f(randf(a.x, b.x), randf(a.y, b.y), randf(a.z, b.z));
 }
+
+}  // namespace ev3cv
 
 #endif

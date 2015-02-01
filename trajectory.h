@@ -1,7 +1,6 @@
 #ifndef TRAJECTORY_H
 #define TRAJECTORY_H
 
-#include "math.h"
 #include "camera.h"
 #include "circular_array.h"
 
