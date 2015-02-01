@@ -33,21 +33,21 @@ public:
   ev3dev::device_type type() const { return m_.type(); }
 
   void run();
-  void stop();
-  void reset();
+  void stop(bool hold = true);
+  void reset(int position = 0);
 
   bool running() const { return m_.running(); }
   
   ev3dev::mode_type stop_mode() const { return m_.stop_mode(); }
   void set_stop_mode(const ev3dev::mode_type &v) { m_.set_stop_mode(v); }
 
-  // Get or set the current position of the motor.
+  // Get or set the state of the encoder.
   int position() const { return m_.position(); }
-  void set_position(int p) { m_.set_position(p); }
 
   // Get or set the position setpoint.
   int position_setpoint() const;
   void set_position_setpoint(int sp);
+  // Set the position setpoint to a function callback f(x, t, dt).
   void set_position_setpoint(std::function<int(int, int, int)> sp_fn);
   
   int max_duty_cycle() const { return max_duty_cycle_; }

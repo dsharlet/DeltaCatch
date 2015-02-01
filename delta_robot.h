@@ -87,11 +87,10 @@ public:
   }
 
   // Forward some useful calls to the 3 arm motors.
-  void stop() {
+  void stop(bool hold = true) {
     for (auto i : arms)
-      i->stop();
+      i->stop(hold);
   }
-  void set_stop_mode(const ev3::mode_type &v) { for (auto i : arms) i->set_stop_mode(v); }
   void set_pid(int Kp, int Ki, int Kd) { for (auto i : arms) i->set_K(Kp, Ki, Kd); }
   bool running() const {
     for (auto i : arms) 

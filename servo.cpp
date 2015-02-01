@@ -76,16 +76,18 @@ void servo::run() {
   m_.run();
 }
 
-void servo::stop() {
+void servo::stop(bool hold) {
   std::lock_guard<std::mutex> lock(this->lock_);
-  pid_.reset();
+  m_.set_stop_mode(hold ? ev3dev::motor::stop_mode_hold : ev3dev::motor::stop_mode_coast);
   m_.stop();
+  pid_.reset();
 }
 
-void servo::reset() {
+void servo::reset(int position) {
   std::lock_guard<std::mutex> lock(this->lock_);
-  pid_.reset();
   m_.reset();
+  m_.set_position(position);
+  pid_.reset();
   max_duty_cycle_ = 100;
 }
 
@@ -117,11 +119,13 @@ int servo::position_setpoint() const {
 }
 
 void servo::set_position_setpoint(int sp) { 
+  std::lock_guard<std::mutex> lock(this->lock_);
   sp_fn_ = nullptr; 
   pid_.set_setpoint(sp); 
 }
 
 void servo::set_position_setpoint(std::function<int(int, int, int)> sp_fn) { 
+  std::lock_guard<std::mutex> lock(this->lock_);
   sp_fn_ = sp_fn; 
   t_ = 0; 
   pid_.set_setpoint(sp_fn(position(), t_, 0));

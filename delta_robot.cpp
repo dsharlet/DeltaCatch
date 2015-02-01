@@ -130,7 +130,6 @@ void delta_robot::init() {
   // Start running the motors.
   for (auto a : arms) {
     a->reset();
-    a->set_stop_mode(ev3::motor::stop_mode_hold);
     a->run();
 
     dbg(2) << "  arm " << a->port_name() << " reset" << endl;
@@ -144,8 +143,7 @@ void delta_robot::init() {
   while (running()) {
     for (auto a : arms) {
       if (a->running() && abs(a->position() - a->position_setpoint()) > stall_threshold) {
-        a->set_position(-1);
-        a->set_position_setpoint(0);
+        a->reset(-1);
         a->stop();
         dbg(2) << "  found theta_max for arm " << a->port_name() << endl;
       }

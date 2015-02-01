@@ -44,8 +44,7 @@ static cl::boolean show_path(
 static delta_robot_args delta_geometry("", "Delta robot geometry");
 
 void main_show_position(delta_robot &delta) {
-  delta.set_stop_mode(motor::stop_mode_coast);
-  delta.stop();
+  delta.stop(false);
   
   const int w = 8;
 
