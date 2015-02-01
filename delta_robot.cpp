@@ -122,7 +122,7 @@ void delta_robot::set_raw_position_setpoint(const vector3i &x) {
 
 void delta_robot::init() {
   const auto timestep = chrono::milliseconds(100);
-  const int stall_threshold = 20; // steps.
+  const int stall_threshold = 50; // steps.
   const int speed = 150; // steps per second.
 
   dbg(1) << "initializing delta robot..." << endl;
