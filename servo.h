@@ -14,14 +14,16 @@ protected:
   int max_duty_cycle_;
 
   // The PID controller uses units of milliseconds.
-  pid_controller<int, 1000> pid_;
+  ev3cv::pid_controller<int, 1000> pid_;
   std::function<int(int, int, int)> sp_fn_;
   int t_;
 
   std::mutex lock_;
   
-public:
+protected:
   void tick(int ms);
+
+  friend void controller_main();
 
 public:
   servo(const ev3dev::port_type &port);

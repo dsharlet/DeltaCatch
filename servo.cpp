@@ -13,6 +13,9 @@ std::vector<servo *> servos;
 std::mutex servos_lock;
 
 std::thread controller_thread;
+
+}
+
 void controller_main() {
   // Clock to use for controllers.
   typedef std::chrono::high_resolution_clock clock;
@@ -32,8 +35,6 @@ void controller_main() {
     }
     std::this_thread::sleep_until(t);
   }
-}
-
 }
 
 servo::servo(const ev3dev::port_type &port) : m_(port), pid_(10000, 10000, 0) {
@@ -104,14 +105,12 @@ void servo::tick(int dt) {
 
 std::tuple<int, int, int> servo::K() const {
   // Controller thread doesn't write these values, so we don't need to lock our mutex.
-  return std::tie(pid_.Kp, pid_.Ki, pid_.Kd);
+  return pid_.K();
 }
 
 void servo::set_K(int Kp, int Ki, int Kd) {
   std::lock_guard<std::mutex> lock(this->lock_);
-  pid_.Kp = Kp;
-  pid_.Ki = Ki;
-  pid_.Kd = Kd;
+  pid_.set_K(Kp, Ki, Kd);
 }
 
 int servo::position_setpoint() const { 
