@@ -145,6 +145,24 @@ static cl::arg<float> sample_rate(
   cl::desc("Frequency of camera observation samples, in Hz."),
   capture_group);
 
+static cl::arg<vector2i> cam0_min(
+  vector2i(12, 1),
+  cl::name("cam0-min"),
+  cl::desc("Minimum real measurement from camera 0."));
+static cl::arg<vector2i> cam1_min(
+  vector2i(12, 1),
+  cl::name("cam1-min"),
+  cl::desc("Minimum real measurement from camera 1."));
+
+static cl::arg<vector2i> cam0_max(
+  vector2i(176, 143),
+  cl::name("cam0-max"),
+  cl::desc("Maximum real measurement from camera 0."));
+static cl::arg<vector2i> cam1_max(
+  vector2i(176, 143),
+  cl::name("cam1-max"),
+  cl::desc("Maximum real measurement from camera 1."));
+
 static camera_config cam_config0(
     "cam0",
     ev3::INPUT_1,
@@ -293,12 +311,21 @@ int main(int argc, const char **argv) {
     while (static_cast<int>(set.samples.size()) < sample_count) {
       nxtcam::blob_list blobs0 = cam0.blobs();
       nxtcam::blob_list blobs1 = cam1.blobs();
-
+      
       if (blobs0.size() == 1 && blobs1.size() == 1) {
+        const nxtcam::blob &b0 = blobs0.front();
+        const nxtcam::blob &b1 = blobs1.front();
+        if (b0.x1.x <= cam0_min->x || b0.x1.y <= cam0_min->y ||
+            b0.x2.x >= cam0_max->x || b0.x2.y >= cam0_max->y)
+          continue;
+        if (b1.x1.x <= cam1_min->x || b1.x1.y <= cam1_min->y ||
+            b1.x2.x >= cam1_max->x || b1.x2.y >= cam1_max->y)
+          continue;
+
         while(x0.size() >= x0.capacity()) x0.pop_front();
         while(x1.size() >= x1.capacity()) x1.pop_front();
-        x0.push_back(blobs0.front().center());
-        x1.push_back(blobs1.front().center());
+        x0.push_back(b0.center());
+        x1.push_back(b1.center());
 
         vector2f x0_mean = mean(x0);
         vector2f x1_mean = mean(x1);
@@ -445,21 +472,29 @@ int main(int argc, const char **argv) {
           x1 = x1*z + cam1.x;
 
           // Error in depth from the calibration sphere and x, for both samples.
-          d r_s = set.radius - abs((x0 + x1)/2 - set.center);
-          error += sqr(r_s.f);
+          d r_s0 = set.radius - abs(x0 - set.center);
+          d r_s1 = set.radius - abs(x1 - set.center);
+          error += sqr(r_s0.f);
+          error += sqr(r_s1.f);
         
           // Error in difference between the two projected points.
           d r_z = abs(x0 - x1);
           error += sqr(r_z.f);
 
           for (int i = 0; i < N; i++) {
-            double Dr_s_i = D(r_s, i);
+            double Dr_s0_i = D(r_s0, i);
+            double Dr_s1_i = D(r_s1, i);
             double Dr_z_i = D(r_z, i);
             // Add this residual to J^T*y.
-            JTy(i) -= Dr_s_i*r_s.f + Dr_z_i*r_z.f;
+            JTy(i) -= Dr_s0_i*r_s0.f;
+            JTy(i) -= Dr_s1_i*r_s1.f;
+            JTy(i) -= Dr_z_i*r_z.f;
             // Add this residual to J^T*J
-            for (int j = 0; j < N; j++)
-              JTJ(i, j) += Dr_s_i*D(r_s, j) + Dr_z_i*D(r_z, j);
+            for (int j = 0; j < N; j++) {
+              JTJ(i, j) += Dr_s0_i*D(r_s0, j);
+              JTJ(i, j) += Dr_s1_i*D(r_s1, j);
+              JTJ(i, j) += Dr_z_i*D(r_z, j);
+            }
           }
         }
       }
