@@ -28,7 +28,7 @@ float calibrate(
     cameraf &cam0,
     cameraf &cam1,
     std::ostream &log = null_ostream(),
-    const std::string &enable = "d1astR",
+    const std::string &enable = "d1atR",
     float lambda_init = 1.0f, float lambda_decay = 0.9f,
     float convergence_threshold = 1e-3f, int max_iterations = 100);
 

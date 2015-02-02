@@ -201,7 +201,7 @@ static cl::arg<float> lambda_decay(
   optimization_group);
 
 static cl::arg<string> enable(
-  "d1|a|s|t|R",
+  "d1|a|t|R",
   cl::name("enable"),
   cl::desc("Which calibration parameters to allow optimization over."),
   optimization_group);
