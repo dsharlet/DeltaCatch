@@ -23,7 +23,7 @@ lib/libcl.a: obj/cl/cl.o
 	ar rc $@ $^ && ranlib $@
 
 # libev3cv.a
-lib/libev3cv.a: obj/vision/calibration.o obj/vision/nxtcam.o
+lib/libev3cv.a: obj/ev3cv.o obj/vision/calibration.o obj/vision/nxtcam.o
 	mkdir -p $(@D)
 	ar rc $@ $^ && ranlib $@
 

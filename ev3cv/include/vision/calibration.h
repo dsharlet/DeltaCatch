@@ -9,12 +9,7 @@
 #include "../ev3cv.h"
 
 namespace ev3cv {
-
-static std::ostream &null_ostream() {
-  static std::ofstream os;
-  return os;
-}
-
+  
 // A corresponding 2D observations of a 3D point.
 struct stereo_observation {
   vector2f x0, x1;

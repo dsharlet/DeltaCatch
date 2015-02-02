@@ -38,6 +38,8 @@ inline float randf(float a = 0.0f, float b = 1.0f) { return (static_cast<float>(
 template <typename T, typename U>
 T scalar_cast(const U &x) { return static_cast<T>(x); }
 
+std::ostream &null_ostream();
+
 }  // namespace ev3cv
 
 #include "circular_array.h"
