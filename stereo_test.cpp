@@ -18,7 +18,6 @@ static cl::arg<vector3i> pid(
   cl::name("pid"),
   cl::desc("PID parameters Kp, Ki, Kd."));
 
-
 static delta_robot_args delta_geometry("", "Delta robot geometry");
 
 static stereo_config stereo;
@@ -65,7 +64,7 @@ int main(int argc, const char **argv) {
 
   nxtcam_init_thread.join();
   
-  pair<vector3f, float> volume = delta.get_volume();
+  delta_robot::ellipse volume = delta.volume();
 
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
@@ -104,14 +103,14 @@ int main(int argc, const char **argv) {
       
       stringstream ss;
       ss << fixed << showpoint << setprecision(3);
-      ss << "x=" << x << ", ||x0 - x1||=" << abs(x0 - x1);
+      ss << "x=" << x << ", ||x0 - x1||=" << abs(x0 - x1) << ", z=" << z;
       string msg = ss.str();
       if (msg.length() > eraser.length())
         eraser = string(msg.length(), ' ');
       cout << msg << string(eraser.size() - msg.size(), ' ');
       
       if (dot(origin, origin) == 0.0f)
-        origin = x*scale - volume.first;
+        origin = x*scale - volume.origin;
 
       x = x*scale - origin;
 
