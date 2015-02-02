@@ -65,12 +65,14 @@ int main(int argc, const char **argv) {
   ASSERT_LT(abs(cam0_.s - cam0.s), epsilon);
   ASSERT_LT(abs(cam0_.t - cam0.t), epsilon);
   ASSERT_LT(abs(cam0_.R - cam0.R), epsilon);
+  ASSERT_LT(abs(cam0_.x - cam0.x), epsilon);
 
   ASSERT_LT(abs(cam1_.d1 - cam1.d1), epsilon);
   ASSERT_LT(abs(cam1_.a - cam1.a), epsilon);
   ASSERT_LT(abs(cam1_.s - cam1.s), epsilon);
   ASSERT_LT(abs(cam1_.t - cam1.t), epsilon);
   ASSERT_LT(abs(cam1_.R - cam1.R), epsilon);
+  ASSERT_LT(abs(cam1_.x - cam1.x), epsilon);
 
   return 0;
 }
