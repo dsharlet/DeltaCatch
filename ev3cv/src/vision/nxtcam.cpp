@@ -13,17 +13,19 @@ using namespace std;
 
 namespace ev3cv {
 
-nxtcam::nxtcam(const std::string &port, int address) : fd_(-1), port_(port) {
+std::string port_to_i2c_path(const std::string &port) {
   // Find the port number from the port string.
   if (port[0] != 'i' && port[1] != 'n')
     throw runtime_error("port is not an input port.");
   char path[32];
   sprintf(path, "/dev/i2c-%d", port[2] - '0' + 2);
+  return path;
+}
 
-  fd_ = open(path, O_RDWR);
+nxtcam::nxtcam(const std::string &path, int address) : fd_(-1) {
+  fd_ = open(path.c_str(), O_RDWR);
   if (fd_ < 0)
     throw runtime_error(strerror(errno));
-
   if (ioctl(fd_, I2C_SLAVE, address) < 0)
     throw runtime_error(strerror(errno));
 }

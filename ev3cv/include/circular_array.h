@@ -1,8 +1,10 @@
-#ifndef CIRCULAR_ARRAY_H
-#define CIRCULAR_ARRAY_H
+#ifndef EV3CV_CIRCULAR_ARRAY_H
+#define EV3CV_CIRCULAR_ARRAY_H
 
 #include <cassert>
 #include <array>
+
+namespace ev3cv {
 
 // A circular buffer of observations.
 template <typename T, size_t N>
@@ -53,5 +55,7 @@ public:
   T &operator[] (size_t i) { return at(i); }
   const T &operator[] (size_t i) const { return at(i); }
 };
+
+}  // namespace ev3cv
 
 #endif

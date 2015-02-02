@@ -35,7 +35,7 @@ float calibrate(
     std::ostream &log = null_ostream(),
     const std::string &enable = "d1astR",
     float lambda_init = 1.0f, float lambda_decay = 0.9f,
-    float epsilon = 1e-6f, int max_iterations = 100);
+    float convergence_threshold = 1e-3f, int max_iterations = 100);
 
 }  // namespace ev3cv
 

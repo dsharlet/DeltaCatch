@@ -16,13 +16,6 @@ using namespace std;
 
 using namespace ev3cv;
 
-#include <ev3dev.h>
-
-using namespace ev3dev;
-
-#include "debug.h"
-#include "circular_array.h"
-
 static cl::group stereo_group("Camera configuration estimate");
 
 struct camera_config {
@@ -39,7 +32,7 @@ struct camera_config {
 
   camera_config(
       const string &prefix,
-      const port_type &port,
+      const string &port,
       const vector2i &resolution,
       float sensor_size, float aspect_ratio, float focal_length,
       const vector3f &x,
@@ -102,6 +95,23 @@ struct camera_config {
         position);
   }
 };
+
+static camera_config cam_config0(
+    "cam0",
+    "in1",
+    vector2i(176, 144),
+    4.0f, 1.33f, 3.5f,
+    vector3f(0.0f, -cos(53.5*pi/180 + pi/2), -sin(53.5*pi/180 + pi/2)),
+    vector3f(1.0f, 0.0f, 0.0f),
+    vector3f(-11.15f, 12.5f, -3.0f));
+static camera_config cam_config1(
+    "cam1",
+    "in4",
+    vector2i(176, 144),
+    4.0f, 1.33f, 3.5f,
+    vector3f(0.0f, cos(53.5*pi/180 + pi/2), sin(53.5*pi/180 + pi/2)),
+    vector3f(-1.0f, 0.0f, 0.0f),
+    vector3f(11.15f, 12.5f, -3.0f));
 
 static cl::arg<string> calibration_data_file(
   "calibration_data",
@@ -167,23 +177,6 @@ static cl::arg<vector2i> cam1_max(
   cl::name("cam1-max"),
   cl::desc("Maximum real measurement from camera 1."));
 
-static camera_config cam_config0(
-    "cam0",
-    INPUT_1,
-    vector2i(176, 144),
-    4.0f, 1.33f, 3.5f,
-    vector3f(0.0f, -cos(53.5*pi/180 + pi/2), -sin(53.5*pi/180 + pi/2)),
-    vector3f(1.0f, 0.0f, 0.0f),
-    vector3f(-11.15f, 12.5f, -3.0f));
-static camera_config cam_config1(
-    "cam1",
-    INPUT_4,
-    vector2i(176, 144),
-    4.0f, 1.33f, 3.5f,
-    vector3f(0.0f, cos(53.5*pi/180 + pi/2), sin(53.5*pi/180 + pi/2)),
-    vector3f(-1.0f, 0.0f, 0.0f),
-    vector3f(11.15f, 12.5f, -3.0f));
-
 static cl::group optimization_group("Optimization parameters");
 
 static cl::arg<int> max_iterations(
@@ -191,10 +184,10 @@ static cl::arg<int> max_iterations(
   cl::name("max-iterations"),
   cl::desc("Maximum number of iterations allowed when solving optimization problems."),
   optimization_group);
-static cl::arg<float> epsilon(
+static cl::arg<float> convergence_threshold(
   1e-3f,
-  cl::name("epsilon"),
-  cl::desc("Number to consider to be zero when solving optimization problems."),
+  cl::name("convergence-threshold"),
+  cl::desc("Smallest improvement in residual error before optimization is considered to be converged."),
   optimization_group);
 static cl::arg<float> lambda_init(
   1.0f,
@@ -247,7 +240,6 @@ vector<sphere_observation_set> read_sphere_observations(istream &is) {
   }
   return spheres;
 }
-
 
 void dump_config(ostream &os, const string &prefix, const cameraf &cam) {
   os << prefix << "resolution " << cam.resolution << endl;
@@ -309,8 +301,8 @@ int main(int argc, const char **argv) {
     set.samples.reserve(sample_count);
 
     // Turn on the cameras.
-    nxtcam cam0(cam_config0.port);
-    nxtcam cam1(cam_config1.port);
+    nxtcam cam0(port_to_i2c_path(cam_config0.port));
+    nxtcam cam1(port_to_i2c_path(cam_config1.port));
     cout << "Cameras:" << endl;
     cout << cam0.device_id() << " " << cam0.version() << " (" << cam0.vendor_id() << ")" << endl;
     cout << cam1.device_id() << " " << cam1.version() << " (" << cam1.vendor_id() << ")" << endl;
@@ -403,7 +395,7 @@ int main(int argc, const char **argv) {
         cout, 
         enable, 
         lambda_init, lambda_decay, 
-        epsilon, max_iterations);
+        convergence_threshold, max_iterations);
 
     dump_config(cout, "   ", cam0, cam1);
         

@@ -24,9 +24,6 @@
     <ClInclude Include="delta_robot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="circular_array.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="debug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -78,9 +75,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="servo_test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="calibrate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

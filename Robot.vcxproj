@@ -38,7 +38,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <NMakeOutput>Robot.exe</NMakeOutput>
     <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
-    <IncludePath>C:\cygwin64\home\Dillon\DeltaRobot\Robot\ev3cv\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\cygwin64\home\Dillon\ev3dev-lang\cpp;C:\cygwin64\home\Dillon\DeltaRobot\Robot\ev3cv\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <NMakeOutput>Robot.exe</NMakeOutput>
@@ -47,7 +47,6 @@
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="circular_array.h" />
     <ClInclude Include="debug.h" />
     <ClInclude Include="delta_robot_args.h" />
     <ClInclude Include="delta_hand.h" />
@@ -59,7 +58,6 @@
     <ClInclude Include="viz_client.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="calibrate.cpp" />
     <ClCompile Include="debug.cpp" />
     <ClCompile Include="delta_catch.cpp" />
     <ClCompile Include="delta_hand.cpp" />

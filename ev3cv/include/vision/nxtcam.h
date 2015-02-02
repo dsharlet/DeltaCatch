@@ -7,6 +7,9 @@
 #include "../ev3cv.h"
 
 namespace ev3cv {
+  
+// Given a ev3dev port specification, return a path to the corresponding I2C device.
+std::string port_to_i2c_path(const std::string &port);
 
 // Talks to an NXTcam device to perform image based tracking of 'blobs'.
 class nxtcam {
@@ -21,12 +24,9 @@ public:
   // Type of a list of blobs.
   typedef std::vector<blob> blob_list;
 
-  nxtcam(const std::string &port, int address = 0x01);
+  nxtcam(const std::string &path, int address = 0x01);
   ~nxtcam();
   
-  // The port this device is connected to.
-  const std::string &port() const  { return port_; }
-
   // Query information about the connected device.
   std::string version() const;
   std::string vendor_id() const;
@@ -73,7 +73,6 @@ protected:
   }
 
   int fd_;
-  std::string port_;
 };
 
 }  // namespace ev3cv

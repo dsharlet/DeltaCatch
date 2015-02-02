@@ -40,8 +40,8 @@ int main(int argc, const char **argv) {
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
   
-  nxtcam nxtcam0(stereo.cam0.port);
-  nxtcam nxtcam1(stereo.cam1.port); 
+  nxtcam nxtcam0(port_to_i2c_path(stereo.cam0.port));
+  nxtcam nxtcam1(port_to_i2c_path(stereo.cam1.port)); 
   cout << "Cameras:" << endl;
   cout << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
   cout << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;

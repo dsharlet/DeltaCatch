@@ -34,8 +34,8 @@ void test_solve() {
 }
 
 int main(int argc, const char **argv) {
-  for (int i = 0; i < 100; i++) {
-    for (int N = 0; N < 50; N++)
+  for (int i = 0; i < 10; i++) {
+    for (int N = 1; N < 25; N++)
       test_solve<double, 0>(N);
 
     test_solve<double, 2>();
@@ -45,9 +45,6 @@ int main(int argc, const char **argv) {
     test_solve<double, 16>();
     test_solve<double, 20>();
     test_solve<double, 25>();
-    test_solve<double, 30>();
-    test_solve<double, 40>();
-    test_solve<double, 50>();
   }  
   return 0;
 }

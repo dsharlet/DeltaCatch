@@ -40,6 +40,8 @@ T scalar_cast(const U &x) { return static_cast<T>(x); }
 
 }  // namespace ev3cv
 
+#include "circular_array.h"
+
 #include "math/vector2.h"
 #include "math/vector3.h"
 #include "math/quaternion.h"

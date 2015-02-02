@@ -14,42 +14,41 @@ DEPS= \
 	include/vision/nxtcam.h \
 	include/ev3cv.h \
 
-# libcl.a
-obj/cl/cl.o: src/cl/cl.cpp include/cl/cl.h
-	mkdir -p obj/cl
-	$(CC) -c -o $@ $< $(CFLAGS) $(CCFLAGS)
-
-lib/libcl.a: obj/cl/cl.o
-	mkdir -p lib
-	ar rc $@ $^ && ranlib $@
-
-# libev3cv.a
 obj/%.o: src/%.cpp $(DEPS)
 	mkdir -p $(@D)
 	$(CC) -c -o $@ $< $(CFLAGS) $(CCFLAGS)
 
-lib/libev3cv.a: obj/vision/calibration.o obj/vision/nxtcam.o
-	mkdir -p lib
+# libcl.a
+lib/libcl.a: obj/cl/cl.o
+	mkdir -p $(@D)
 	ar rc $@ $^ && ranlib $@
 
+# libev3cv.a
+lib/libev3cv.a: obj/vision/calibration.o obj/vision/nxtcam.o
+	mkdir -p $(@D)
+	ar rc $@ $^ && ranlib $@
+
+# calibrate
+bin/calibrate: obj/calibrate.o lib/libev3cv.a lib/libcl.a
+	mkdir -p $(@D)
+	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) -lstdc++ -lm -lpthread -Llib -lcl -lev3cv
+
 # tests
-obj/test/%.o: test/%.cpp $(DEPS)
-	mkdir -p obj/test
-	$(CC) -c -o $@ $< $(CFLAGS) $(CCFLAGS)
-
-bin/test/%: obj/test/%.o
+bin/test/%: obj/test/%.o lib/libcl.a lib/libev3cv.a
 	mkdir -p bin/test
-	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) -lstdc++ -lm -lpthread
-
+	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) -lstdc++ -lm -lpthread -Llib -lcl -lev3cv
 
 .PHONY: all clean
 
 clean:
 	rm -rf obj/* bin/* lib/*
 
-all: lib/libcl.a lib/libev3cv.a
+all: \
+	bin/calibrate \
+	lib/libcl.a \
+	lib/libev3cv.a
 
-test:  \
+test: \
 	bin/test/autodiff \
 	bin/test/calibration \
 	bin/test/camera \

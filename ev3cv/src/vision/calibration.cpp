@@ -137,7 +137,7 @@ float calibrate(
     if (error > prev_error) {
       log << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
         << error << ", lambda=" << lambda << endl;
-      lambda = lambda_init;
+      lambda = lambda_init * (1.0f + randf());
       prev_error = error;
       cam0 = prev_cam0;
       cam1 = prev_cam1;
@@ -208,6 +208,8 @@ float calibrate(
       log << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
       cam0f = camera_cast<float>(cam0);
       cam1f = camera_cast<float>(cam1);
+      for (size_t i = 0; i < sphere_observations.size(); i++)
+        sphere_observations[i].center = vector_cast<float>(spheres[i]);
       return scalar_cast<float>(error);
     }
   }
