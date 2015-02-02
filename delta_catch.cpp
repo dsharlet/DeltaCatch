@@ -39,7 +39,7 @@ static cl::arg<float> max_flight_time(
   cl::name("max-flight-time"),
   cl::desc("The longest time allowed for a single trajectory."));
 
-static cl::arg_port hand(
+static cl::arg<std::string> hand(
   ev3::OUTPUT_D,
   cl::name("hand"),
   cl::desc("Motor port for the grabber."));

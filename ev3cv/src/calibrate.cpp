@@ -9,7 +9,7 @@
 
 using namespace std;
 
-#include <cl/arg_port.h>
+#include <cl/cl.h>
 #include <vision/camera.h>
 #include <vision/nxtcam.h>
 #include <vision/calibration.h>
@@ -19,7 +19,7 @@ using namespace ev3cv;
 static cl::group stereo_group("Camera configuration estimate");
 
 struct camera_config {
-  cl::arg_port port;
+  cl::arg<string> port;
   cl::arg<vector2i> resolution;
   cl::arg<vector2f> distortion;
 

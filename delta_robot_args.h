@@ -1,20 +1,20 @@
 #ifndef DELTA_ROBOT_ARGS_H
 #define DELTA_ROBOT_ARGS_H
 
-#include <cl/arg_port.h>
+#include <cl/cl.h>
 #include "delta_robot.h"
 
 // Define the command line parameters to describe a delta_robot.
 struct delta_robot_args {
-  cl::arg_port arm0{
+  cl::arg<std::string> arm0{
     ev3::OUTPUT_A,
     cl::name("arm0"),
     cl::desc("The motor port to drive arm 0.")};
-  cl::arg_port arm1{
+  cl::arg<std::string> arm1{
     ev3::OUTPUT_B,
     cl::name("arm1"),
     cl::desc("The motor port to drive arm 1.")};
-  cl::arg_port arm2{
+  cl::arg<std::string> arm2{
     ev3::OUTPUT_C,
     cl::name("arm2"),
     cl::desc("The motor port to drive arm 2.")};

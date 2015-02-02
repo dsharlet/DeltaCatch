@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include <ev3dev.h>
-#include <cl/arg_port.h>
+#include <cl/cl.h>
 #include <vision/camera.h>
 
 static cl::group stereo_group("Stereo camera parameters");
@@ -10,7 +10,7 @@ typedef matrix<float, 2, 2> matrix2x2f;
 typedef matrix<float, 3, 3> matrix3x3f;
 
 struct camera_config {
-  cl::arg_port port;
+  cl::arg<std::string> port;
   cl::arg<vector2i> resolution;
   cl::arg<vector2f> distortion;
   cl::arg<matrix<float, 3, 3>> calibration;
