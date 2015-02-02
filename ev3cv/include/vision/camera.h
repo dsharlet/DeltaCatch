@@ -85,9 +85,9 @@ struct camera {
     // TODO: Try to optimize this... lots of FLOPs here if U is a diff<>.
     vector2<U> u_ = u;
     for (int i = 0; i < 3; i++) {
-      vector2<U> d1_uu = d1*dot(u, u);
-      vector2<U> fu = u*(vector2<U>(1) + d1_uu) - u_;
-      vector2<U> df_du = d1_uu + U(2)*d1*u*u + vector2<U>(1);
+      vector2<U> d = vector2<U>(1) + d1*dot(u, u);
+      vector2<U> fu = u*d - u_;
+      vector2<U> df_du = d + U(2)*d1*u*u;
       u -= fu/df_du;
     }
 
