@@ -5,19 +5,19 @@ using namespace std;
 namespace ev3cv {
 
 float calibrate(
-    vector<sphere_observation_set> &sphere_observations,
+    const vector<sphere_observation_set> &sphere_observations,
     cameraf &cam0f, cameraf &cam1f,
     ostream &log,
     const string &enable,
     float lambda_init, float lambda_decay,
     float epsilon, int max_iterations) {
 
-  typedef diff<double, 40> d;
+  typedef diff<double, 28> d;
    
   camera<d> cam0 = camera_cast<d>(cam0f);
   camera<d> cam1 = camera_cast<d>(cam1f);
 
-  bool enable_d = enable.find("d1") != string::npos;
+  bool enable_d1 = enable.find("d1") != string::npos;
   bool enable_a = enable.find("a") != string::npos;
   bool enable_s = enable.find("s") != string::npos;
   bool enable_t = enable.find("t") != string::npos;
@@ -28,34 +28,34 @@ float calibrate(
 
   // Construct the variables used in the optimization.
   int N = 0;
-  if (enable_d) {
-    cam0.d1.x.df[N++] = 1; cam0.d1.y.df[N++] = 1;
-    cam1.d1.x.df[N++] = 1; cam1.d1.y.df[N++] = 1;
+  if (enable_d1) {
+    cam0.d1.x.d(N++) = 1; cam0.d1.y.d(N++) = 1;
+    cam1.d1.x.d(N++) = 1; cam1.d1.y.d(N++) = 1;
     log << "  d1" << endl;
   }
   if (enable_a) {
-    cam0.a.x.df[N++] = 1; cam0.a.y.df[N++] = 1;
-    cam1.a.x.df[N++] = 1; cam1.a.y.df[N++] = 1;
+    cam0.a.x.d(N++) = 1; cam0.a.y.d(N++) = 1;
+    cam1.a.x.d(N++) = 1; cam1.a.y.d(N++) = 1;
     log << "  a" << endl;
   }
   if (enable_s) {
-    cam0.s.df[N++] = 1;
-    cam1.s.df[N++] = 1;
+    cam0.s.d(N++) = 1;
+    cam1.s.d(N++) = 1;
     log << "  s" << endl;
   }
   if (enable_t) {
-    cam0.t.x.df[N++] = 1; cam0.t.y.df[N++] = 1;
-    cam1.t.x.df[N++] = 1; cam1.t.y.df[N++] = 1;
+    cam0.t.x.d(N++) = 1; cam0.t.y.d(N++) = 1;
+    cam1.t.x.d(N++) = 1; cam1.t.y.d(N++) = 1;
     log << "  t" << endl;
   }
   if (enable_R) {
-    cam0.R.a.df[N++] = 1; cam0.R.b.x.df[N++] = 1; cam0.R.b.y.df[N++] = 1; cam0.R.b.z.df[N++] = 1;
-    cam1.R.a.df[N++] = 1; cam1.R.b.x.df[N++] = 1; cam1.R.b.y.df[N++] = 1; cam1.R.b.z.df[N++] = 1;
+    cam0.R.a.d(N++) = 1; cam0.R.b.x.d(N++) = 1; cam0.R.b.y.d(N++) = 1; cam0.R.b.z.d(N++) = 1;
+    cam1.R.a.d(N++) = 1; cam1.R.b.x.d(N++) = 1; cam1.R.b.y.d(N++) = 1; cam1.R.b.z.d(N++) = 1;
     log << "  R" << endl;
   }
   if (enable_x) {
-    cam0.x.x.df[N++] = 1; cam0.x.y.df[N++] = 1; cam0.x.z.df[N++] = 1;
-    cam1.x.x.df[N++] = 1; cam1.x.y.df[N++] = 1; cam1.x.z.df[N++] = 1;
+    cam0.x.x.d(N++) = 1; cam0.x.y.d(N++) = 1; cam0.x.z.d(N++) = 1;
+    cam1.x.x.d(N++) = 1; cam1.x.y.d(N++) = 1; cam1.x.z.d(N++) = 1;
     log << "  x" << endl;
   }
 
@@ -66,9 +66,9 @@ float calibrate(
     if (true /*oi.center != nullptr*/) {
       si = vector_cast<d>(oi.center);
     } else {
-      si.x.df[N++] = 1;
-      si.y.df[N++] = 1;
-      si.z.df[N++] = 1;
+      si.x.d(N++) = 1;
+      si.y.d(N++) = 1;
+      si.z.d(N++) = 1;
       log << "  xyz" << i << endl;
     }
   }
@@ -166,7 +166,7 @@ float calibrate(
     prev_spheres = spheres;
 
     int n = 0;
-    if (enable_d) {
+    if (enable_d1) {
       cam0.d1.x += dB(n++); cam0.d1.y += dB(n++);
       cam1.d1.x += dB(n++); cam1.d1.y += dB(n++);
     }
@@ -208,8 +208,8 @@ float calibrate(
       log << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
       cam0f = camera_cast<float>(cam0);
       cam1f = camera_cast<float>(cam1);
-      for (size_t i = 0; i < sphere_observations.size(); i++)
-        sphere_observations[i].center = vector_cast<float>(spheres[i]);
+      //for (size_t i = 0; i < sphere_observations.size(); i++)
+      //  sphere_observations[i].center = vector_cast<float>(spheres[i]);
       return scalar_cast<float>(error);
     }
   }

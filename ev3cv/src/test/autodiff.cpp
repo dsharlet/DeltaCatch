@@ -33,7 +33,7 @@ const double h = 1e-6;
   for (T x = min; x <= max; x += step) { \
     d fx = fn(d(x, 0)); \
     ASSERT_LT(abs(fx.f - fn(x)), epsilon); \
-    ASSERT_LT(abs(fx.df[0] - (fn<double>(x + h) - fn<double>(x - h))/(2*h)), epsilon); \
+    ASSERT_LT(abs(fx.d(0) - (fn<double>(x + h) - fn<double>(x - h))/(2*h)), epsilon); \
   } \
 }
 
@@ -43,8 +43,8 @@ const double h = 1e-6;
     for (T x = minx; x <= maxx; x += stepx) { \
       d fxy = fn(d(x, 0), d(y, 1)); \
       ASSERT_LT(abs(fxy.f - fn(x, y)), epsilon); \
-      ASSERT_LT(abs(fxy.df[0] - (fn<double>(x + h, y) - fn<double>(x - h, y))/(2*h)), epsilon); \
-      ASSERT_LT(abs(fxy.df[1] - (fn<double>(x, y + h) - fn<double>(x, y - h))/(2*h)), epsilon); \
+      ASSERT_LT(abs(fxy.d(0) - (fn<double>(x + h, y) - fn<double>(x - h, y))/(2*h)), epsilon); \
+      ASSERT_LT(abs(fxy.d(1) - (fn<double>(x, y + h) - fn<double>(x, y - h))/(2*h)), epsilon); \
     } \
   } \
 }

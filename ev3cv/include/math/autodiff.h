@@ -6,42 +6,69 @@ namespace ev3cv {
 // Implementation of forward automatic differentiation via operator overloading.
 template <typename T, int N>
 class diff {
+  std::array<T, N> df_;
+
 public:
   T f;
-  T df[N];
 
-  diff(T f = 0) : f(f) { for (T& i : df) i = 0; }
-  diff(T f, int n) : f(f) { for (T& i : df) i = 0; df[n] = 1.0f; }
+  T &d(int i) { return df_[i]; }
+  T d(int i) const { return df_[i]; }
+  int n() const { return static_cast<int>(df_.size()); }
 
-  diff &operator += (const diff &r) { f += r.f; for (int i = 0; i < N; i++) df[i] += r.df[i]; return *this; }
-  diff &operator -= (const diff &r) { f -= r.f; for (int i = 0; i < N; i++) df[i] -= r.df[i]; return *this; }
+  diff(T f = 0) : f(f) { for (T& i : df_) i = 0; }
+  diff(T f, int i) : f(f) { for (T& i : df_) i = 0; d(i) = 1; }
+
+  diff &operator += (const diff &r) { 
+    f += r.f; 
+    for (int i = 0; i < n(); i++)
+      d(i) += r.d(i);
+    return *this;
+  }
+  diff &operator -= (const diff &r) { 
+    f -= r.f; 
+    for (int i = 0; i < n(); i++)
+      d(i) -= r.d(i);
+    return *this;
+  }
   diff &operator *= (const diff &r) {
-    for (int i = 0; i < N; i++)
-      df[i] = f*r.df[i] + df[i]*r.f;
+    for (int i = 0; i < n(); i++)
+      d(i) = f*r.d(i) + d(i)*r.f;
     f *= r.f;
     return *this;
   }
   diff &operator /= (const diff &r) {
     T inv_rx2 = 1/(r.f*r.f);
-    for (int i = 0; i < N; i++)
-      df[i] = (df[i]*r.f - f*r.df[i])*inv_rx2;
+    for (int i = 0; i < n(); i++)
+      d(i) = (d(i)*r.f - f*r.d(i))*inv_rx2;
     f /= r.f;
     return *this;
   }
   diff &operator += (T r) { f += r; return *this; }
   diff &operator -= (T r) { f -= r; return *this; }
+  diff &operator *= (T r) {
+    for (int i = 0; i < n(); i++)
+      d(i) *= r;
+    f *= r;
+    return *this;
+  }
+  diff &operator /= (T r) {
+    for (int i = 0; i < n(); i++)
+      d(i) /= r;
+    f /= r;
+    return *this;
+  }
   diff operator -() const {
-    diff n(-f);
-    for (int i = 0; i < N; i++)
-      n.df[i] = -df[i];
-    return n;
+    diff r(-f);
+    for (int i = 0; i < n(); i++)
+      r.d(i) = -d(i);
+    return r;
   }
 };
 
 template <typename T, int N>
-T &D(diff<T, N> &x, int n) { return x.df[n]; }
+T &D(diff<T, N> &x, int i) { return x.d(i); }
 template <typename T, int N>
-T D(const diff<T, N> &x, int n) { return x.df[n]; }
+T D(const diff<T, N> &x, int i) { return x.d(i); }
 
 template <typename T, int N> diff<T, N> operator + (diff<T, N> l, const diff<T, N> &r) { return l += r; }
 template <typename T, int N> diff<T, N> operator - (diff<T, N> l, const diff<T, N> &r) { return l -= r; }
@@ -84,8 +111,8 @@ diff<T, N> sqrt(const diff<T, N> &x) {
   diff<T, N> r(x);
   r.f = sqrt(r.f);
   T du = 0.5/r.f;
-  for (int i = 0; i < N; i++) {
-    r.df[i] *= du;
+  for (int i = 0; i < r.n(); i++) {
+    r.d(i) *= du;
   }
   return r;
 }
@@ -94,8 +121,8 @@ template <typename T, int N>
 diff<T, N> sqr(const diff<T, N> &x) {
   diff<T, N> r(x);
   T du = 2*r.f;
-  for (int i = 0; i < N; i++)
-    r.df[i] *= du;
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) *= du;
   r.f *= r.f;
   return r;
 }
@@ -104,8 +131,8 @@ template <typename T, int N>
 diff<T, N> rcp(const diff<T, N> &x) {
   diff<T, N> r(x);
   T inv_rx2 = -1/(r.f*r.f);
-  for (int i = 0; i < N; i++)
-    r.df[i] *= inv_rx2;
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) *= inv_rx2;
   r.f = 1/r.f;
   return r;
 }
@@ -114,8 +141,8 @@ template <typename T, int N>
 diff<T, N> abs(const diff<T, N> &x) {
   diff<T, N> r(x);
   T du = r.f < 0 ? -1 : 1;
-  for (int i = 0; i < N; i++) {
-    r.df[i] *= du;
+  for (int i = 0; i < r.n(); i++) {
+    r.d(i) *= du;
   }
   r.f = abs(r.f);
   return r;

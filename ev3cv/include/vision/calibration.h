@@ -24,7 +24,7 @@ struct sphere_observation_set {
 
 // Attempt to estimate the camera parameters from a set of sphere observations. 
 float calibrate(
-    std::vector<sphere_observation_set> &sphere_observations,
+    const std::vector<sphere_observation_set> &sphere_observations,
     cameraf &cam0,
     cameraf &cam1,
     std::ostream &log = null_ostream(),
