@@ -93,6 +93,7 @@ float calibrate(
     matrix<double> JTy(N, 1);
     
     for (size_t i = 0; i < sphere_observations.size(); i++) {
+      double r_i = sphere_observations[i].radius;
       for (const auto &s : sphere_observations[i].samples) {
         vector3<d> x0 = cam0.sensor_to_projection(vector_cast<d>(s.x0), d(1.0)) - cam0.x;
         vector3<d> x1 = cam1.sensor_to_projection(vector_cast<d>(s.x1), d(1.0)) - cam1.x;
@@ -105,8 +106,8 @@ float calibrate(
         x1 = x1*z + cam1.x;
 
         // Error in depth from the calibration sphere and x, for both samples.
-        d r_s0 = scalar_cast<d>(sphere_observations[i].radius) - abs(x0 - spheres[i]);
-        d r_s1 = scalar_cast<d>(sphere_observations[i].radius) - abs(x1 - spheres[i]);
+        d r_s0 = r_i - abs(x0 - spheres[i]);
+        d r_s1 = r_i - abs(x1 - spheres[i]);
         error += sqr(r_s0.f);
         error += sqr(r_s1.f);
         
