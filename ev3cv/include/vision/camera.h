@@ -66,28 +66,28 @@ struct camera {
         a.y*P.y + t.y);
     
     // Apply distortion correction.
-    u *= vector2<U>(1) + d1*dot(u, u);
+    u *= vector2<T>(1) + d1*dot(u, u);
 
     return vector2<U>(
-        (u.x + U(1))*(T(0.5)*resolution.x),
-        (u.y + U(1))*(T(0.5)*resolution.y));
+        (u.x + T(1))*(T(0.5)*resolution.x),
+        (u.y + T(1))*(T(0.5)*resolution.y));
   }
 
   template <typename U>
   vector2<U> sensor_to_focal_plane(const vector2<U> &px) const {
     // Normalize coordinates.
     vector2<U> u(
-        px.x*(T(2)/resolution.x) - U(1),
-        px.y*(T(2)/resolution.y) - U(1));
+        px.x*(T(2)/resolution.x) - T(1),
+        px.y*(T(2)/resolution.y) - T(1));
     
     // Apply distortion model.
     // Compute inverse of distortion model via newton's method.
     // TODO: Try to optimize this... lots of FLOPs here if U is a diff<>.
     vector2<U> u_ = u;
     for (int i = 0; i < 3; i++) {
-      vector2<U> d = vector2<U>(1) + d1*dot(u, u);
+      vector2<U> d = vector2<T>(1) + d1*dot(u, u);
       vector2<U> fu = u*d - u_;
-      vector2<U> df_du = d + U(2)*d1*u*u;
+      vector2<U> df_du = d + T(2)*d1*u*u;
       u -= fu/df_du;
     }
 
