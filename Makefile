@@ -41,6 +41,6 @@ bin/servo_test: obj/servo_test.o obj/servo.o
 .PHONY: all clean
 
 clean:
-	rm -rf obj bin *~
+	rm -rf obj/* bin/*
 
 all:  bin/delta_test bin/delta_catch bin/stereo_test bin/trajectory_test bin/servo_test
