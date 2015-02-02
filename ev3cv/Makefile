@@ -41,14 +41,15 @@ bin/test/%: obj/test/%.o lib/libcl.a lib/libev3cv.a
 
 clean:
 	rm -rf obj/* bin/* lib/*
-
-all: \
-	bin/calibrate \
-	lib/libcl.a \
-	lib/libev3cv.a
-
+	
 test: \
 	bin/test/autodiff \
 	bin/test/calibration \
 	bin/test/camera \
 	bin/test/matrix 
+	
+all: \
+	bin/calibrate \
+	lib/libcl.a \
+	lib/libev3cv.a \
+	test
