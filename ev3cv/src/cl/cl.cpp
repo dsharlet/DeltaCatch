@@ -3,30 +3,32 @@
 #include <algorithm>
 #include <map>
 
+using namespace std;
+
 namespace ev3cv {
 namespace cl {
 
-std::list<base_arg *> &args() {
-  static std::list<base_arg *> the_args;
+list<base_arg *> &args() {
+  static list<base_arg *> the_args;
   return the_args;
 }
 
 base_arg *next_positional_arg() {
-  std::list<base_arg *>::iterator i = std::find_if(args().begin(), args().end(), [=] (base_arg *i) {
+  list<base_arg *>::iterator i = find_if(args().begin(), args().end(), [=] (base_arg *i) {
     return i->has_flag(positional) && (i->has_flag(multi) || !i->parsed());
   });
   return i != args().end() ? *i : nullptr;
 }
 
 base_arg *find_arg(const char *name) {
-  std::list<base_arg *>::iterator i = std::find_if(args().begin(), args().end(), [=] (base_arg *i) { 
+  list<base_arg *>::iterator i = find_if(args().begin(), args().end(), [=] (base_arg *i) { 
     return !i->has_flag(positional) && i->name() == name; 
   });
   return i != args().end() ? *i : nullptr;
 }
   
 base_arg *find_arg(char flag) {
-  std::list<base_arg *>::iterator i = std::find_if(args().begin(), args().end(), [=] (base_arg *i) { 
+  list<base_arg *>::iterator i = find_if(args().begin(), args().end(), [=] (base_arg *i) { 
     return !i->has_flag(positional) && i->flag() == flag; 
   });
   return i != args().end() ? *i : nullptr;
@@ -46,18 +48,18 @@ void base_arg::unregister_arg(base_arg *a) {
   args().remove(a);
 } 
 
-void usage(const char *arg0, std::ostream &os) {
-  os << "Usage: " << std::endl;
+void usage(const char *arg0, ostream &os) {
+  os << "Usage: " << endl;
   os << "  " << arg0;
   for (auto i : args()) {
     if (i->has_flag(positional)) {
       os << ' ' << i->name();
     }
   }
-  os << std::endl << std::endl;
+  os << endl << endl;
     
-  os << "Optional arguments:" << std::endl;
-  std::map<std::string, std::vector<base_arg *>> groups;
+  os << "Optional arguments:" << endl;
+  map<string, vector<base_arg *>> groups;
   for (auto i : args()) {
     if (!i->has_flag(hidden) && !i->has_flag(positional))
       groups[i->group()].push_back(i);
@@ -65,20 +67,20 @@ void usage(const char *arg0, std::ostream &os) {
 
   for (const auto &i : groups) {
     if (!i.first.empty())
-      os << i.first << ":" << std::endl;
+      os << i.first << ":" << endl;
     for (auto j : i.second) {
       os << "  ";
       j->print(os);
     }
-    os << std::endl;
+    os << endl;
   }
 }
 
 void usage(const char *arg0) {
-  usage(arg0, std::cout);
+  usage(arg0, cout);
 }
 
-void parse(std::list<const char *> argv) {
+void parse(list<const char *> argv) {
   while (!argv.empty()) {
     const char *argi = argv.front();
       
@@ -103,14 +105,14 @@ void parse(std::list<const char *> argv) {
       ai->parse(argv);
       ai->set_parsed();
     } else {
-      std::cerr << "Warning: Unused command line option '" << argv.front() << "'." << std::endl;
+      cerr << "Warning: Unused command line option '" << argv.front() << "'." << endl;
       argv.pop_front();
     }
   }
 }
   
 void parse(int argc, const char **argv) {
-  std::list<const char *> args;
+  list<const char *> args;
   for (int i = 0; i < argc; i++) {
     args.emplace_back(argv[i]);
   }
@@ -127,9 +129,26 @@ void parse(const char *arg0, int argc, const char **argv) {
   }
 }
   
-void parse(const std::string &arg) {
-  std::list<const char *> args = { arg.c_str() };
+void parse(const string &arg) {
+  list<const char *> args = { arg.c_str() };
   parse(args);
+}
+
+void parse(istream &is, char delim) {
+  while (is) {
+    string line;
+    getline(is, line, delim);
+      
+    string::size_type space = line.find(' ');
+    if (space != string::npos) {
+      line[space] = '\0';
+      const char *args[] = {
+        &line[0],
+        &line[space + 1]
+      };
+      parse(2, args);
+    }
+  }
 }
 
 }  // namespace cl

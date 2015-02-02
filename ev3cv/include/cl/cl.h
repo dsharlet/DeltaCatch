@@ -27,6 +27,7 @@ void usage(const char *arg0);
 void parse(const char *arg0, int argc, const char **argv);
 void parse(int argc, const char **argv);
 void parse(const std::string &arg);
+void parse(std::istream &is, char delim = '\n');
 
 class arg_setter {
 public:
@@ -164,6 +165,13 @@ public:
       const arg_setter &a5 = null_arg_setter(), 
       const arg_setter &a6 = null_arg_setter()) 
     : base_arg(a1, a2, a3, a4, a5, a6), value(value) {}
+  arg(const arg_setter &a1 = null_arg_setter(), 
+      const arg_setter &a2 = null_arg_setter(), 
+      const arg_setter &a3 = null_arg_setter(), 
+      const arg_setter &a4 = null_arg_setter(), 
+      const arg_setter &a5 = null_arg_setter(), 
+      const arg_setter &a6 = null_arg_setter()) 
+    : base_arg(a1, a2, a3, a4, a5, a6), value() {}
 
   void parse(std::list<const char *> &argv) {
     std::stringstream ss;

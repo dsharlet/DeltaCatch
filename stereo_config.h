@@ -73,20 +73,7 @@ public:
     cl::arg<std::string>::parse(argv);
     
     std::ifstream file(*this);
-    while (file) {
-      std::string line;
-      std::getline(file, line);
-      
-      std::string::size_type space = line.find(' ');
-      if (space != std::string::npos) {
-        line[space] = '\0';
-        const char *args[] = {
-          &line[0],
-          &line[space + 1]
-        };
-        cl::parse(2, args);
-      }
-    }
+    cl::parse(file);
   }
 };
 

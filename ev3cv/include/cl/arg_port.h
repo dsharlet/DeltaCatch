@@ -20,6 +20,13 @@ public:
       const cl::arg_setter &a4 = cl::null_arg_setter(), 
       const cl::arg_setter &a5 = cl::null_arg_setter()) 
     : cl::arg<std::string>(value, a1, a2, a3, a4, a5) {}
+  arg_port(
+      const cl::arg_setter &a1 = cl::null_arg_setter(), 
+      const cl::arg_setter &a2 = cl::null_arg_setter(), 
+      const cl::arg_setter &a3 = cl::null_arg_setter(), 
+      const cl::arg_setter &a4 = cl::null_arg_setter(), 
+      const cl::arg_setter &a5 = cl::null_arg_setter()) 
+    : cl::arg<std::string>(a1, a2, a3, a4, a5) {}
 
   void parse(std::list<const char *> &argv) {
     const char *front = NULL;
