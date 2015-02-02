@@ -18,7 +18,7 @@ void delta_hand::init() {
   hand.set_run_mode(motor::run_mode_forever);
   hand.set_stop_mode(motor::stop_mode_coast);
   hand.set_regulation_mode(motor::mode_off);
-  hand.set_duty_cycle_setpoint(-50);
+  hand.set_duty_cycle_setpoint(-80);
   grab_close = hand.position();
   hand.run();
   
@@ -33,7 +33,7 @@ void delta_hand::init() {
   }
   grab_open = grab_close;
 
-  hand.set_duty_cycle_setpoint(50);
+  hand.set_duty_cycle_setpoint(80);
   hand.run();
 
   while (hand.running()) {
