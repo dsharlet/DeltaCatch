@@ -10,8 +10,9 @@ protected:
   int grab_open, grab_close;
 
 public:
-  delta_hand(const delta_robot_geometry &geom, ev3::port_type hand);
-
+  delta_hand(const delta_robot::geometry &geom, ev3::port_type hand) 
+    : delta_robot(geom), hand(hand), grab_open(0), grab_close(0) {} 
+  
   void init();
   
   void close_hand() { hand.set_position_setpoint(grab_close); hand.run(); }

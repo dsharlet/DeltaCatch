@@ -68,13 +68,12 @@ void main_circle(delta_robot &delta) {
   const int sample_rate = 50;
 
   // Get the volume of the delta bot.
-  vector3f center;
-  float radius;
-  tie(center, radius) = delta.get_volume();
-  
+  delta_robot::ellipse volume = delta.volume();
+  vector3f center = volume.origin;
   center.z += circle_z;
-  radius = sqrt(sqr(radius) - sqr(circle_z));
 
+  float rx = sqrt(sqr(volume.radius.x) + sqr(volume.radius.y));
+  float radius = volume.radius.z*sqrt(1 - sqr(circle_z/rx));
   if (circle_r > 0.0f)
     radius = circle_r;
 

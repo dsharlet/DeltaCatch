@@ -10,15 +10,15 @@ struct trajectory {
   vector3<T> x, v;
 
   template <typename U>
-  vector3<T> position_half_g(float half_g, const U &t) const {
-    return vector3<T>(
+  vector3<U> position_half_g(float half_g, const U &t) const {
+    return vector3<U>(
       v.x*t + x.x,
       v.y*t + x.y,
       half_g*sqr(t) + (v.z*t + x.z));
   }
   
   template <typename U>
-  vector3<T> position(float g, const U &t) const {
+  vector3<U> position(float g, const U &t) const {
     return position_half_g(g*0.5f, t);
   }
 };
@@ -26,9 +26,10 @@ struct trajectory {
 typedef trajectory<float> trajectoryf;
 
 // This function finds an intersection of the trajectory and the sphere between t_min and t_max.
-float intersect_trajectory_sphere(
+float intersect_trajectory_ellipse(
     float gravity, const trajectoryf &tj, 
-    const std::pair<vector3f, float> &s, float t_min, float t_max);
+    const std::pair<vector3f, vector3f> &ellipse, 
+    float t_min, float t_max);
 
 // Find the intersection of a trajectory with the z plane. This function computes the 
 // later (larger t) of the two intersections.

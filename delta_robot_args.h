@@ -38,6 +38,10 @@ struct delta_robot_args {
     100,
     cl::name("theta-max"),
     cl::desc("Theta at the shoulder joint at the reaching position, in degrees.")};
+  cl::arg<float> z_min{
+    8.0f,
+    cl::name("z-min"),
+    cl::desc("Smallest reachable z value.")};
 
   delta_robot_args(const std::string &prefix = "", const std::string &group = "") {
     if (!prefix.empty())
@@ -55,6 +59,7 @@ struct delta_robot_args {
     bicep.set_name(prefix + "-" + bicep.name());
     forearm.set_name(prefix + "-" + forearm.name());
     theta_max.set_name(prefix + "-" + theta_max.name());
+    z_min.set_name(prefix + "-" + z_min.name());
   }
 
   void set_group(const std::string &group) {
@@ -66,10 +71,11 @@ struct delta_robot_args {
     bicep.set_group(group);
     forearm.set_group(group);
     theta_max.set_group(group);
+    z_min.set_group(group);
   }
 
-  delta_robot_geometry geometry() const {
-    delta_robot_geometry g;
+  delta_robot::geometry geometry() const {
+    delta_robot::geometry g;
     g.arm0 = arm0;
     g.arm1 = arm1;
     g.arm2 = arm2;
@@ -78,6 +84,7 @@ struct delta_robot_args {
     g.bicep = bicep;
     g.forearm = forearm;
     g.theta_max = theta_max;
+    g.z_min = z_min;
     return g;
   }
 };

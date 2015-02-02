@@ -5,10 +5,6 @@
 using namespace std;
 using namespace ev3dev;
 
-delta_hand::delta_hand(const delta_robot_geometry &geom, ev3::port_type hand) 
-  : delta_robot(geom), hand(hand), grab_open(0), grab_close(0) {
-} 
-
 void delta_hand::init() {
   // Run the base configuration in a separate thread.
   thread base([=]() { 

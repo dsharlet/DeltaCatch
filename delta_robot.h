@@ -4,15 +4,7 @@
 #include <ev3cv.h>
 #include "servo.h"
 
-
 namespace ev3 = ev3dev;
-
-// Mechanical parameters of a delta robot.
-struct delta_robot_geometry {
-  ev3::port_type arm0, arm1, arm2;
-  float base, effector, bicep, forearm;
-  int theta_max;
-};
 
 // This is a class to control a Delta robot. Tis class assumes that the 3 primary 
 // joints A, B, and C are on the XY plane centered at the origin, and the arms are located 
@@ -20,6 +12,26 @@ struct delta_robot_geometry {
 // order, with arm B located on the Y axis. The positive Z axis points from the 
 // base to the effector.
 class delta_robot {
+public:
+  // Mechanical parameters of a delta robot.
+  struct geometry {
+    ev3::port_type arm0, arm1, arm2;
+    float base, effector, bicep, forearm;
+    int theta_max;
+    float z_min;
+  };
+
+  // An ellipse truncated at a minimum z value.
+  struct ellipse {
+    vector3f origin;
+    vector3f radius;
+    float z_min;
+
+    bool contains(const vector3f &x) const {
+      return x.z >= z_min && sqr_abs((origin - x)/radius) < 1.0f;
+    }
+  };
+
 protected:
   class arm : public servo {
   public:
@@ -40,6 +52,7 @@ protected:
   float bicep;
   float forearm;
   int theta_max;
+  float z_min;
 
   // Get the position of the arm, in motor position units.
   vector3i raw_position() const {
@@ -76,11 +89,11 @@ protected:
 
 public:
   // Constructor describes the geometry of the delta robot.
-  delta_robot(const delta_robot_geometry &geom) 
+  delta_robot(const geometry &geom) 
       : arm0(geom.arm0), arm1(geom.arm1), arm2(geom.arm2)
       , base(geom.base), effector(geom.effector)
       , bicep(geom.bicep), forearm(geom.forearm)
-      , theta_max(geom.theta_max) {
+      , theta_max(geom.theta_max), z_min(geom.z_min) {
     // Can't construct an array with an initializer list :(
     arms[0] = &arm0;
     arms[1] = &arm1;
@@ -109,9 +122,9 @@ public:
   vector3i position_to_raw(const vector3f &x) const;
   void set_position_setpoint(const vector3f &x) { set_raw_position_setpoint(position_to_raw(x)); }
   
-  // Compute a conservative bounding sphere of reachable effector positions. Inverse
-  // kinematics is guaranteed to succeed within the z > 0 half of this sphere.
-  std::pair<vector3f, float> get_volume() const;
+  // Compute a conservative bounding volume of reachable effector positions. Inverse
+  // kinematics is guaranteed to succeed within this volume.
+  ellipse volume() const;
 
   // Find the range of motion of the motors according to the encoders. Moves to the topmost position 
   // first, then finds the lower limit of each arm in sequence.

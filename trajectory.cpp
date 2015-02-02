@@ -35,52 +35,37 @@ std::ostream &operator <<(std::ostream &os, const observation &obs) {
   return os << obs.t << " (" << obs.f << ")";
 }
 
-// Defines the objective function for a trajectory/sphere intersection.
+// Defines the objective function for a trajectory/ellipse intersection.
 template <typename T>
-T trajectory_sphere_XZ(float half_g, float v_x, float v_z, const vector3f &s, float r, const T &t) {
-  return sqr(v_x*t - s.x) + sqr(half_g*sqr(t) + v_z*t - s.z) + sqr(s.y) - sqr(r);
+T trajectory_ellipse(float half_g, const trajectoryf &tj, const pair<vector3f, vector3f> &eps, const T &t) {
+  vector3<T> x = tj.position_half_g<T>(half_g, t);
+  vector3<T> r = (x - eps.first)/eps.second;
+  return sqr_abs(r) - 1.0f;
 }
 
-// Use Newton's method to find an intersection of a trajectory in the XZ plane, and a sphere, using t_0 as the initial guess.
-float intersect_trajectory_sphere_XZ(float half_g, float v_x, float v_z, const vector3f &s, float r, float t_0) {
+// Use Newton's method to find an intersection of a trajectory and an ellipse, using t_0 as the initial guess.
+float intersect_trajectory_ellipse(float half_g, const trajectoryf &tj, const pair<vector3f, vector3f> &eps, float t) {
   typedef diff<float, 1> d;
-  float t = t_0;
   d ft;
   for (int i = 0; i < max_iterations; i++) {
-    ft = trajectory_sphere_XZ(half_g, v_x, v_z, s, r, d(t, 0));
+    ft = trajectory_ellipse<d>(half_g, tj, eps, d(t, 0));
     t -= ft.f/D(ft, 0);
 
     if (abs(ft.f) < epsilon)
       return t;
   }
-  throw runtime_error("no trajectory-sphere intersection found");
+  throw runtime_error("no trajectory-ellipse intersection found");
 }
 
-// This function finds the first intersection after t of a trajectory and a sphere.
-float intersect_trajectory_sphere(float g, const trajectoryf &tj, const pair<vector3f, float> &s, float t_min, float t_max) {
-  // Project the sphere onto the plane containing the trajectory.
-  vector3f X = vector3f(tj.v.x, tj.v.y, 0.0f);
-  float v_x = abs(X);
-  X /= v_x;
-  vector3f Z = vector3f(0.0f, 0.0f, 1.0f);
-  vector3f Y = cross(X, Z);
-
-  vector3f s0 = s.first - tj.x;
-  // Map the sphere into the basis given by the trajectory.
-  s0 = vector3f(dot(s0, X), dot(s0, Y), dot(s0, Z));
-
-  // Now we need to solve this:
-  // 
-  //   (v_x*t - s0.x)^2 + (g*t^2 + tj.v.z*t - s0.z)^2 + s0.y^2 = r^2
-  //
-  // It's a quartic. Rather than use the quartic formula (pain in the ass), let's use Newton's method.
+// This function finds the first intersection after t of a trajectory and a ellipse.
+float intersect_trajectory_ellipse(float g, const trajectoryf &tj, const pair<vector3f, vector3f> &eps, float t_min, float t_max) {
   float dt = (t_max - t_min)/20.0f;
   for (float t0 = t_min; t0 < t_max; t0 += dt) {
-    float t = intersect_trajectory_sphere_XZ(g/2.0f, v_x, tj.v.z, s0, s.second, t0);
+    float t = intersect_trajectory_ellipse(g/2.0f, tj, eps, t0);
     if (t_min < t && t < t_max)
       return t;
   }
-  throw runtime_error("no trajectory-sphere intersection found");
+  throw runtime_error("no trajectory-ellipse intersection found");
 }
 
 // Find the intersection of a trajectory with the z plane. This function computes the 
@@ -111,7 +96,7 @@ vector2<T> reprojection_error(
   if (dt) {
     x = tj.position_half_g(half_g, *dt + ob.t);
   } else {
-    x = tj.position_half_g(half_g, ob.t);
+    x = tj.position_half_g(half_g, T(ob.t));
   }
   vector2<T> r = cam.project_to_focal_plane(x) - ob.f;
   return -r;

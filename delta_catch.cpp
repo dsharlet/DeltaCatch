@@ -175,7 +175,7 @@ int main(int argc, const char **argv) {
   if (!viz_host->empty())
     viz.connect(viz_host, viz_port);
   
-  pair<vector3f, float> volume = delta.get_volume();
+  delta_robot::ellipse volume = delta.volume();
 
   // Use a reasonable initial guess for the trajectory.  
   trajectoryf tj_init;
@@ -243,21 +243,21 @@ int main(int argc, const char **argv) {
                 dt, tj);
 
             // Intersect the trajectory with the z plane, the last place on the trajectory we can reach.
-            exit.t = intersect_trajectory_zplane(gravity, tj, volume.first.z);
+            exit.t = intersect_trajectory_zplane(gravity, tj, volume.z_min);
             exit.x = tj.position(gravity, exit.t);
 
             // If the trajectory intercepts the z plane, find the first intercept with the volume.
             try {
-              entry.t = intersect_trajectory_sphere(gravity, tj, volume, 0.0f, exit.t);
+              entry.t = intersect_trajectory_ellipse(gravity, tj, make_pair(volume.origin, volume.radius), 0.0f, exit.t);
               entry.x = tj.position(gravity, entry.t);
               try {
-                // If the trajectory exits the sphere before crossing the z plane, use that as the exit intercept.
-                exit.t = intersect_trajectory_sphere(gravity, tj, volume, entry.t + 1e-3f, exit.t);
+                // If the trajectory exits the ellipse before crossing the z plane, use that as the exit intercept.
+                exit.t = intersect_trajectory_ellipse(gravity, tj, make_pair(volume.origin, volume.radius), entry.t + 1e-3f, exit.t);
                 exit.x = tj.position(gravity, exit.t);
               } catch (runtime_error &ex) {
-                // If the trajectory does not exit the sphere before crossing the z plane, use the z plane crossing
+                // If the trajectory does not exit the ellipse before crossing the z plane, use the z plane crossing
                 // as the exit intercept. It must lie in the volume to be a valid intercept.
-                if (abs(exit.x - volume.first) > volume.second)
+                if (!volume.contains(exit.x))
                   throw runtime_error("z plane intercept is unreachable");                
               }
 
@@ -280,7 +280,7 @@ int main(int argc, const char **argv) {
             dbg(1) << ex.what() << endl;
             tj = tj_init;
             dt = 0.0f;
-            delta.set_position_setpoint(volume.first);
+            delta.set_position_setpoint(volume.origin);
           }
         }
       }
@@ -327,11 +327,11 @@ int main(int argc, const char **argv) {
       tj = tj_init;
       dt = 0.0f;
       entry.t = exit.t = t_none;
-      delta.set_position_setpoint(volume.first);
+      delta.set_position_setpoint(volume.origin);
     }
     if (t_now > reset_at) {
       dbg(1) << "resetting..." << endl;
-      delta.set_position_setpoint(volume.first);
+      delta.set_position_setpoint(volume.origin);
       this_thread::sleep_for(chrono::milliseconds(500));
       delta.open_hand();
       reset_at = t_none;

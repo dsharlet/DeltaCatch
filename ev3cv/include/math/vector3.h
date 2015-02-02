@@ -17,8 +17,8 @@ public:
   template <typename U> vector3<T> &operator /= (U r) { x /= r; y /= r; z /= r; return *this; }
 
   // Vector products are pointwise.
-  template <typename U> vector3<T> &operator *= (const vector3<U> &r) { x *= r.x; y *= r.y; return *this; }
-  template <typename U> vector3<T> &operator /= (const vector3<U> &r) { x /= r.x; y /= r.y; return *this; }
+  template <typename U> vector3<T> &operator *= (const vector3<U> &r) { x *= r.x; y *= r.y; z *= r.z; return *this; }
+  template <typename U> vector3<T> &operator /= (const vector3<U> &r) { x /= r.x; y /= r.y; z /= r.z; return *this; }
 
   vector3<T> operator - () const { return vector3<T>(-x, -y, -z); }
 };

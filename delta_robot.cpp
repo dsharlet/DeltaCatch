@@ -10,10 +10,13 @@
 using namespace ev3;
 using namespace std;
 
-std::pair<vector3f, float> delta_robot::get_volume() const {
-  return std::make_pair(
-    vector3f(0.0f, 0.0f, bicep),
-    forearm - max(0.0f, base - effector));
+delta_robot::ellipse delta_robot::volume() const {
+  float r = forearm - max(0.0f, base - effector);
+  return ellipse{
+      vector3f(0.0f, 0.0f, bicep),
+      vector3f(r, r, forearm), 
+      z_min
+  };
 }
 
 vector3f delta_robot::raw_to_position(const vector3i &raw) const {
@@ -59,7 +62,7 @@ vector3f delta_robot::raw_to_position(const vector3i &raw) const {
   float y = (i*i + j*j)/(2*j) - (i/j)*x;
   float zz = forearm*forearm - x*x - y*y;
   if (zz < 0)
-    throw runtime_error("forward kinematics has no solutions.");
+    throw runtime_error("forward kinematics has no solutions");
   float z = sqrt(zz);
   
   return P1 + X*x + Y*y + Z*z;
@@ -78,7 +81,7 @@ static float position_to_raw_YZ(vector3f x0, float base, float bicep, float fore
   float c = A*A - bicep*bicep;
   float D = b*b - 4*a*c;
   if (D < 0.0f)
-    throw runtime_error("inverse kinematics has no solutions.");
+    throw runtime_error("inverse kinematics has no solutions");
 
   float y = (-b + sqrt(D))/(2*a);
   float z = A - y*B;
@@ -112,7 +115,7 @@ vector3i delta_robot::position_to_raw(const vector3f &x) const {
 
 void delta_robot::set_raw_position_setpoint(const vector3i &x) {
   if (!is_raw_position_reachable(x))
-    throw std::runtime_error("position is unreachable.");
+    throw std::runtime_error("position is unreachable");
   dbg(3) << "delta_robot setpoint -> " << x << endl;
   arms[0]->set_position_setpoint(x.x);
   arms[1]->set_position_setpoint(x.y);
@@ -183,7 +186,7 @@ void delta_robot::init() {
   }
 
   dbg(1) << "  done" << endl;
-  set_position_setpoint(get_volume().first);
+  set_position_setpoint(volume().origin);
 
   // While waiting for the effector to center, run some tests.
   test();
@@ -192,18 +195,16 @@ void delta_robot::init() {
 }
 
 void delta_robot::test() const {
-  vector3f center;
-  float radius;
-  tie(center, radius) = get_volume();
+  ellipse v = volume();
+  float radius = abs(v.radius);
 
   int fails = 0;
   for (int i = 0; i < 100; i++) {
     vector3f x;
     do {
-      x = randv3f(-1.0f, 1.0f)*radius;
-    } while(abs(x) > radius);
-    x.z = std::abs(x.z);
-    x += center;
+      x = randv3f(-v.radius, v.radius);
+    } while(x.z < v.z_min);
+    x += v.origin;
 
     try {
       vector3i raw = position_to_raw(x);
