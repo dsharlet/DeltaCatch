@@ -45,6 +45,9 @@ public:
           0.25 * S);
     }
   }
+  static quaternion<T> from_basis(const vector3<T> &x, const vector3<T> &y) {
+    return from_basis(x, y, cross(x, y));
+  }
 
   template <typename U>
   quaternion<T> &operator += (const quaternion<U> &r) { a += r.a, b += r.b; return *this; }
