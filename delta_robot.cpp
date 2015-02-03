@@ -32,7 +32,7 @@ delta_robot::volume delta_robot::work_volume(float epsilon) const {
       vector3f(-b*cos30, -b*sin30, bicep),
       vector3f( b*0.0f,   b,       bicep),
       vector3f( b*cos30, -b*sin30, bicep),
-      forearm, 
+      forearm - 1,  // TODO: Why??
       z_min, 
       epsilon);
 }

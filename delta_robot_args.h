@@ -23,7 +23,7 @@ struct delta_robot_args {
     cl::name("base-radius"),
     cl::desc("Distance between the center of the base and the shoulder joints, in studs.")};
   cl::arg<float> effector{
-    4.5f,
+    5.0f,
     cl::name("effector-radius"),
     cl::desc("Distance between the center of the effector and the wrist joints, in studs.")};
   cl::arg<float> bicep{
