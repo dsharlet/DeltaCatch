@@ -37,18 +37,17 @@ std::ostream &operator <<(std::ostream &os, const observation &obs) {
 
 // Defines the objective function for a trajectory/ellipse intersection.
 template <typename T>
-T trajectory_ellipse(float half_g, const trajectoryf &tj, const pair<vector3f, vector3f> &eps, const T &t) {
+T trajectory_sphere(float half_g, const trajectoryf &tj, const vector3f &s, float sqr_r, const T &t) {
   vector3<T> x = tj.position_half_g<T>(half_g, t);
-  vector3<T> r = (x - eps.first)/eps.second;
-  return sqr_abs(r) - 1.0f;
+  return sqr_abs(x - s) - sqr_r;
 }
 
 // Use Newton's method to find an intersection of a trajectory and an ellipse, using t_0 as the initial guess.
-float intersect_trajectory_ellipse(float half_g, const trajectoryf &tj, const pair<vector3f, vector3f> &eps, float t) {
+float intersect_trajectory_sphere(float half_g, const trajectoryf &tj, const vector3f &s, float sqr_r, float t) {
   typedef diff<float, 1> d;
   d ft;
   for (int i = 0; i < max_iterations; i++) {
-    ft = trajectory_ellipse<d>(half_g, tj, eps, d(t, 0));
+    ft = trajectory_sphere<d>(half_g, tj, s, sqr_r, d(t, 0));
     t -= ft.f/D(ft, 0);
 
     if (abs(ft.f) < epsilon)
@@ -58,10 +57,11 @@ float intersect_trajectory_ellipse(float half_g, const trajectoryf &tj, const pa
 }
 
 // This function finds the first intersection after t of a trajectory and a ellipse.
-float intersect_trajectory_ellipse(float g, const trajectoryf &tj, const pair<vector3f, vector3f> &eps, float t_min, float t_max) {
+float intersect_trajectory_sphere(float g, const trajectoryf &tj, const vector3f &s, float r, float t_min, float t_max) {
+  float sqr_r = sqr(r);
   float dt = (t_max - t_min)/20.0f;
   for (float t0 = t_min; t0 < t_max; t0 += dt) {
-    float t = intersect_trajectory_ellipse(g/2.0f, tj, eps, t0);
+    float t = intersect_trajectory_sphere(g/2.0f, tj, s, sqr_r, t0);
     if (t_min < t && t < t_max)
       return t;
   }

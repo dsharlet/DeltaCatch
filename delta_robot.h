@@ -1,7 +1,10 @@
 #ifndef DELTA_ROBOT_H
 #define DELTA_ROBOT_H
 
+#include <tuple>
+
 #include <ev3cv.h>
+
 #include "servo.h"
 
 namespace ev3 = ev3dev;
@@ -21,14 +24,54 @@ public:
     float z_min;
   };
 
-  // An ellipse truncated at a minimum z value.
-  struct ellipse {
-    vector3f origin;
-    vector3f radius;
-    float z_min;
+  // Defines the working envelope of a delta robot as the intersection of
+  // 3 spheres and the half space above a z axis aligned plane. This isn't
+  // a perfect model of the work volume because the effector has a non-zero radius,
+  // but it is a nice approximation.
+  class volume {
+    vector3f o0_, o1_, o2_;
+    float r_;
+    float z_;
+    float e_;
+
+    vector3f min_, max_;
+
+    void init();
+
+  public:
+    volume(
+        const vector3f &o0, const vector3f &o1, const vector3f &o2, 
+        float r, float z, float e = 1e-3f) 
+      : o0_(o0), o1_(o1), o2_(o2), r_(r), z_(z), e_(e) {
+      init();
+    }
+
+    const vector3f &sphere(int i) const {
+      switch (i) {
+      case 0: return o0_;
+      case 1: return o1_;
+      case 2: return o2_;
+      default: throw std::out_of_range("origin out of range");
+      };
+    }
+
+    float radius() const { return r_; }
+    float z_min() const { return z_; }
+    float epsilon() const { return e_; }
+    
+    vector3f center() const { return (o0_ + o1_ + o2_)/3.0f; }
+
+    std::tuple<vector3f, vector3f> bounds() const {
+      return std::tie(min_, max_);
+    }
 
     bool contains(const vector3f &x) const {
-      return x.z >= z_min && sqr_abs((origin - x)/radius) < 1.0f;
+      if (x.z + e_ < z_)
+        return false;
+      for (int i = 0; i < 3; i++)
+        if (sqr_abs(x - sphere(i)) > r_*r_ + e_)
+          return false;
+      return true;
     }
   };
 
@@ -124,7 +167,7 @@ public:
   
   // Compute a conservative bounding volume of reachable effector positions. Inverse
   // kinematics is guaranteed to succeed within this volume.
-  ellipse volume() const;
+  volume work_volume(float epsilon = 1e-3f) const;
 
   // Find the range of motion of the motors according to the encoders. Moves to the topmost position 
   // first, then finds the lower limit of each arm in sequence.

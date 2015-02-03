@@ -26,9 +26,9 @@ struct trajectory {
 typedef trajectory<float> trajectoryf;
 
 // This function finds an intersection of the trajectory and the sphere between t_min and t_max.
-float intersect_trajectory_ellipse(
+float intersect_trajectory_sphere(
     float gravity, const trajectoryf &tj, 
-    const std::pair<vector3f, vector3f> &ellipse, 
+    const vector3f &s, float r, 
     float t_min, float t_max);
 
 // Find the intersection of a trajectory with the z plane. This function computes the 

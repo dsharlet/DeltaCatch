@@ -10,13 +10,31 @@
 using namespace ev3;
 using namespace std;
 
-delta_robot::ellipse delta_robot::volume() const {
-  float r = forearm - max(0.0f, base - effector);
-  return ellipse{
-      vector3f(0.0f, 0.0f, bicep),
-      vector3f(r, r, forearm), 
-      z_min
-  };
+void delta_robot::volume::init() {
+  min_ = -std::numeric_limits<float>::infinity();
+  max_ = std::numeric_limits<float>::infinity();
+  min_.z = z_;
+
+  for (int i = 0; i < 3; i++) {
+    min_ = max(min_, sphere(i) - vector3f(r_));
+    max_ = min(max_, sphere(i) + vector3f(r_));
+  }
+}
+
+delta_robot::volume delta_robot::work_volume(float epsilon) const {
+  static const float cos30 = sqrt(3.0f)/2;
+  static const float sin30 = 0.5f;
+
+  float b = base + cos(theta_max*pi/180)*bicep - effector;
+
+  // Position of the elbows.
+  return volume(
+      vector3f(-b*cos30, -b*sin30, bicep),
+      vector3f( b*0.0f,   b,       bicep),
+      vector3f( b*cos30, -b*sin30, bicep),
+      forearm, 
+      z_min, 
+      epsilon);
 }
 
 vector3f delta_robot::raw_to_position(const vector3i &raw) const {
@@ -186,7 +204,7 @@ void delta_robot::init() {
   }
 
   dbg(1) << "  done" << endl;
-  set_position_setpoint(volume().origin);
+  set_position_setpoint(work_volume().center());
 
   // While waiting for the effector to center, run some tests.
   test();
@@ -195,16 +213,20 @@ void delta_robot::init() {
 }
 
 void delta_robot::test() const {
-  ellipse v = volume();
-  float radius = abs(v.radius);
+  volume v = work_volume();
+  vector3f min, max;
+  std::tie(min, max) = v.bounds();
+
+  dbg(1) << "delta robot work volume min=" << min << ", max=" << max << endl;
+
+  float tolerance = 3*abs(max - min)/100;
 
   int fails = 0;
   for (int i = 0; i < 100; i++) {
     vector3f x;
     do {
-      x = randv3f(-v.radius, v.radius);
-    } while(x.z < v.z_min);
-    x += v.origin;
+      x = randv3f(min, max);
+    } while(!v.contains(x));
 
     try {
       vector3i raw = position_to_raw(x);
@@ -214,9 +236,7 @@ void delta_robot::test() const {
       }
       vector3f dx = x - raw_to_position(raw);
 
-      if (abs(dx) > 3*radius/180) {
-        //x.z = abs(dx);
-        //cerr << x << endl;
+      if (abs(dx) > tolerance) {
         cerr << "position_to_raw not invertible at x = " << x << " (||dx|| = " << abs(dx) << ", dx = " << dx << ")" << endl;
         fails++;
       }

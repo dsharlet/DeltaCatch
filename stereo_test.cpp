@@ -64,7 +64,7 @@ int main(int argc, const char **argv) {
 
   nxtcam_init_thread.join();
   
-  delta_robot::ellipse volume = delta.volume();
+  delta_robot::volume volume = delta.work_volume();
 
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
@@ -110,7 +110,7 @@ int main(int argc, const char **argv) {
       cout << msg << string(eraser.size() - msg.size(), ' ');
       
       if (dot(origin, origin) == 0.0f)
-        origin = x*scale - volume.origin;
+        origin = x*scale - volume.center();
 
       x = x*scale - origin;
 

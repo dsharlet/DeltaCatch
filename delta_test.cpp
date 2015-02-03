@@ -19,24 +19,15 @@ static cl::arg<vector3i> pid(
 static cl::boolean circle(
   cl::name("circle"),
   cl::desc("Trace out circles."));
-static cl::arg<float> circle_r(
-  0.0f,
-  cl::name("circle-r"),
-  cl::desc("Radius of the circle to trace out, in studs."));
-static cl::arg<float> circle_z(
-  0.0f,
-  cl::name("circle-z"),
-  cl::desc("z axis offset from volume center of the circle to trace out, in studs."));
+static cl::arg<float> speed(
+  5.0f,
+  cl::name("speed"),
+  cl::desc("How quickly to move, in studs/s."));
 
 static cl::boolean hold(
   cl::name("hold"),
   cl::desc("Hold position at the center."));
 
-// Generic options.
-static cl::arg<float> speed(
-  5.0f,
-  cl::name("speed"),
-  cl::desc("How quickly to move, in studs/s."));
 static cl::boolean show_path(
   cl::name("show-path"),
   cl::desc("Write coordinates of paths to stdout."));
@@ -68,14 +59,9 @@ void main_circle(delta_robot &delta) {
   const int sample_rate = 50;
 
   // Get the volume of the delta bot.
-  delta_robot::ellipse volume = delta.volume();
-  vector3f center = volume.origin;
-  center.z += circle_z;
-
-  float rx = sqrt(sqr(volume.radius.x) + sqr(volume.radius.y));
-  float radius = volume.radius.z*sqrt(1 - sqr(circle_z/rx));
-  if (circle_r > 0.0f)
-    radius = circle_r;
+  delta_robot::volume volume = delta.work_volume();
+  vector3f center = volume.center();
+  float radius = delta_geometry.forearm - delta_geometry.base;
 
   float rads = 2*pi*speed/(radius*sample_rate);
 

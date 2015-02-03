@@ -86,6 +86,26 @@ static cl::arg<vector3f> init_v(
   vector3f(0.0f, 0.0f, 0.0f),
   cl::name("init-v"));
 
+float intersect_trajectory_volume(
+    float gravity, const trajectoryf &tj, 
+    const delta_robot::volume &volume, 
+    float t_min, float t_max) {
+  float r = volume.radius();
+  for (int i = 0; i < 3; i++) {
+    // Find an intersection with this sphere.
+    float t = intersect_trajectory_sphere(gravity, tj, volume.sphere(i), r, t_min, t_max);
+
+    // If all of the spheres contain the intersection, this is the intersection we care about.
+    int contained = 1;
+    for (int j = 0; j < 3; j++)
+      if (i != j && sqr_abs(tj.position(gravity, t) - volume.sphere(j)) < sqr(r))
+        contained++;
+    if (contained == 3)
+      return t;
+  }
+  throw runtime_error("no trajectory-volume intersection");
+}
+
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
 
@@ -175,7 +195,7 @@ int main(int argc, const char **argv) {
   if (!viz_host->empty())
     viz.connect(viz_host, viz_port);
   
-  delta_robot::ellipse volume = delta.volume();
+  delta_robot::volume volume = delta.work_volume();
 
   // Use a reasonable initial guess for the trajectory.  
   trajectoryf tj_init;
@@ -243,16 +263,16 @@ int main(int argc, const char **argv) {
                 dt, tj);
 
             // Intersect the trajectory with the z plane, the last place on the trajectory we can reach.
-            exit.t = intersect_trajectory_zplane(gravity, tj, volume.z_min);
+            exit.t = intersect_trajectory_zplane(gravity, tj, volume.z_min());
             exit.x = tj.position(gravity, exit.t);
 
             // If the trajectory intercepts the z plane, find the first intercept with the volume.
             try {
-              entry.t = intersect_trajectory_ellipse(gravity, tj, make_pair(volume.origin, volume.radius), 0.0f, exit.t);
+              entry.t = intersect_trajectory_volume(gravity, tj, volume, 0.0f, exit.t);
               entry.x = tj.position(gravity, entry.t);
               try {
-                // If the trajectory exits the ellipse before crossing the z plane, use that as the exit intercept.
-                exit.t = intersect_trajectory_ellipse(gravity, tj, make_pair(volume.origin, volume.radius), entry.t + 1e-3f, exit.t);
+                // If the trajectory exits the volume before crossing the z plane, use that as the exit intercept.
+                exit.t = intersect_trajectory_volume(gravity, tj, volume, entry.t + 1e-3f, exit.t);
                 exit.x = tj.position(gravity, exit.t);
               } catch (runtime_error &ex) {
                 // If the trajectory does not exit the ellipse before crossing the z plane, use the z plane crossing
@@ -280,7 +300,7 @@ int main(int argc, const char **argv) {
             dbg(1) << ex.what() << endl;
             tj = tj_init;
             dt = 0.0f;
-            delta.set_position_setpoint(volume.origin);
+            delta.set_position_setpoint(volume.center());
           }
         }
       }
@@ -327,11 +347,11 @@ int main(int argc, const char **argv) {
       tj = tj_init;
       dt = 0.0f;
       entry.t = exit.t = t_none;
-      delta.set_position_setpoint(volume.origin);
+      delta.set_position_setpoint(volume.center());
     }
     if (t_now > reset_at) {
       dbg(1) << "resetting..." << endl;
-      delta.set_position_setpoint(volume.origin);
+      delta.set_position_setpoint(volume.center());
       this_thread::sleep_for(chrono::milliseconds(500));
       delta.open_hand();
       reset_at = t_none;

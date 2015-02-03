@@ -39,7 +39,7 @@ struct delta_robot_args {
     cl::name("theta-max"),
     cl::desc("Theta at the shoulder joint at the reaching position, in degrees.")};
   cl::arg<float> z_min{
-    8.0f,
+    9.0f,
     cl::name("z-min"),
     cl::desc("Smallest reachable z value.")};
 
