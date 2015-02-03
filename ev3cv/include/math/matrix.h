@@ -66,7 +66,7 @@ public:
       return at(0, i);
   }
   
-  matrix_ref &operator += (matrix_ref B) {
+  matrix_ref &operator += (const_ref B) {
     assert(M() == B.M() && N() == B.N());
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
@@ -74,7 +74,7 @@ public:
     return *this;
   }
 
-  matrix_ref &operator -= (matrix_ref B) {
+  matrix_ref &operator -= (const_ref B) {
     assert(M() == B.M() && N() == B.N());
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
@@ -195,6 +195,7 @@ public:
         at(i, j) = A(i, j);
   }
   matrix(const matrix &c) : matrix(static_cast<const_ref>(c)) {}
+  matrix(matrix &&m) : ref(nullptr, m.M(), m.N()), storage(std::move(m.storage)) {}
 
   // Construct a diagonal matrix of the value a.
   matrix(const T &a, int M, int N) : ref(nullptr, M, N), storage(M*N) {
@@ -218,6 +219,12 @@ public:
     return *this;
   }
   matrix &operator = (const matrix &c) { return *this = static_cast<const_ref>(c); }
+  matrix &operator = (matrix &&m) {
+    storage = std::move(m.storage);
+    ref::m = m.M();
+    ref::n = m.N();
+    return *this;
+  }
 };
 
 
