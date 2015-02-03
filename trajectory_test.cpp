@@ -69,6 +69,10 @@ static cl::arg<float> tolerance(
   cl::name("tolerance"),
   cl::desc("Allowed error in estimated intercept for a test to be considered successful, in studs."),
   test_group);
+static cl::arg<float> z_plane(
+  8.0f,
+  cl::name("z-plane"),
+  cl::desc("z value of the plane to intersect trajectories with."));
 
 // Test and benchmark estimate_trajectory.
 int main(int argc, const char **argv) {
@@ -221,7 +225,7 @@ int main(int argc, const char **argv) {
           estimate_trajectory(gravity, cam0, cam1, obs0, obs1, dt, tj);
           cout << "trajectory x=" << tj.x << ", v=" << tj.v << ", dt=" << dt*sample_rate << endl;
 
-          float t_z0 = intersect_trajectory_zplane(gravity, tj, 0.0f);
+          float t_z0 = intersect_trajectory_zplane(gravity, tj, z_plane);
           cout << "intercept z=0 at t=" << t_z0 << ", x=" << tj.position(gravity, t_z0) << endl;
         } catch (exception &ex) {
           cout << ex.what() << endl;
