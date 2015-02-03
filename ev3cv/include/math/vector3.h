@@ -60,6 +60,22 @@ vector3<T> unit(const vector3<T> &x) {
 }
 
 template <typename T>
+vector3<T> min(const vector3<T> &a, const vector3<T> &b) {
+  return vector3<T>(
+    min(a.x, b.x),
+    min(a.y, b.y),
+    min(a.z, b.z));
+}
+
+template <typename T>
+vector3<T> max(const vector3<T> &a, const vector3<T> &b) {
+  return vector3<T>(
+    max(a.x, b.x),
+    max(a.y, b.y),
+    max(a.z, b.z));
+}
+
+template <typename T>
 bool isnan(const vector3<T> &x) { return isnan(x.x) || isnan(x.y) || isnan(x.z); }
 
 template <typename T>

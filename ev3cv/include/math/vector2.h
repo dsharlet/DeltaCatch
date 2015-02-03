@@ -52,6 +52,20 @@ vector2<T> unit(const vector2<T> &x) {
 }
 
 template <typename T>
+vector2<T> min(const vector2<T> &a, const vector2<T> &b) {
+  return vector2<T>(
+    min(a.x, b.x),
+    min(a.y, b.y));
+}
+
+template <typename T>
+vector2<T> max(const vector2<T> &a, const vector2<T> &b) {
+  return vector2<T>(
+    max(a.x, b.x),
+    max(a.y, b.y));
+}
+
+template <typename T>
 bool isnan(const vector2<T> &x) { return isnan(x.x) || isnan(x.y); }
 
 template <typename T>
