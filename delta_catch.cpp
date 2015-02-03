@@ -295,7 +295,7 @@ int main(int argc, const char **argv) {
               cout << "  t=" << exit.t << " s (" << exit.t + obs_t0 - t_now << ") s at x=" << exit.x << endl;
               entry.t = exit.t = t_none;
             }
-            dbg(1) << "  trajectory x=" << tj.x << ", v=" << tj.v << endl;
+            dbg(1) << "  trajectory x=" << tj.x << ", v=" << tj.v << ", dt=" << dt*sample_rate << endl;
           } catch(runtime_error &ex) {
             dbg(1) << ex.what() << endl;
             tj = tj_init;

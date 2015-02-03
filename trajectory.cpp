@@ -215,7 +215,7 @@ float estimate_trajectory(
 
   tjf.x = vector_cast<float>(tj.x);
   tjf.v = vector_cast<float>(tj.v);
-  dt = scalar_cast<float>(dt);
+  dtf = scalar_cast<float>(dt);
 
   dbg(2) << "estimate_trajectory finished, it=" << it << endl;
 

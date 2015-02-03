@@ -219,7 +219,7 @@ int main(int argc, const char **argv) {
           trajectoryf tj = tj_init;
           float dt = 0.0f;
           estimate_trajectory(gravity, cam0, cam1, obs0, obs1, dt, tj);
-          cout << "trajectory x=" << tj.x << ", v=" << tj.v << ", dt=" << dt << endl;
+          cout << "trajectory x=" << tj.x << ", v=" << tj.v << ", dt=" << dt*sample_rate << endl;
 
           float t_z0 = intersect_trajectory_zplane(gravity, tj, 0.0f);
           cout << "intercept z=0 at t=" << t_z0 << ", x=" << tj.position(gravity, t_z0) << endl;
