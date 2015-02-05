@@ -5,48 +5,79 @@
 
 namespace ev3cv {
 
-// Mapping of 3D coordinates to the 2D projection observed by a camera.
+/** Defines the mapping of coordinates in 3D image space through an imperfect lens
+ * to a camera sensor. */
 template <typename T>
 struct camera {
   vector2<T> resolution;
 
-  // Distortion is modeled by u' = u*(1 + d1*|u|^2), where u' is the distorted
-  // version of the normalized pixel coordinate u.
+  /** Distortion is modeled by \f$u'=u (1 + d_1 |u|^2)\f$, where \f$u'\f$ is the
+   * distorted sensor observation of the normalized coordinate \$fu\$f. */
   vector2<T> d1;
 
-  // Intrinsic camera parameters used to define the calibration matrix:
-  //     [ a.x  s  t.x ]
-  // K = [ 0   a.y t.y ]
-  //     [ 0    0   1  ]
+
+  /** Defines some elements of the camera calibration matrix K 
+   * 
+   * TODO: Show K.
+   *
+   */
+  // @{
   vector2<T> a;
   T s;
   vector2<T> t;
+  // @}
 
-  // Defines the position and orientation of the camera.
+  /** Position and orientation of the camera. */
+  // @{
   quaternion<T> R;
   vector3<T> x;
+  // @}
 
   camera() : resolution(200, 100), a(1), s(0), R(1) {}
   camera(
       const vector2<T> &resolution,
       const vector2<T> &d1,
-      const matrix<T, 3, 3> &K,
+      const vector2<T> &a,
+      const T &s,
+      const vector2<T> &t
       const quaternion<T> &R = quaternionf(1.0f, 0.0f),
       const vector3<T> &x = vector3f(0.0f)) 
-    : resolution(resolution), d1(d1)
-    , a(K(0, 0), K(1, 1)), s(K(0, 1)), t(K(0, 2), K(1, 2))
-    , R(R), x(x) {
+    : resolution(resolution), d1(d1), a(a), s(s), t(t), R(R), x(x) {
   }
-  camera(
+
+  /** Construct a camera from a calibration matrix. */
+  static camera from_K(
+      const vector2<T> &resolution,
+      const vector2<T> &d1,
+      const matrix<T, 3, 3> &K,
+      const quaternion<T> &R = quaternionf(1.0f, 0.0f),
+      const vector3<T> &x = vector3f(0.0f)) {
+    return camera(
+        resolution,
+        d1,
+        vector2<T>(K(0, 0), K(1, 1)),
+        K(0, 1),
+        vector2<T>(K(0, 2), K(1, 2)),
+        R,
+        x);
+  }
+
+  /** Construct a camera from lens and sensor information. */
+  static camera from_lens(
       const vector2<T> &resolution,
       const vector2<T> &d1,
       const vector2<T> &sensor_size,
       const T &focal_length,
       const quaternion<T> &R = quaternionf(1.0f, 0.0f),
-      const vector3<T> &x = vector3f(0.0f)) 
-    : resolution(resolution), d1(d1)
-    , a(sensor_size/(2*focal_length)), s(0), t(0, 0)
-    , R(R), x(x) {
+      const vector3<T> &x = vector3f(0.0f)) {
+    return camera(
+        resolution,
+        d1,
+        sensor_size/(2*focal_length),
+        0,
+        vector2<T>(0, 0),
+        R,
+        x);
   }
  
   // Realize the actual K matrix from the intrinsic parameters.

@@ -394,8 +394,8 @@ int main(int argc, const char **argv) {
         cam0, cam1, 
         cout, 
         enable, 
-        lambda_init, lambda_decay, 
-        convergence_threshold, max_iterations);
+        max_iterations, convergence_threshold, 
+        lambda_init, lambda_decay);
 
     dump_config(cout, "   ", cam0, cam1);
         

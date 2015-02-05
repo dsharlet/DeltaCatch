@@ -9,8 +9,8 @@ float calibrate(
     cameraf &cam0f, cameraf &cam1f,
     ostream &log,
     const string &enable,
-    float lambda_init, float lambda_decay,
-    float epsilon, int max_iterations) {
+    int max_iterations, float epsilon,
+    float lambda_init, float lambda_decay) {
 
   typedef diff<double, 28> d;
    

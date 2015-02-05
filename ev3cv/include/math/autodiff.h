@@ -3,7 +3,8 @@
 
 namespace ev3cv {
 
-// Implementation of forward automatic differentiation via operator overloading.
+/** Implements the forward automatic differentiation scheme via operator overloading.
+ * This implementation tracks N derivatives simultaneously. */
 template <typename T, int N>
 class diff {
   std::array<T, N> df_;
@@ -11,11 +12,17 @@ class diff {
 public:
   T f;
 
+  /** Retrieve one of the derivatives associated with this value. */
+  // @{
   T &d(int i) { return df_[i]; }
   T d(int i) const { return df_[i]; }
+  // @}
+  /** The number of derivatives associated with this value. */
   int n() const { return static_cast<int>(df_.size()); }
 
+  /** Initialize a constant (all derivatives are zero). */
   diff(T f = 0) : f(f) { for (T& i : df_) i = 0; }
+  /** Initialize a variable to a value. */
   diff(T f, int i) : f(f) { for (T& i : df_) i = 0; d(i) = 1; }
 
   diff &operator += (const diff &r) { 
