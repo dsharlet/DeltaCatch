@@ -5,7 +5,7 @@
 
 #include <ev3cv.h>
 
-#include "servo.h"
+#include <ev3/servo.h>
 
 namespace ev3 = ev3dev;
 
@@ -148,7 +148,7 @@ public:
     for (auto i : arms)
       i->stop(hold);
   }
-  void set_pid(int Kp, int Ki, int Kd) { for (auto i : arms) i->set_K(Kp, Ki, Kd); }
+  void set_pid_K(int Kp, int Ki, int Kd) { for (auto i : arms) i->controller().set_K(Kp, Ki, Kd); }
   bool running() const {
     for (auto i : arms) 
       if (i->running()) 

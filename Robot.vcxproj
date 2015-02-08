@@ -54,6 +54,8 @@
     <ClInclude Include="ev3cv\include\circular_array.h" />
     <ClInclude Include="ev3cv\include\cl\cl.h" />
     <ClInclude Include="ev3cv\include\ev3cv.h" />
+    <ClInclude Include="ev3cv\include\ev3\nxtcam.h" />
+    <ClInclude Include="ev3cv\include\ev3\servo.h" />
     <ClInclude Include="ev3cv\include\math\autodiff.h" />
     <ClInclude Include="ev3cv\include\math\matrix.h" />
     <ClInclude Include="ev3cv\include\math\pid_controller.h" />
@@ -62,9 +64,7 @@
     <ClInclude Include="ev3cv\include\math\vector3.h" />
     <ClInclude Include="ev3cv\include\vision\calibration.h" />
     <ClInclude Include="ev3cv\include\vision\camera.h" />
-    <ClInclude Include="ev3cv\include\vision\nxtcam.h" />
     <ClInclude Include="ev3cv\src\test\test.h" />
-    <ClInclude Include="servo.h" />
     <ClInclude Include="stereo_config.h" />
     <ClInclude Include="test.h" />
     <ClInclude Include="trajectory.h" />
@@ -79,14 +79,14 @@
     <ClCompile Include="ev3cv\src\calibrate.cpp" />
     <ClCompile Include="ev3cv\src\cl\cl.cpp" />
     <ClCompile Include="ev3cv\src\ev3cv.cpp" />
+    <ClCompile Include="ev3cv\src\ev3\nxtcam.cpp" />
+    <ClCompile Include="ev3cv\src\ev3\servo.cpp" />
     <ClCompile Include="ev3cv\src\test\autodiff.cpp" />
     <ClCompile Include="ev3cv\src\test\calibration.cpp" />
     <ClCompile Include="ev3cv\src\test\camera.cpp" />
     <ClCompile Include="ev3cv\src\test\matrix.cpp" />
+    <ClCompile Include="ev3cv\src\test\servo.cpp" />
     <ClCompile Include="ev3cv\src\vision\calibration.cpp" />
-    <ClCompile Include="ev3cv\src\vision\nxtcam.cpp" />
-    <ClCompile Include="servo.cpp" />
-    <ClCompile Include="servo_test.cpp" />
     <ClCompile Include="stereo_test.cpp" />
     <ClCompile Include="trajectory.cpp" />
     <ClCompile Include="trajectory_test.cpp" />

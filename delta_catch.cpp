@@ -8,7 +8,7 @@
 #include <memory>
 #include <iomanip>
 
-#include <vision/nxtcam.h>
+#include <ev3/nxtcam.h>
 
 #include "debug.h"
 #include "delta_hand.h"
@@ -182,7 +182,7 @@ int main(int argc, const char **argv) {
   // Initialize the delta robot.
   delta_hand delta(delta_geometry.geometry(), hand);
   // Set the motor parameters.
-  delta.set_pid(pid->x, pid->y, pid->z);
+  delta.set_pid_K(pid->x, pid->y, pid->z);
   delta.init();
 
   // Bask in the glory of the calibration result for a moment.

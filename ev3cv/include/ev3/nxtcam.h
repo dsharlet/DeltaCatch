@@ -1,5 +1,5 @@
-#ifndef EV3CV_VISION_NXTCAM_H
-#define EV3CV_VISION_NXTCAM_H
+#ifndef EV3CV_EV3_NXTCAM_H
+#define EV3CV_EV3_NXTCAM_H
 
 #include <vector>
 #include <string>

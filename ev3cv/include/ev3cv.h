@@ -62,10 +62,10 @@ std::ostream &null_ostream();
 
 #include "circular_array.h"
 
+#include "math/matrix.h"
 #include "math/vector2.h"
 #include "math/vector3.h"
 #include "math/quaternion.h"
-#include "math/matrix.h"
 #include "math/autodiff.h"
 #include "math/pid_controller.h"
 

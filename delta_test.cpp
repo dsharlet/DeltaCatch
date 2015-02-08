@@ -85,7 +85,7 @@ int main(int argc, const char **argv) {
 
   delta_robot delta(delta_geometry.geometry());
   // Set the motor parameters.
-  delta.set_pid(pid->x, pid->y, pid->z);
+  delta.set_pid_K(pid->x, pid->y, pid->z);
   delta.init();
 
   // Bask in the glory of the calibration result for a moment.

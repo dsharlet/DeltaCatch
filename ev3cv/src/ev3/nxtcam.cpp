@@ -1,4 +1,4 @@
-#include <vision/nxtcam.h>
+#include <ev3/nxtcam.h>
 
 #include <string.h>
 #include <thread>

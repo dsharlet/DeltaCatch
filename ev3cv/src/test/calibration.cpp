@@ -11,7 +11,7 @@ const float epsilon = 5e-3f;
 
 int main(int argc, const char **argv) {
   // Set up some cameras with a baseline on the x axis, looking down the z axis.
-  cameraf cam0(
+  cameraf cam0 = cameraf::from_lens(
       vector2f(176.0f, 144.0f),
       vector2f(0.0f, 0.0f),
       vector2f(1.0f, 1.0f),

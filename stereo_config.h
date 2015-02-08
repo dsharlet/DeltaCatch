@@ -54,7 +54,7 @@ struct camera_config {
   {}
 
   cameraf to_camera() const {
-    return cameraf(
+    return cameraf::from_K(
         vector_cast<float>(*resolution),
         distortion,
         calibration,

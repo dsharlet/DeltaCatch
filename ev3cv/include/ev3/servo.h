@@ -1,11 +1,13 @@
-#ifndef PID_MOTOR_H
-#define PID_MOTOR_H
+#ifndef EV3CV_EV3_SERVO_H
+#define EV3CV_EV3_SERVO_H
 
 #include <mutex>
 
 #include <ev3dev.h>
 
 #include <ev3cv.h>
+
+namespace ev3cv {
 
 // Controls an EV3 motor with a PID controller.
 class servo {
@@ -14,7 +16,7 @@ protected:
   int max_duty_cycle_;
 
   // The PID controller uses units of milliseconds.
-  ev3cv::pid_controller<int, 1000> pid_;
+  pid_controller<int, 1000> pid_;
   std::function<int(int, int, int)> sp_fn_;
   int t_;
 
@@ -55,9 +57,11 @@ public:
   int max_duty_cycle() const { return max_duty_cycle_; }
   void set_max_duty_cycle(int x);
 
-  // Get or set the PID parameters.
-  std::tuple<int, int, int> K() const;
-  void set_K(int Kp, int Ki, int Kd);
+  // Get the controller being used to control this servo.
+  pid_controller<int, 1000> &controller() { return pid_; }
+  const pid_controller<int, 1000> &controller() const { return pid_; }
 };
+
+}  // namespace ev3cv
 
 #endif

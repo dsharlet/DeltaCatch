@@ -11,8 +11,8 @@ using namespace std;
 
 #include <cl/cl.h>
 #include <vision/camera.h>
-#include <vision/nxtcam.h>
 #include <vision/calibration.h>
+#include <ev3/nxtcam.h>
 
 using namespace ev3cv;
 
@@ -87,7 +87,7 @@ struct camera_config {
   cameraf to_camera() const {
     vector2f sensor_dim(aspect_ratio, -1.0f);
     sensor_dim *= sensor_size/abs(sensor_dim);
-    return cameraf(
+    return cameraf::from_lens(
         vector_cast<float>(*resolution), 
         distortion,
         sensor_dim, focal_length,

@@ -4,16 +4,15 @@
 #include <algorithm>
 #include <signal.h>
 
-#include "servo.h"
-#include <ev3cv.h>
+#include <ev3/servo.h>
+
+namespace ev3cv {
 
 namespace {
-  
 std::vector<servo *> servos;
 std::mutex servos_lock;
 
 std::thread controller_thread;
-
 }
 
 void controller_main() {
@@ -37,7 +36,7 @@ void controller_main() {
   }
 }
 
-servo::servo(const ev3dev::port_type &port) : m_(port), pid_(10000, 10000, 0) {
+servo::servo(const ev3dev::port_type &port) : m_(port), pid_(5000, 5000, 200, 2, 200) {
   reset();
   
   {
@@ -103,16 +102,6 @@ void servo::tick(int dt) {
   m_.set_duty_cycle_setpoint(clamp(y, -max_duty_cycle_, max_duty_cycle_));
 }
 
-std::tuple<int, int, int> servo::K() const {
-  // Controller thread doesn't write these values, so we don't need to lock our mutex.
-  return pid_.K();
-}
-
-void servo::set_K(int Kp, int Ki, int Kd) {
-  std::lock_guard<std::mutex> lock(this->lock_);
-  pid_.set_K(Kp, Ki, Kd);
-}
-
 int servo::position_setpoint() const { 
   return pid_.setpoint(); 
 }
@@ -134,3 +123,5 @@ void servo::set_max_duty_cycle(int x) {
   std::lock_guard<std::mutex> lock(this->lock_);
   max_duty_cycle_ = x;
 }
+
+}  // namespace ev3cv

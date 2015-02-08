@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <chrono>
 
-#include <vision/nxtcam.h>
+#include <ev3/nxtcam.h>
 #include "stereo_config.h"
 #include "delta_robot_args.h"
 
@@ -55,7 +55,7 @@ int main(int argc, const char **argv) {
   delta_robot delta(delta_geometry.geometry());
   if (scale > 0.0f) {
     // Set the motor parameters.
-    delta.set_pid(pid->x, pid->y, pid->z);
+    delta.set_pid_K(pid->x, pid->y, pid->z);
     delta.init();
 
     // Bask in the glory of the calibration result for a moment.

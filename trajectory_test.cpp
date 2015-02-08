@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <random>
 
-#include <vision/nxtcam.h>
+#include <ev3/nxtcam.h>
 
 #include "debug.h"
 #include "trajectory.h"

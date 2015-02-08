@@ -39,7 +39,7 @@ struct camera {
       const vector2<T> &d1,
       const vector2<T> &a,
       const T &s,
-      const vector2<T> &t
+      const vector2<T> &t,
       const quaternion<T> &R = quaternionf(1.0f, 0.0f),
       const vector3<T> &x = vector3f(0.0f)) 
     : resolution(resolution), d1(d1), a(a), s(s), t(t), R(R), x(x) {
