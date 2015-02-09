@@ -19,6 +19,10 @@ template <typename T> T f1_6(T x) { return sqr(T(1)/sqrt(x)); }
 template <typename T> T f1_7(T x) { return abs(x); }
 template <typename T> T f1_8(T x) { return sqrt(abs(x*x*x)); }
 template <typename T> T f1_9(T x) { return rcp(x); }
+template <typename T> T f1_10(T x) { return sin(x); }
+template <typename T> T f1_11(T x) { return cos(x); }
+template <typename T> T f1_12(T x) { return asin(x); }
+template <typename T> T f1_13(T x) { return acos(x); }
 
 template <typename T> T f2_1(T x, T y) { return x/y; }
 template <typename T> T f2_2(T x, T y) { return sqrt(sqr(x) + sqr(y)); }
@@ -72,6 +76,10 @@ int main(int argc, const char **argv) {
   TEST_1(f1_7, -9.5, 9.5, 1);
   TEST_1(f1_8, -9.5, 9.5, 1);
   TEST_1(f1_9, -9.5, 9.5, 1);
+  TEST_1(f1_10, -9.5, 9.5, 1);
+  TEST_1(f1_11, -9.5, 9.5, 1);
+  TEST_1(f1_12, -0.9, 0.9, 0.2);
+  TEST_1(f1_13, -0.9, 0.9, 0.2);
 
   TEST_2(f2_1, -9.5, 9.5, 1, -9.5, 9.5, 1);
   TEST_2(f2_2, -9.5, 9.5, 1, -9.5, 9.5, 1);

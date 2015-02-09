@@ -118,9 +118,8 @@ diff<T, N> sqrt(const diff<T, N> &x) {
   diff<T, N> r(x);
   r.f = sqrt(r.f);
   T du = 0.5/r.f;
-  for (int i = 0; i < r.n(); i++) {
+  for (int i = 0; i < r.n(); i++)
     r.d(i) *= du;
-  }
   return r;
 }
 
@@ -148,10 +147,49 @@ template <typename T, int N>
 diff<T, N> abs(const diff<T, N> &x) {
   diff<T, N> r(x);
   T du = r.f < 0 ? -1 : 1;
-  for (int i = 0; i < r.n(); i++) {
+  for (int i = 0; i < r.n(); i++)
     r.d(i) *= du;
-  }
   r.f = abs(r.f);
+  return r;
+}
+
+template <typename T, int N>
+diff<T, N> sin(const diff<T, N> &x) {
+  diff<T, N> r(x);
+  T du = cos(r.f);
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) *= du;
+  r.f = sin(r.f);
+  return r;
+}
+
+template <typename T, int N>
+diff<T, N> cos(const diff<T, N> &x) {
+  diff<T, N> r(x);
+  T du = -sin(r.f);
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) *= du;
+  r.f = cos(r.f);
+  return r;
+}
+
+template <typename T, int N>
+diff<T, N> asin(const diff<T, N> &x) {
+  diff<T, N> r(x);
+  T du = rcp(sqrt(1 - sqr(r.f)));
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) *= du;
+  r.f = asin(r.f);
+  return r;
+}
+
+template <typename T, int N>
+diff<T, N> acos(const diff<T, N> &x) {
+  diff<T, N> r(x);
+  T du = -rcp(sqrt(1 - sqr(r.f)));
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) *= du;
+  r.f = acos(r.f);
   return r;
 }
 
@@ -168,6 +206,22 @@ std::ostream &operator << (std::ostream &os, const diff<T, N> &d) {
 template <typename T, int N>
 std::istream &operator >> (std::istream &is, diff<T, N> &d) {
   return is >> d.f;
+}
+
+template <typename T, int N>
+bool isfinite(const diff<T, N> &x) {
+  for (int i = 0; i < x.n(); i++)
+    if (!isfinite(x.d(i))) 
+      return false;
+  return isfinite(x.f);
+}
+
+template <typename T, int N>
+bool isnan(const diff<T, N> &x) {
+  for (int i = 0; i < x.n(); i++)
+    if (!isnan(x.d(i))) 
+      return false;
+  return isnan(x.f);
 }
 
 }  // namespace ev3cv
