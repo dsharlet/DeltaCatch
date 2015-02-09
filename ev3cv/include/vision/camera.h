@@ -114,14 +114,12 @@ struct camera {
     // Apply distortion model.
     // Compute inverse of distortion model via newton's method.
     // TODO: Try to optimize this... lots of FLOPs here if U is a diff<>.
-    if (sqr_abs(d1) != T(0)) {
-      vector2<U> u_ = u;
-      for (int i = 0; i < 3; i++) {
-        vector2<U> d = vector2<T>(1) + d1*dot(u, u);
-        vector2<U> fu = u*d - u_;
-        vector2<U> df_du = d + T(2)*d1*u*u;
-        u -= fu/df_du;
-      }
+    vector2<U> u_ = u;
+    for (int i = 0; i < 3; i++) {
+      vector2<U> d = vector2<T>(1) + d1*dot(u, u);
+      vector2<U> fu = u*d - u_;
+      vector2<U> df_du = d + T(2)*d1*u*u;
+      u -= fu/df_du;
     }
 
     // Solve K*x = u.
