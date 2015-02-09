@@ -28,6 +28,7 @@ template <typename T> T f2_1(T x, T y) { return x/y; }
 template <typename T> T f2_2(T x, T y) { return sqrt(sqr(x) + sqr(y)); }
 template <typename T> T f2_3(T x, T y) { return T(1)/(sqr(x) + sqr(y)); }
 template <typename T> T f2_4(T x, T y) { return T(1)/sqrt(sqr(x) + sqr(y)); }
+template <typename T> T f2_5(T x, T y) { return atan2(y, x); }
 
 const double epsilon = 1e-6;
 const double h = 1e-6;
@@ -85,5 +86,6 @@ int main(int argc, const char **argv) {
   TEST_2(f2_2, -9.5, 9.5, 1, -9.5, 9.5, 1);
   TEST_2(f2_3, -9.5, 9.5, 1, -9.5, 9.5, 1);
   TEST_2(f2_4, -9.5, 9.5, 1, -9.5, 9.5, 1);
+  TEST_2(f2_5, -9.5, 9.5, 1, -9.5, 9.5, 1);
   return 0;
 }

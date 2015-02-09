@@ -193,6 +193,17 @@ diff<T, N> acos(const diff<T, N> &x) {
   return r;
 }
 
+template <typename T, int N>
+diff<T, N> atan2(const diff<T, N> &y, const diff<T, N> &x) {
+  diff<T, N> r(x);
+  T dx = -y.f/(sqr(x.f) + sqr(y.f));
+  T dy = x.f/(sqr(x.f) + sqr(y.f));
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) = x.d(i)*dx + y.d(i)*dy;
+  r.f = atan2(y.f, x.f);
+  return r;
+}
+
 template <typename T, typename U, int N>
 T scalar_cast(const diff<U, N> &x) {
   return scalar_cast<T>(x.f);
