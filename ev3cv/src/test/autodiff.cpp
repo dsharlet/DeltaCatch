@@ -23,6 +23,8 @@ template <typename T> T f1_10(T x) { return sin(x); }
 template <typename T> T f1_11(T x) { return cos(x); }
 template <typename T> T f1_12(T x) { return asin(x); }
 template <typename T> T f1_13(T x) { return acos(x); }
+template <typename T> T f1_14(T x) { return exp(x); }
+template <typename T> T f1_15(T x) { return log(x); }
 
 template <typename T> T f2_1(T x, T y) { return x/y; }
 template <typename T> T f2_2(T x, T y) { return sqrt(sqr(x) + sqr(y)); }

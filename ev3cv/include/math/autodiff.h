@@ -154,6 +154,26 @@ diff<T, N> abs(const diff<T, N> &x) {
 }
 
 template <typename T, int N>
+diff<T, N> exp(const diff<T, N> &x) {
+  diff<T, N> r(x);
+  T du = exp(r.f);
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) *= du;
+  r.f = exp(r.f);
+  return r;
+}
+
+template <typename T, int N>
+diff<T, N> log(const diff<T, N> &x) {
+  diff<T, N> r(x);
+  T du = rcp(r.f);
+  for (int i = 0; i < r.n(); i++)
+    r.d(i) *= du;
+  r.f = log(r.f);
+  return r;
+}
+
+template <typename T, int N>
 diff<T, N> sin(const diff<T, N> &x) {
   diff<T, N> r(x);
   T du = cos(r.f);
