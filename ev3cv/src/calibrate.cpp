@@ -34,11 +34,11 @@ struct camera_config {
       const string &prefix,
       const string &port,
       const vector2i &resolution,
+      const vector2f &distortion,
       float sensor_size, float aspect_ratio, float focal_length,
       const vector3f &x,
       const vector3f &y,
-      const vector3f &position,
-      const vector2f &distortion = vector2f(0.0f)) : 
+      const vector3f &position) : 
   port(
     port,
     cl::name(prefix + "-port"),
@@ -50,7 +50,7 @@ struct camera_config {
     cl::desc("Resolution of the cameras, in pixels."),
     stereo_group),
   distortion(
-    vector2f(0.0f, 0.0f),
+    distortion,
     cl::name(prefix + "-distortion"),
     cl::desc("Radial distortion parameters of the camera."),
     stereo_group),
@@ -96,19 +96,30 @@ struct camera_config {
   }
 };
 
-static camera_config cam_config0(
+struct nxtcam_config : camera_config {
+  nxtcam_config(
+      const string &prefix,
+      const string &port,
+      const vector3f &x,
+      const vector3f &y,
+      const vector3f &position) 
+    : camera_config(
+          prefix, port, 
+          vector2i(176, 144),
+          vector2f(-0.02f),
+          4.0f, 1.33f, 3.5f,
+          x, y, position) {}
+};
+
+static nxtcam_config cam_config0(
     "cam0",
     "in1",
-    vector2i(176, 144),
-    4.0f, 1.33f, 3.5f,
     vector3f(0.0f, -cos(53.5*pi/180 + pi/2), -sin(53.5*pi/180 + pi/2)),
     vector3f(1.0f, 0.0f, 0.0f),
     vector3f(-11.15f, 12.5f, -3.0f));
-static camera_config cam_config1(
+static nxtcam_config cam_config1(
     "cam1",
     "in4",
-    vector2i(176, 144),
-    4.0f, 1.33f, 3.5f,
     vector3f(0.0f, cos(53.5*pi/180 + pi/2), sin(53.5*pi/180 + pi/2)),
     vector3f(-1.0f, 0.0f, 0.0f),
     vector3f(11.15f, 12.5f, -3.0f));
