@@ -4,6 +4,16 @@ using namespace std;
 
 namespace ev3cv {
 
+namespace {
+
+// abs'(x) is undefined at x = 0, this avoids that case.
+template <typename T>
+T safe_abs(const vector3<T> &x) {
+  return sqrt(sqr_abs(x) + T(1e-6));
+}
+
+}
+
 float calibrate(
     const vector<sphere_observation_set> &sphere_observations,
     cameraf &cam0f, cameraf &cam1f,
@@ -12,11 +22,11 @@ float calibrate(
     int max_iterations, float epsilon,
     float lambda_init, float lambda_decay) {
 
-  typedef diff<double, 28> d;
-   
+  typedef diff<double, 26> d;
+  
   camera<d> cam0 = camera_cast<d>(cam0f);
   camera<d> cam1 = camera_cast<d>(cam1f);
-
+  
   bool enable_d1 = enable.find("d1") != string::npos;
   bool enable_a = enable.find("a") != string::npos;
   bool enable_s = enable.find("s") != string::npos;
@@ -48,10 +58,14 @@ float calibrate(
     cam1.t.x.d(N++) = 1; cam1.t.y.d(N++) = 1;
     log << "  t" << endl;
   }
+  vector3<d> R0 = vector_cast<d>(to_rodrigues(cam0f.R));
+  vector3<d> R1 = vector_cast<d>(to_rodrigues(cam1f.R));
   if (enable_R) {
-    cam0.R.a.d(N++) = 1; cam0.R.b.x.d(N++) = 1; cam0.R.b.y.d(N++) = 1; cam0.R.b.z.d(N++) = 1;
-    cam1.R.a.d(N++) = 1; cam1.R.b.x.d(N++) = 1; cam1.R.b.y.d(N++) = 1; cam1.R.b.z.d(N++) = 1;
+    R0.x.d(N++) = 1; R0.y.d(N++) = 1; R0.z.d(N++) = 1;
+    R1.x.d(N++) = 1; R1.y.d(N++) = 1; R1.z.d(N++) = 1;
     log << "  R" << endl;
+    cam0.R = from_rodrigues(R0);
+    cam1.R = from_rodrigues(R1);
   }
   if (enable_x) {
     cam0.x.x.d(N++) = 1; cam0.x.y.d(N++) = 1; cam0.x.z.d(N++) = 1;
@@ -73,7 +87,7 @@ float calibrate(
     }
   }
   
-  log << "Running optimization..." << endl;
+  log << "Running optimization over " << N << " variables..." << endl;
 
   // Levenberg-Marquardt damping parameter.
   double lambda = lambda_init;
@@ -97,24 +111,24 @@ float calibrate(
       for (const auto &s : sphere_observations[i].samples) {
         vector3<d> x0 = cam0.sensor_to_projection(vector_cast<d>(s.x0), d(1.0)) - cam0.x;
         vector3<d> x1 = cam1.sensor_to_projection(vector_cast<d>(s.x1), d(1.0)) - cam1.x;
-
+        
         // z is determined by the stereo disparity.
         d z = baseline/(dot(x0, b) - dot(x1, b));
 
         // Move the points from the focal plane to the (parallel) plane containing z and add the camera origins.
         x0 = x0*z + cam0.x;
         x1 = x1*z + cam1.x;
-
+        
         // Error in depth from the calibration sphere and x, for both samples.
-        d r_s0 = r_i - abs(x0 - spheres[i]);
-        d r_s1 = r_i - abs(x1 - spheres[i]);
+        d r_s0 = r_i - safe_abs(x0 - spheres[i]);
+        d r_s1 = r_i - safe_abs(x1 - spheres[i]);
         error += sqr(r_s0.f);
         error += sqr(r_s1.f);
         
         // Error in difference between the two projected points.
-        d r_z = abs(x0 - x1);
+        d r_z = safe_abs(x0 - x1);
         error += sqr(r_z.f);
-
+        
         for (int i = 0; i < N; i++) {
           double Dr_s0_i = D(r_s0, i);
           double Dr_s1_i = D(r_s1, i);
@@ -132,7 +146,7 @@ float calibrate(
         }
       }
     }
-      
+
     // If error increased, throw away the previous iteration and 
     // reset the Levenberg-Marquardt damping parameter.
     if (error > prev_error) {
@@ -145,11 +159,11 @@ float calibrate(
       spheres = prev_spheres;
       continue;
     }
-
+    
     // J^T*J <- J^J*J + lambda*diag(J^J*J)
     for (int i = 0; i < N; i++)
       JTJ(i, i) *= 1 + lambda;
-
+    
     // Solve J^T*J*dB = J^T*y.
     matrix_ref<double> dB = solve(JTJ, JTy);
     
@@ -184,11 +198,10 @@ float calibrate(
       cam1.t.x += dB(n++); cam1.t.y += dB(n++);
     }
     if (enable_R) {
-      cam0.R.a += dB(n++); cam0.R.b.x += dB(n++); cam0.R.b.y += dB(n++); cam0.R.b.z += dB(n++);
-      cam1.R.a += dB(n++); cam1.R.b.x += dB(n++); cam1.R.b.y += dB(n++); cam1.R.b.z += dB(n++);
-      // Renormalize quaternions.
-      cam0.R /= abs(cam0.R);
-      cam1.R /= abs(cam1.R);
+      R0.x += dB(n++); R0.y += dB(n++); R0.z += dB(n++);
+      R1.x += dB(n++); R1.y += dB(n++); R1.z += dB(n++);
+      cam0.R = from_rodrigues(R0);
+      cam1.R = from_rodrigues(R1);
     }
     if (enable_x) {
       cam0.x.x += dB(n++); cam0.x.y += dB(n++); cam0.x.z += dB(n++);
