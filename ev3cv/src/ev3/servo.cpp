@@ -36,7 +36,7 @@ void controller_main() {
   }
 }
 
-servo::servo(const ev3dev::port_type &port) : m_(port), pid_(5000, 5000, 200, 2, 5000) {
+servo::servo(const ev3dev::port_type &port) : m_(port), pid_(5000, 5000, 200, 0, 5000) {
   reset();
   
   {
