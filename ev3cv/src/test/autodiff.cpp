@@ -39,7 +39,7 @@ const double h = 1e-6;
   typedef diff<T, 1> d; \
   for (T x = min; x <= max; x += step) { \
     d fx = fn(d(x, 0)); \
-    ASSERT_LT(abs(fx.f - fn(x)), epsilon); \
+    ASSERT_LT(abs(fx.u - fn(x)), epsilon); \
     ASSERT_LT(abs(fx.d(0) - (fn<double>(x + h) - fn<double>(x - h))/(2*h)), epsilon); \
   } \
 }
@@ -49,7 +49,7 @@ const double h = 1e-6;
   for (T y = miny; y <= maxy; y += stepy) { \
     for (T x = minx; x <= maxx; x += stepx) { \
       d fxy = fn(d(x, 0), d(y, 1)); \
-      ASSERT_LT(abs(fxy.f - fn(x, y)), epsilon); \
+      ASSERT_LT(abs(fxy.u - fn(x, y)), epsilon); \
       ASSERT_LT(abs(fxy.d(0) - (fn<double>(x + h, y) - fn<double>(x - h, y))/(2*h)), epsilon); \
       ASSERT_LT(abs(fxy.d(1) - (fn<double>(x, y + h) - fn<double>(x, y - h))/(2*h)), epsilon); \
     } \
@@ -83,6 +83,8 @@ int main(int argc, const char **argv) {
   TEST_1(f1_11, -9.5, 9.5, 1);
   TEST_1(f1_12, -0.9, 0.9, 0.2);
   TEST_1(f1_13, -0.9, 0.9, 0.2);
+  TEST_1(f1_14, -0.9, 0.9, 0.2);
+  TEST_1(f1_15, 0.1, 0.9, 0.2);
 
   TEST_2(f2_1, -9.5, 9.5, 1, -9.5, 9.5, 1);
   TEST_2(f2_2, -9.5, 9.5, 1, -9.5, 9.5, 1);

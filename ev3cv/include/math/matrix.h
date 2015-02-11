@@ -7,9 +7,9 @@
 
 namespace ev3cv {
 
-// A constant reference to a matrix. This is intended to be passed by value,
-// as it is itself a reference type, i.e. copies are shallow.
-// If the template dimensions are 0, the matrix is dynamically sized.
+/** A constant reference to a matrix. This is intended to be passed by value,
+ * as it is itself a reference type, i.e. copies are shallow.
+ * If the template dimensions are 0, the matrix is dynamically sized. */
 template <typename T, int M_ = 0, int N_ = 0>
 class const_matrix_ref {
 protected:
@@ -19,12 +19,22 @@ protected:
 public:
   const_matrix_ref(const T *x, int M = 0, int N = 0) : x(const_cast<T*>(x)), m(M), n(N) {}
 
+  /** Get the constant memory this matrix reference refers to. */
+  const T *elements() const { return x; }
+
+  /** Get the number of rows (M) and columns (N) in this matrix */
+  // @{
   inline int M() const { return M_ != 0 ? M_ : m; }
   inline int N() const { return N_ != 0 ? N_ : n; }
+  // @}
 
-  const T *elements() const { return x; }
+  /** Get an element at row i, column j. */
+  // @{
   T at(int i, int j) const { return x[i*N() + j]; }
   T operator() (int i, int j) const { return at(i, j); }
+  // @}
+
+  /** Assuming this matrix is a vector (either M == 1 or N == 1), get the i'th element of the vector. */
   T operator() (int i) const { 
     static_assert((M_ == 0 || M_ == 1) || (N_ == 0 || N_ == 1), "matrix is not a vector.");
     assert(M() == 1 || N() == 1);
@@ -35,8 +45,9 @@ public:
   }
 };
 
-// A non-constant reference to a matrix. This is intended to be passed by value,
-// as it is itself a reference. Copies are shallow.
+/** A non-constant reference to a matrix. This is intended to be passed by value,
+ * as it is itself a reference type, i.e. copies are shallow.
+ * If the template dimensions are 0, the matrix is dynamically sized. */
 template <typename T, int M_ = 0, int N_ = 0>
 class matrix_ref : public const_matrix_ref<T, M_, N_> {
 public:
@@ -53,10 +64,17 @@ public:
   using const_ref::operator();
   using const_ref::M;
   using const_ref::N;
-
+  
+  /** Get the non-const memory this matrix reference refers to. */
   T *elements() { return x; }
+  
+  /** Access an element at row i, column j. */
+  // @{
   T &at(int i, int j) { return x[i*N() + j]; }
   T &operator() (int i, int j) { return at(i, j); }
+  // @}
+
+  /** Assuming this matrix is a vector (either M == 1 or N == 1), access the i'th element of the vector. */
   T &operator() (int i) { 
     static_assert((M_ == 0 || M_ == 1) || (N_ == 0 || N_ == 1), "matrix is not a vector.");
     assert(M() == 1 || N() == 1);
@@ -66,6 +84,8 @@ public:
       return at(0, i);
   }
   
+  /** Matrix arithmetic-assignment operators */
+  // @{
   matrix_ref &operator += (const_ref B) {
     assert(M() == B.M() && N() == B.N());
     for (int i = 0; i < M(); i++)
@@ -95,10 +115,12 @@ public:
         at(i, j) /= b;
     return *this;
   }
+  // @}
 };
 
-// A non-reference matrix type. This class contains storage, and copies
-// are deep.
+/** Non-reference matrix type. This class contains storage, and copies
+ * are deep. If the static dimensions M_ and N_ are not provided, the size
+ * of the matrix is determined at runtime. */
 template <typename T, int M_ = 0, int N_ = 0>
 class matrix : public matrix_ref<T, M_, N_> {
 public:
@@ -119,32 +141,41 @@ public:
   using ref::operator*=;
   using ref::operator/=;
 
+  /** The default constructor zero-initializes the matrix. */
   matrix() : ref(storage) {
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
         at(i, j) = 0;
   }
 
+  /** For statically sized matrices, the dimensions must match the static dimensions. */
   matrix(int M, int N) : matrix() {
     assert(M == M_ && N == N_);
   }
 
+  /** Construct a copy of another matrix. */
+  // @{
   matrix(const_ref A) : ref(storage) {
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
         at(i, j) = A(i, j);
   }
-  matrix(const matrix &c) : matrix(static_cast<const_ref>(c)) {}
+  matrix(const matrix &A) : matrix(static_cast<const_ref>(A)) {}
+  // @}
 
-  // Construct a diagonal matrix of the value a.
+  /** Construct a diagonal matrix of the value a. */
   matrix(const T &a) : ref(storage) {
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
         at(i, j) = (i == j) ? a : 0;
   }
 
-
-  matrix(const std::initializer_list<std::initializer_list<T>> &rows) : ref(storage) {
+  /** Initialize a matrix with an initializer list of initializer lists, for example: 
+   * 
+   *     matrix<float, 2, 2> A = { { 1, 2 }, { 3, 4, } }; 
+   *
+   */
+  matrix(const std::initializer_list<std::initializer_list<T>> &rows) : matrix() {
     typename std::initializer_list<std::initializer_list<T>>::iterator r = rows.begin();
     for (int i = 0; i < M(); i++, r++) {
       typename std::initializer_list<T>::iterator c = r->begin();
@@ -153,18 +184,21 @@ public:
     }
   }
 
+  /** Copy the value of another matrix to this matrix. */
+  // @{
   matrix &operator = (const_ref A) {
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
         at(i, j) = A(i, j);
     return *this;
   }
-  
-  matrix &operator = (const matrix &c) { return *this = static_cast<const_ref>(c); }
+  matrix &operator = (const matrix &A) { return *this = static_cast<const_ref>(A); }
+  // @}
 };
 
 
-// A specialization of the 0x0 matrix. This holds a dynamically allocated matrix instead.
+/** A specialization of the 0x0 matrix. This holds a dynamically allocated matrix 
+  * instead of a static array. */
 template <typename T>
 class matrix<T, 0, 0> : public matrix_ref<T, 0, 0> {
 public:
@@ -185,7 +219,7 @@ public:
   using ref::operator*=;
   using ref::operator/=;
 
-  // The default constructor constructs a 1x1 matrix.
+  /** The default constructor constructs a zero-initialized 1x1 matrix. */
   matrix() : matrix(1, 1) {}
 
   matrix(const_ref A) : ref(nullptr, A.M(), A.N()), storage(A.M()*A.N()) {
@@ -194,7 +228,7 @@ public:
       for (int j = 0; j < N(); j++)
         at(i, j) = A(i, j);
   }
-  matrix(const matrix &c) : matrix(static_cast<const_ref>(c)) {}
+  matrix(const matrix &A) : matrix(static_cast<const_ref>(A)) {}
   matrix(matrix &&m) : ref(nullptr, m.M(), m.N()), storage(std::move(m.storage)) {}
 
   // Construct a diagonal matrix of the value a.
@@ -218,16 +252,17 @@ public:
         at(i, j) = A(i, j);
     return *this;
   }
-  matrix &operator = (const matrix &c) { return *this = static_cast<const_ref>(c); }
-  matrix &operator = (matrix &&m) {
-    storage = std::move(m.storage);
-    ref::m = m.M();
-    ref::n = m.N();
+  matrix &operator = (const matrix &A) { return *this = static_cast<const_ref>(A); }
+  matrix &operator = (matrix &&A) {
+    storage = std::move(A.storage);
+    ref::m = A.M();
+    ref::n = A.N();
     return *this;
   }
 };
 
-
+/** Basic arithmetic operations for matrix types. */
+// @{
 template <typename T, int M, int N>
 matrix<T, M, N> operator +(const_matrix_ref<T, M, N> A, const_matrix_ref<T, M, N> B) {
   assert(A.M() == B.M() && A.N() == B.N());
@@ -279,7 +314,10 @@ matrix<T, M, N> operator *(const_matrix_ref<T, M, N> A, T b) {
       C(i, j) = A(i, j)*b;
   return C;
 }
+// @}
 
+/** Compute the inner product of two vectors. */
+// @{
 template <typename T, int N>
 T dot(const_matrix_ref<T, N, 1> A, const_matrix_ref<T, N, 1> B) {
   // This is a cheap transpose operation.
@@ -293,7 +331,9 @@ T dot(const_matrix_ref<T> A, const_matrix_ref<T> B) {
   const_matrix_ref<T> AT(A.elements(), 1, A.M());
   return (AT*B)(0, 0);
 }
+// @}
 
+/** Row reduce the augmented matrix [A | B] in place via Gaussian elimination. */
 template <typename T, int M, int N, int implicit_zero, typename BT>
 void row_reduce(matrix_ref<T, M, N> A, BT B) {
   assert(A.M() == B.M());
@@ -331,7 +371,7 @@ void row_reduce(matrix_ref<T, M, N> A, BT B) {
   }
 }
 
-// A dummy matrix to augment with.
+/** An empty matrix to augment with. */
 template <typename T>
 class null_matrix {
 public:
@@ -341,12 +381,13 @@ public:
   T& operator() (int i, int j) const { throw std::runtime_error("dereferencing a null matrix."); }
 };
 
+/** Row reduce the matrix A in-place via Guassian elimination. */
 template <typename T, int M, int N>
 matrix_ref<T, M, N> row_reduce(matrix_ref<T, M, N> A) {
   return row_reduce<T, M, N, 0>(A, null_matrix<T>());
 }
 
-// Solve A*x = [b1, ... bNb], using Gaussian elimination.
+/** Solve A*x = [b1, ... bN], using Gaussian elimination. Note that this function mutates the input arguments */
 template <typename T, int N, int Nb>
 matrix_ref<T, N, Nb> solve(matrix_ref<T, N, N> A, matrix_ref<T, N, Nb> b) {
   assert(A.M() == A.N() && A.M() == b.M());
@@ -366,6 +407,7 @@ matrix_ref<T, N, Nb> solve(matrix_ref<T, N, N> A, matrix_ref<T, N, Nb> b) {
   return b;
 }
 
+/** Check if any matrix element is NaN. */
 template <typename T, int M, int N>
 bool isnan(const_matrix_ref<T, M, N> A) {
   for (int i = 0; i < A.M(); i++)
@@ -375,6 +417,7 @@ bool isnan(const_matrix_ref<T, M, N> A) {
   return false;
 }
 
+/** Check that all matrix elements are finite (not infinity or NaN). */
 template <typename T, int M, int N>
 bool isfinite(const_matrix_ref<T, M, N> A) {
   for (int i = 0; i < A.M(); i++)

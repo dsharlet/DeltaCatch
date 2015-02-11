@@ -122,21 +122,21 @@ float calibrate(
         // Error in depth from the calibration sphere and x, for both samples.
         d r_s0 = r_i - safe_abs(x0 - spheres[i]);
         d r_s1 = r_i - safe_abs(x1 - spheres[i]);
-        error += sqr(r_s0.f);
-        error += sqr(r_s1.f);
+        error += sqr(r_s0.u);
+        error += sqr(r_s1.u);
         
         // Error in difference between the two projected points.
         d r_z = safe_abs(x0 - x1);
-        error += sqr(r_z.f);
+        error += sqr(r_z.u);
         
         for (int i = 0; i < N; i++) {
           double Dr_s0_i = D(r_s0, i);
           double Dr_s1_i = D(r_s1, i);
           double Dr_z_i = D(r_z, i);
           // Add this residual to J^T*y.
-          JTy(i) -= Dr_s0_i*r_s0.f;
-          JTy(i) -= Dr_s1_i*r_s1.f;
-          JTy(i) -= Dr_z_i*r_z.f;
+          JTy(i) -= Dr_s0_i*r_s0.u;
+          JTy(i) -= Dr_s1_i*r_s1.u;
+          JTy(i) -= Dr_z_i*r_z.u;
           // Add this residual to J^T*J
           for (int j = 0; j < N; j++) {
             JTJ(i, j) += Dr_s0_i*D(r_s0, j);

@@ -48,9 +48,9 @@ float intersect_trajectory_sphere(float half_g, const trajectoryf &tj, const vec
   d ft;
   for (int i = 0; i < max_iterations; i++) {
     ft = trajectory_sphere<d>(half_g, tj, s, sqr_r, d(t, 0));
-    t -= ft.f/D(ft, 0);
+    t -= ft.u/D(ft);
 
-    if (abs(ft.f) < epsilon)
+    if (abs(ft.u) < epsilon)
       return t;
   }
   throw runtime_error("no trajectory-ellipse intersection found");
@@ -156,13 +156,13 @@ float estimate_trajectory(
           o_i, 
           i < M0 ? nullptr : &dt, tj);
 
-      error += sqr(r.x.f) + sqr(r.y.f);
+      error += sqr(r.x.u) + sqr(r.y.u);
 
       for (int i = 0; i < N; i++) {
         float Dr_x_i = D(r.x, i);
         float Dr_y_i = D(r.y, i);
         // Add this residual to J^T*y.
-        JTy(i) -= Dr_x_i*r.x.f + Dr_y_i*r.y.f;
+        JTy(i) -= Dr_x_i*r.x.u + Dr_y_i*r.y.u;
         // Add this residual to J^T*J
         for (int j = 0; j < N; j++)
           JTJ(i, j) += Dr_x_i*D(r.x, j) + Dr_y_i*D(r.y, j);
