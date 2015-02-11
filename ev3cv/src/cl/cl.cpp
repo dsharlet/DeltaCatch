@@ -41,6 +41,10 @@ boolean help(
   flags(hidden));
 
 void base_arg::register_arg(base_arg *a) {
+  if (!a->name().empty() && find_arg(a->name().c_str()))
+    throw runtime_error("redefinition of cl::arg '" + a->name() + "'");
+  if (a->flag() != 0 && find_arg(a->flag()))
+    throw runtime_error("redefinition of cl::arg '" + string(1, a->flag()) + "'");
   args().push_back(a);
 }
 
