@@ -45,6 +45,37 @@ float calibrate(
     int max_iterations = 100, float convergence_threshold = 1e-3f,
     float lambda_init = 1.0f, float lambda_decay = 0.9f);
 
+/** Helper functions to convert to and from Rodgrigues' representation of rotations. In this
+ * representation, rotation is stored in a vector x representing an axis-angle (omega-theta) 
+ * rotation, where theta = ||x||, and omega = x/||x||. 
+ *
+ * This representation is useful for solving optimization problems involving rotation. Note
+ * that to_rodrigues does not use q.b in its result if the rotation is near the singularity of
+ * axis-angle representation. This can be problematic if T is an automatic differentation type.
+ */
+// @{
+template <typename T>
+vector3<T> to_rodrigues(const quaternion<T> &q) {
+  // Convert to axis-angle.
+  T a = T(2)*atan2(abs(q.b), q.a);
+  T s = sqrt(T(1) - sqr(q.a));
+  vector3<T> x;
+  if (s < T(1e-6))
+    x = vector3<T>(1, 0, 0);
+  else
+    x = q.b/s;
+
+  return x*a;
+}
+
+template <typename T>
+quaternion<T> from_rodrigues(const vector3<T> &x) {
+  // abs'(x) at x = 0 is undefined, avoid that (T might be an automatic differentiation type).
+  T a = sqrt(sqr_abs(x) + T(1e-6));
+  return quaternion<T>(cos(a/T(2)), (x/a)*sin(a/T(2)));
+}
+// @}
+
 }  // namespace ev3cv
 
 #endif
