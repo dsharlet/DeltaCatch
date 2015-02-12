@@ -6,7 +6,7 @@
 
 namespace ev3cv {
 
-// A circular buffer of observations.
+/** A fixed size circulary array. */
 template <typename T, size_t N>
 class circular_array {
   std::array<T, N> m;

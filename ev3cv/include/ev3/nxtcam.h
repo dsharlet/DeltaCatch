@@ -8,38 +8,47 @@
 
 namespace ev3cv {
   
-// Given a ev3dev port specification, return a path to the corresponding I2C device.
+/** Given a ev3dev port specification, return a path to the corresponding I2C device. 
+ * For example, 'in1' maps to '/dev/i2c-3'. */
 std::string port_to_i2c_path(const std::string &port);
 
-// Talks to an NXTcam device to perform image based tracking of 'blobs'.
+/** Provides basic NXTcam support in ev3dev. */
 class nxtcam {
 public:
-  // Description of a tracked blob.
+  /** Description of a tracked blob. */
   struct blob {
+    /** Corners of the bounding box of the blob. */
     vector2i x1, x2;
+
+    /** Index of the color of the detected blob. */
     int color;
 
+    /** Compute the center of the bounding box of the blob. */
     vector2f center() const { return vector_cast<float>(x1 + x2)/2.0f; }
   };
-  // Type of a list of blobs.
+
   typedef std::vector<blob> blob_list;
 
+  /** Connect to an NXTcam at the given path. To convert an ev3dev input port 
+   * specification to a path, see \ref port_to_i2c_path. */
   nxtcam(const std::string &path, int address = 0x01);
   ~nxtcam();
   
-  // Query information about the connected device.
+  /** Query information about the connected device. */
+  // @{
   std::string version() const;
   std::string vendor_id() const;
   std::string device_id() const;
+  // @}
 
-  // Command camera to begin tracking objects.
+  /** Begin tracking objects. */
   void track_objects();
-  // Command camera to begin tracking lines.
+  /** Begin tracking lines. */
   void track_lines();
-  // Command camera to stop tracking.
+  /** Stop tracking. */
   void stop_tracking();
   
-  // Get the currently tracked blobs from the camera.
+  /** Get the currently detected blobs from the camera. */
   blob_list blobs() const;
 
 protected:

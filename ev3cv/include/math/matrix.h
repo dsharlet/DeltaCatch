@@ -174,12 +174,16 @@ public:
    * 
    *     matrix<float, 2, 2> A = { { 1, 2 }, { 3, 4, } }; 
    *
+   * The inner initializer lists are the rows of the matrix. Elements not initialized are
+   * initialized to 0.
    */
   matrix(const std::initializer_list<std::initializer_list<T>> &rows) : matrix() {
+    assert(static_cast<int>(rows.size()) <= M());
     typename std::initializer_list<std::initializer_list<T>>::iterator r = rows.begin();
-    for (int i = 0; i < M(); i++, r++) {
+    for (int i = 0; i < M() && r != rows.end(); i++, r++) {
+      assert(static_cast<int>(r->size()) <= N());
       typename std::initializer_list<T>::iterator c = r->begin();
-      for (int j = 0; j < N(); j++)
+      for (int j = 0; j < N() && c != r->end(); j++)
         at(i, j) = *c++;
     }
   }

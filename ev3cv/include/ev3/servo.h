@@ -9,7 +9,7 @@
 
 namespace ev3cv {
 
-// Controls an EV3 motor with a PID controller.
+/** Control an EV3 motor with a PID controller. */ 
 class servo {
 protected:
   ev3dev::motor m_;
@@ -31,35 +31,49 @@ public:
   servo(const ev3dev::port_type &port);
   ~servo();
 
-  // Basic motor attributes.
+  /** Basic servo attributes. */
+  // @{
   bool connected() const { return m_.connected(); }
   std::string port_name() const { return m_.port_name(); }
   ev3dev::device_type type() const { return m_.type(); }
+  // @}
 
+  /** The state of the servo. */
+  // @{
   void run();
+  bool running() const { return m_.running(); }
+  // @}
+
+  /** Stop the servo.
+   * @param hold indicate whether the motor should hold position or not */ 
   void stop(bool hold = true);
+  /** Reset the state of the servo.
+   * @param position the value to label the current position as. */
   void reset(int position = 0);
 
-  bool running() const { return m_.running(); }
-  
-  ev3dev::mode_type stop_mode() const { return m_.stop_mode(); }
-  void set_stop_mode(const ev3dev::mode_type &v) { m_.set_stop_mode(v); }
-
-  // Get or set the state of the encoder.
+  /** Get the current position of the servo. */
   int position() const { return m_.position(); }
 
-  // Get or set the position setpoint.
+  /** Get or set the position setpoint. */
+  // @{
   int position_setpoint() const;
   void set_position_setpoint(int sp);
-  // Set the position setpoint to a function callback f(x, t, dt).
+  // @}
+  /** Set the position setpoint to a function callback f(x, t, dt). 
+   * Note that f will be called from another thread. */
   void set_position_setpoint(std::function<int(int, int, int)> sp_fn);
   
+  /** Get or set the max duty cycle */
+  // @{
   int max_duty_cycle() const { return max_duty_cycle_; }
   void set_max_duty_cycle(int x);
+  // @}
 
-  // Get the controller being used to control this servo.
+  /** Get the controller being used to control this servo. */
+  // @{
   pid_controller<int, 1000> &controller() { return pid_; }
   const pid_controller<int, 1000> &controller() const { return pid_; }
+  // @}
 };
 
 }  // namespace ev3cv
