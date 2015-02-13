@@ -12,17 +12,17 @@ struct camera {
   vector2<T> resolution;
 
   /** Distortion is modeled by \f$u'=u (1 + d_1 |u|^2)\f$, where \f$u'\f$ is the
-   * distorted sensor observation of the normalized coordinate \$fu\$f. */
+   * distorted sensor observation of the normalized coordinate \f$u\f$. */
   vector2<T> d1;
   
-  /** Elements of the camera calibration matrix K. */
+  /** Elements of the camera calibration matrix \f$K\f$. */
   ///@{
   vector2<T> a;
   T s;
-  vector2<T> t;
+  vector2<T> c;
   ///@}
 
-  /** Position and orientation of the camera. */
+  /** 3D rigid body transformation of the camera. */
   ///@{
   quaternion<T> R;
   vector3<T> x;
@@ -34,10 +34,10 @@ struct camera {
       const vector2<T> &d1,
       const vector2<T> &a,
       const T &s,
-      const vector2<T> &t,
+      const vector2<T> &c,
       const quaternion<T> &R = quaternionf(1.0f, 0.0f),
       const vector3<T> &x = vector3f(0.0f)) 
-    : resolution(resolution), d1(d1), a(a), s(s), t(t), R(R), x(x) {
+    : resolution(resolution), d1(d1), a(a), s(s), c(c), R(R), x(x) {
   }
 
   /** Construct a camera from a calibration matrix. */
@@ -75,13 +75,13 @@ struct camera {
         x);
   }
  
-  /** Realize the actual calibration matrix K from the intrinsic parameters. K is defined as follows:
-   * \f[K=\left[ \begin{array}{ccc}a_x & s & t_x\\0 & a_y & t_y\\0 & 0 & 1 \end{array} \right]\f]
+  /** Realize the actual calibration matrix \f$K\f$ from the intrinsic parameters. \f$K\f$ is defined as follows:
+   * \f[K=\left[ \begin{array}{ccc}a_x & s & c_x\\0 & a_y & c_y\\0 & 0 & 1 \end{array} \right]\f]
    */
   matrix<T, 3, 3> K() const {
     matrix<T, 3, 3> k;
-    k(0, 0) = a.x; k(0, 1) = s;   k(0, 2) = t.x;
-                   k(1, 1) = a.y; k(1, 2) = t.y;
+    k(0, 0) = a.x; k(0, 1) = s;   k(0, 2) = c.x;
+                   k(1, 1) = a.y; k(1, 2) = c.y;
                                   k(2, 2) = 1;
     return k;
   }
@@ -91,8 +91,8 @@ struct camera {
   vector2<U> focal_plane_to_sensor(const vector2<U> &P) const {
     // Apply camera calibration matrix.
     vector2<U> u(
-        a.x*P.x + s*P.y + t.x,
-        a.y*P.y + t.y);
+        a.x*P.x + s*P.y + c.x,
+        a.y*P.y + c.y);
     
     // Apply distortion correction.
     u *= vector2<T>(1) + d1*dot(u, u);
@@ -122,8 +122,8 @@ struct camera {
     }
 
     // Solve K*x = u.
-    U y = (u.y - t.y)*rcp(a.y);
-    U x = (u.x - t.x - s*y)*rcp(a.x);
+    U y = (u.y - c.y)*rcp(a.y);
+    U x = (u.x - c.x - s*y)*rcp(a.x);
     return vector2<U>(x, y);
   }
 
@@ -172,7 +172,7 @@ camera<T> camera_cast(const camera<U> &x) {
   y.resolution = vector_cast<T>(x.resolution);
   y.d1 = vector_cast<T>(x.d1);
   y.a = vector_cast<T>(x.a);
-  y.t = vector_cast<T>(x.t);
+  y.c = vector_cast<T>(x.c);
   y.s = scalar_cast<T>(x.s);
   y.R = quaternion_cast<T>(x.R);
   y.x = vector_cast<T>(x.x);

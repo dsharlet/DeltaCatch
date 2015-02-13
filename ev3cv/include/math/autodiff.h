@@ -4,31 +4,34 @@
 namespace ev3cv {
 
 /** Implements the forward automatic differentiation scheme via operator overloading. This type
- * can be used to compute the derivative of many mathematical expressions.
+ * can be used to compute the derivative of many mathematical expressions. This approach to
+ * computing derivatives is convenient because it avoids the need to manually find derivatives,
+ * and it is more numerically stable than computing finite differences. 
  *
  * The typical technique to use this type is to define a function as a template, for example:
- *
- *    // Evaluate the polynomial A*x^2 + B*x + C
- *    template <typename T>
- *    T f(T A, T B, T C, T x) {
- *        return A*x*x + B*x + C;
- *    }
+ * \code
+ * // Evaluate the polynomial A*x^2 + B*x + C
+ * template <typename T>
+ * T f(T A, T B, T C, T x) {
+ *   return A*sqr(x) + B*x + C;
+ * }
+ * \endcode
  *     
  * Now, the derivative of quadratic can be computed like so:
- *
- *    diff<double, 1> x = 3.5;
- *    
- *    // By default, diff types have derivatives of 0, but since 
- *    // this is x, it has a derivative of 1.
- *    D(x, 0) = 1.
- *    
- *    // Evaluate y = f(x).
- *    diff<double, 1> A = 2, B = 3, C = 1;
- *    diff<double, 1> y = f(A, B, C, x);
- *    
- *    // The above line also computed f'(x):
- *    double df_dx = D(y, 0);
- *
+ * \code
+ * diff<double, 1> x = 3.5;
+ * 
+ * // By default, diff types have derivatives of 0, but since 
+ * // this is x, it should have a derivative of 1.
+ * D(x, 0) = 1.
+ * 
+ * // Evaluate y = f(x).
+ * diff<double, 1> A = 2, B = 3, C = 1;
+ * diff<double, 1> y = f(A, B, C, x);
+ * 
+ * // The above line also computed f'(x):
+ * double df_dx = D(y, 0);
+ * \endcode
  **/
 template <typename T, int N>
 class diff {
@@ -150,9 +153,9 @@ template <typename T, int N> bool operator != (T l, const diff<T, N> &r) { retur
 template <typename T, int N>
 diff<T, N> rcp(const diff<T, N> &x) {
   diff<T, N> r(x);
-  T inv_rx2 = -1/(r.u*r.u);
+  T du = -1/(r.u*r.u);
   for (int i = 0; i < r.n(); i++)
-    r.d(i) *= inv_rx2;
+    r.d(i) *= du;
   r.u = 1/r.u;
   return r;
 }

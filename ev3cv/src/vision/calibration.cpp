@@ -30,7 +30,7 @@ float calibrate(
   bool enable_d1 = enable.find("d1") != string::npos;
   bool enable_a = enable.find("a") != string::npos;
   bool enable_s = enable.find("s") != string::npos;
-  bool enable_t = enable.find("t") != string::npos;
+  bool enable_c = enable.find("c") != string::npos;
   bool enable_R = enable.find("R") != string::npos;
   bool enable_x = enable.find("x") != string::npos;
 
@@ -53,10 +53,10 @@ float calibrate(
     cam1.s.d(N++) = 1;
     log << "  s" << endl;
   }
-  if (enable_t) {
-    cam0.t.x.d(N++) = 1; cam0.t.y.d(N++) = 1;
-    cam1.t.x.d(N++) = 1; cam1.t.y.d(N++) = 1;
-    log << "  t" << endl;
+  if (enable_c) {
+    cam0.c.x.d(N++) = 1; cam0.c.y.d(N++) = 1;
+    cam1.c.x.d(N++) = 1; cam1.c.y.d(N++) = 1;
+    log << "  c" << endl;
   }
   vector3<d> R0 = vector_cast<d>(to_rodrigues(cam0f.R));
   vector3<d> R1 = vector_cast<d>(to_rodrigues(cam1f.R));
@@ -193,9 +193,9 @@ float calibrate(
       cam0.s += dB(n++);
       cam1.s += dB(n++);
     }
-    if (enable_t) {
-      cam0.t.x += dB(n++); cam0.t.y += dB(n++);
-      cam1.t.x += dB(n++); cam1.t.y += dB(n++);
+    if (enable_c) {
+      cam0.c.x += dB(n++); cam0.c.y += dB(n++);
+      cam1.c.x += dB(n++); cam1.c.y += dB(n++);
     }
     if (enable_R) {
       R0.x += dB(n++); R0.y += dB(n++); R0.z += dB(n++);

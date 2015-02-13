@@ -14,7 +14,7 @@ int main(int argc, const char **argv) {
 
     cam.a = vector_cast<double>(randv2f(1e-6f, 1.0f));
     cam.s = randf(-1.0f, 1.0f);
-    cam.t = vector_cast<double>(randv2f(-10.0f, 10.0f));
+    cam.c = vector_cast<double>(randv2f(-10.0f, 10.0f));
 
     cam.R = quaternion_cast<double>(unit(quaternionf(randf(), randv3f())));
     cam.x = vector_cast<double>(randv3f(-10.0f, 10.0f));

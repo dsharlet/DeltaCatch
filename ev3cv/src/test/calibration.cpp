@@ -105,8 +105,8 @@ int main(int argc, const char **argv) {
       cam1_.a *= randv2f(1.0f - test_init, 1.0f + test_init);
       cam0_.d1 *= randv2f(1.0f - test_init, 1.0f + test_init);
       cam1_.d1 *= randv2f(1.0f - test_init, 1.0f + test_init);
-      cam0_.t *= randv2f(1.0f - test_init, 1.0f + test_init);
-      cam1_.t *= randv2f(1.0f - test_init, 1.0f + test_init);
+      cam0_.c *= randv2f(1.0f - test_init, 1.0f + test_init);
+      cam1_.c *= randv2f(1.0f - test_init, 1.0f + test_init);
       cam0_.s *= randf(1.0f - test_init, 1.0f + test_init);
       cam1_.s *= randf(1.0f - test_init, 1.0f + test_init);
       //cam0_.R = unit(quaternionf(randf(), randv3f()));
@@ -122,14 +122,14 @@ int main(int argc, const char **argv) {
       ASSERT_LT(abs(cam0_.d1 - cam0.d1), epsilon);
       ASSERT_LT(abs(cam0_.a - cam0.a), epsilon);
       ASSERT_LT(abs(cam0_.s - cam0.s), epsilon);
-      ASSERT_LT(abs(cam0_.t - cam0.t), epsilon);
+      ASSERT_LT(abs(cam0_.c - cam0.c), epsilon);
       ASSERT_LT(abs(cam0_.R - cam0.R), epsilon);
       ASSERT_LT(abs(cam0_.x - cam0.x), epsilon);
 
       ASSERT_LT(abs(cam1_.d1 - cam1.d1), epsilon);
       ASSERT_LT(abs(cam1_.a - cam1.a), epsilon);
       ASSERT_LT(abs(cam1_.s - cam1.s), epsilon);
-      ASSERT_LT(abs(cam1_.t - cam1.t), epsilon);
+      ASSERT_LT(abs(cam1_.c - cam1.c), epsilon);
       ASSERT_LT(abs(cam1_.R - cam1.R), epsilon);
       ASSERT_LT(abs(cam1_.x - cam1.x), epsilon);
     } catch (exception &ex) {

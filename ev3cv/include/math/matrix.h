@@ -148,7 +148,7 @@ public:
         at(i, j) = 0;
   }
 
-  /** For statically sized matrices, the dimensions must match the static dimensions. */
+  /** Zero initialize a matrix of a specific size. For statically sized matrices, the dimensions must match the static dimensions. */
   matrix(int M, int N) : matrix() {
     assert(M == M_ && N == N_);
   }
@@ -171,9 +171,13 @@ public:
   }
 
   /** Initialize a matrix with an initializer list of initializer lists, for example: 
-   * 
-   *     matrix<float, 2, 2> A = { { 1, 2 }, { 3, 4, } }; 
-   *
+   * \code
+   * matrix<float, 3, 2> A = { 
+   *     { 1.0f, 2.0f }, 
+   *     { 3.0f, 4.0f }, 
+   *     { 5.0f, 6.0f } 
+   * }; 
+   * \endcode
    * The inner initializer lists are the rows of the matrix. Elements not initialized are
    * initialized to 0.
    */
@@ -337,7 +341,7 @@ T dot(const_matrix_ref<T> A, const_matrix_ref<T> B) {
 }
 ///@}
 
-/** Row reduce the augmented matrix [A | B] in place via Gaussian elimination. */
+/** Row reduce the augmented matrix \f$[A | B]\f$ in place. */
 template <typename T, int M, int N, int implicit_zero, typename BT>
 void row_reduce(matrix_ref<T, M, N> A, BT B) {
   assert(A.M() == B.M());
@@ -363,8 +367,6 @@ void row_reduce(matrix_ref<T, M, N> A, BT B) {
   
     // Eliminate the rows after the pivot.
     T p = A(i, i);
-    //if (abs(p) < 1e-12)
-    //  throw std::runtime_error("signular matrix.");
     for (int i2 = i + 1; i2 < A.M(); ++i2) {
       T s = A(i2, i)/p;
       for (int j = i + implicit_zero; j < A.N(); ++j)
@@ -385,13 +387,13 @@ public:
   T& operator() (int i, int j) const { throw std::runtime_error("dereferencing a null matrix."); }
 };
 
-/** Row reduce the matrix A in-place via Guassian elimination. */
+/** Row reduce the matrix \f$A\f$ in-place. */
 template <typename T, int M, int N>
 matrix_ref<T, M, N> row_reduce(matrix_ref<T, M, N> A) {
   return row_reduce<T, M, N, 0>(A, null_matrix<T>());
 }
 
-/** Solve A*x = [b1, ... bN], using Gaussian elimination. Note that this function mutates the input arguments */
+/** Solve \f$A x = [b1 ... bN]\f$. Note that this function mutates the input arguments. */
 template <typename T, int N, int Nb>
 matrix_ref<T, N, Nb> solve(matrix_ref<T, N, N> A, matrix_ref<T, N, Nb> b) {
   assert(A.M() == A.N() && A.M() == b.M());
