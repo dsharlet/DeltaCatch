@@ -5,7 +5,7 @@
 
 namespace ev3cv {
 
-/** Defines the mapping of coordinates in 3D image space through an imperfect lens
+/** Defines the mapping of coordinates in 3D image space through a lens with radial distortion
  * to a camera sensor. */
 template <typename T>
 struct camera {
@@ -14,24 +14,19 @@ struct camera {
   /** Distortion is modeled by \f$u'=u (1 + d_1 |u|^2)\f$, where \f$u'\f$ is the
    * distorted sensor observation of the normalized coordinate \$fu\$f. */
   vector2<T> d1;
-
-
-  /** Defines some elements of the camera calibration matrix K 
-   * 
-   * TODO: Show K.
-   *
-   */
-  // @{
+  
+  /** Elements of the camera calibration matrix K. */
+  ///@{
   vector2<T> a;
   T s;
   vector2<T> t;
-  // @}
+  ///@}
 
   /** Position and orientation of the camera. */
-  // @{
+  ///@{
   quaternion<T> R;
   vector3<T> x;
-  // @}
+  ///@}
 
   camera() : resolution(200, 100), a(1), s(0), R(1) {}
   camera(
@@ -62,7 +57,7 @@ struct camera {
         x);
   }
 
-  /** Construct a camera from lens and sensor information. */
+  /** Construct a camera description from lens and sensor information. */
   static camera from_lens(
       const vector2<T> &resolution,
       const vector2<T> &d1,
@@ -80,7 +75,9 @@ struct camera {
         x);
   }
  
-  // Realize the actual K matrix from the intrinsic parameters.
+  /** Realize the actual calibration matrix K from the intrinsic parameters. K is defined as follows:
+   * \f[K=\left[ \begin{array}{ccc}a_x & s & t_x\\0 & a_y & t_y\\0 & 0 & 1 \end{array} \right]\f]
+   */
   matrix<T, 3, 3> K() const {
     matrix<T, 3, 3> k;
     k(0, 0) = a.x; k(0, 1) = s;   k(0, 2) = t.x;
@@ -89,6 +86,7 @@ struct camera {
     return k;
   }
 
+  /** Map a position on the focal plane to a sensor position. */
   template <typename U>
   vector2<U> focal_plane_to_sensor(const vector2<U> &P) const {
     // Apply camera calibration matrix.
@@ -104,6 +102,7 @@ struct camera {
         (u.y + T(1))*(T(0.5)*resolution.y));
   }
 
+  /** Map a sensor position to a position on the focal plane. */
   template <typename U>
   vector2<U> sensor_to_focal_plane(const vector2<U> &px) const {
     // Normalize coordinates.
@@ -128,7 +127,7 @@ struct camera {
     return vector2<U>(x, y);
   }
 
-  // Project to normalized coordinates to the focal plane.
+  /** Map a 3D position to a position on the focal plane. */
   template <typename U>
   vector2<U> project_to_focal_plane(const vector3<U> &g) const {
     // Convert the global coordinates to the local transform.
@@ -138,23 +137,25 @@ struct camera {
     return vector2<U>(l.x, l.y)*rcp(l.z);
   }
 
+  /** Project a 3D position to a position on the sensor. */
   template <typename U>
   vector2<U> project_to_sensor(const vector3<U> &g) const {
     return focal_plane_to_sensor(project_to_focal_plane(g));
   }
 
-  // Unproject a point on the plane containing z.
+  /** Unproject a position on the focal plane to the plane with depth z. */
   template <typename U>
   vector3<U> focal_plane_to_projection(const vector2<U> &P, const U &z) const {
     return (R*quaternion<U>(0, P.x*z, P.y*z, z)*~R).b + x;
   }
   
+  /** Unproject a position on the sensor to the plane with depth z. */
   template <typename U>
   vector3<U> sensor_to_projection(const vector2<U> &px, const U &z) const {
     return focal_plane_to_projection(sensor_to_focal_plane(px), z);
   }
 
-  // Test if a point is visible to this camera.
+  /** Test if a 3D position is visible to this camera. */
   bool is_visible(const vector3<T> &g) const {
     // Unfortunately, positive z is behind the camera, not in front.
     if ((~R*(g - x)*R).b.z >= T(-1e-6))

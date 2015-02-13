@@ -57,7 +57,7 @@ public:
   }
 
   /** Arithmetic-assignment operators. */
-  // @{
+  ///@{
   template <typename U>
   quaternion<T> &operator += (const quaternion<U> &r) { a += r.a, b += r.b; return *this; }
   template <typename U>
@@ -82,7 +82,7 @@ public:
     b /= r;
     return *this;
   }
-  // @}
+  ///@}
 
   /** Negate the quaternion. */
   quaternion<T> operator - () const { return quaternion<T>(-a, -b); }
@@ -92,7 +92,7 @@ public:
 };
 
 /** Basic quaternion arithmetic operators. */
-// @{
+///@{
 template <typename T, typename U> quaternion<T> operator + (quaternion<T> l, const quaternion<U> &r) { return l += r; }
 template <typename T, typename U> quaternion<T> operator - (quaternion<T> l, const quaternion<U> &r) { return l -= r; }
 template <typename T, typename U> quaternion<T> operator * (quaternion<T> l, const quaternion<U> &r) { return l *= r; }
@@ -102,7 +102,7 @@ template <typename T, typename U> quaternion<T> operator / (quaternion<T> l, con
 
 template <typename T, typename U> quaternion<T> operator * (quaternion<T> l, const vector3<U> &r) { return l *= quaternion<U>(0, r); }
 template <typename T, typename U> quaternion<T> operator * (const vector3<T> &l, const quaternion<U> &r) { return quaternion<T>(0, l)*r; }
-// @}
+///@}
 
 /** Compute the magnitude of a quaternion. */
 template <typename T>
@@ -122,7 +122,7 @@ bool isnan(const quaternion<T> &q) { return isnan(q.a) || isnan(q.b); }
 
 /** Check if all quaternion elements are finite (not NaN or infinity). */
 template <typename T>
-bool isnan(const quaternion<T> &q) { return isfinite(q.a) && isfinite(q.b); }
+bool isfinite(const quaternion<T> &q) { return isfinite(q.a) && isfinite(q.b); }
 
 template <typename T, typename U>
 quaternion<T> quaternion_cast(const quaternion<U> &q) {

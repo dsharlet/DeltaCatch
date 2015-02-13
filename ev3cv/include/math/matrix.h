@@ -10,7 +10,7 @@ namespace ev3cv {
 /** A constant reference to a matrix. This is intended to be passed by value,
  * as it is itself a reference type, i.e. copies are shallow.
  * If the template dimensions are 0, the matrix is dynamically sized. */
-template <typename T, int M_ = 0, int N_ = 0>
+template <typename T, int M_ = 0, int N_ = 0, int M_stride = N_, int N_stride = 1>
 class const_matrix_ref {
 protected:
   T *x;
@@ -23,16 +23,16 @@ public:
   const T *elements() const { return x; }
 
   /** Get the number of rows (M) and columns (N) in this matrix */
-  // @{
+  ///@{
   inline int M() const { return M_ != 0 ? M_ : m; }
   inline int N() const { return N_ != 0 ? N_ : n; }
-  // @}
+  ///@}
 
   /** Get an element at row i, column j. */
-  // @{
-  T at(int i, int j) const { return x[i*N() + j]; }
+  ///@{
+  T at(int i, int j) const { return x[i*M_stride + j*N_stride]; }
   T operator() (int i, int j) const { return at(i, j); }
-  // @}
+  ///@}
 
   /** Assuming this matrix is a vector (either M == 1 or N == 1), get the i'th element of the vector. */
   T operator() (int i) const { 
@@ -69,10 +69,10 @@ public:
   T *elements() { return x; }
   
   /** Access an element at row i, column j. */
-  // @{
+  ///@{
   T &at(int i, int j) { return x[i*N() + j]; }
   T &operator() (int i, int j) { return at(i, j); }
-  // @}
+  ///@}
 
   /** Assuming this matrix is a vector (either M == 1 or N == 1), access the i'th element of the vector. */
   T &operator() (int i) { 
@@ -85,7 +85,7 @@ public:
   }
   
   /** Matrix arithmetic-assignment operators */
-  // @{
+  ///@{
   matrix_ref &operator += (const_ref B) {
     assert(M() == B.M() && N() == B.N());
     for (int i = 0; i < M(); i++)
@@ -115,7 +115,7 @@ public:
         at(i, j) /= b;
     return *this;
   }
-  // @}
+  ///@}
 };
 
 /** Non-reference matrix type. This class contains storage, and copies
@@ -154,14 +154,14 @@ public:
   }
 
   /** Construct a copy of another matrix. */
-  // @{
+  ///@{
   matrix(const_ref A) : ref(storage) {
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
         at(i, j) = A(i, j);
   }
   matrix(const matrix &A) : matrix(static_cast<const_ref>(A)) {}
-  // @}
+  ///@}
 
   /** Construct a diagonal matrix of the value a. */
   matrix(const T &a) : ref(storage) {
@@ -189,7 +189,7 @@ public:
   }
 
   /** Copy the value of another matrix to this matrix. */
-  // @{
+  ///@{
   matrix &operator = (const_ref A) {
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
@@ -197,7 +197,7 @@ public:
     return *this;
   }
   matrix &operator = (const matrix &A) { return *this = static_cast<const_ref>(A); }
-  // @}
+  ///@}
 };
 
 
@@ -266,7 +266,7 @@ public:
 };
 
 /** Basic arithmetic operations for matrix types. */
-// @{
+///@{
 template <typename T, int M, int N>
 matrix<T, M, N> operator +(const_matrix_ref<T, M, N> A, const_matrix_ref<T, M, N> B) {
   assert(A.M() == B.M() && A.N() == B.N());
@@ -318,10 +318,10 @@ matrix<T, M, N> operator *(const_matrix_ref<T, M, N> A, T b) {
       C(i, j) = A(i, j)*b;
   return C;
 }
-// @}
+///@}
 
 /** Compute the inner product of two vectors. */
-// @{
+///@{
 template <typename T, int N>
 T dot(const_matrix_ref<T, N, 1> A, const_matrix_ref<T, N, 1> B) {
   // This is a cheap transpose operation.
@@ -335,7 +335,7 @@ T dot(const_matrix_ref<T> A, const_matrix_ref<T> B) {
   const_matrix_ref<T> AT(A.elements(), 1, A.M());
   return (AT*B)(0, 0);
 }
-// @}
+///@}
 
 /** Row reduce the augmented matrix [A | B] in place via Gaussian elimination. */
 template <typename T, int M, int N, int implicit_zero, typename BT>

@@ -35,8 +35,8 @@ public:
     : sp_(0), y_(0), e_(0), i_(0), Kp_(Kp), Ki_(Ki), Kd_(Kd), deadband_(deadband), i_max_(i_max) {}
 
   /**  Update the state of the PID controller. 
-   * @param dt the timestep of the update.
-   * @param x current measurement of the state of the system. */
+   * @param[in] dt the timestep of the update.
+   * @param[in] x current measurement of the state of the system. */
   const T &tick(T x, T dt) {
     if ( dt > 0) {
       T e = sp_ - x;
@@ -67,30 +67,30 @@ public:
   }
 
   /** Get or set the setpoint */
-  // @{
+  ///@{
   const T &setpoint() const { return sp_; }
   void set_setpoint(const T &x) { 
     sp_ = x;
   }
-  // @}
+  ///@}
   
   /** Get or set the PID parameters. */
-  // @{
+  ///@{
   std::tuple<T, T, T> K() const { return std::tie(Kp_, Ki_, Kd_); }
   void set_K(T Kp, T Ki, T Kd) { Kp_ = Kp; Ki_ = Ki; Kd_ = Kd; }
-  // @}
+  ///@}
 
   /** Get or set the limit on the integral error state. */
-  // @{
+  ///@{
   T integral_limit() const { return i_max_; }
   void set_integral_limit(T x) { i_max_ = x; }
-  // @}
+  ///@}
 
   /** Get or set the deadband. */
-  // @{
+  ///@{
   T deadband() const { return deadband_; }
   void set_deadband(T x) { deadband_ = x; }
-  // @}
+  ///@}
 };
 
 }  // namespace ev3cv

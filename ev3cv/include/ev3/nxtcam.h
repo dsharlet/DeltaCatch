@@ -35,11 +35,11 @@ public:
   ~nxtcam();
   
   /** Query information about the connected device. */
-  // @{
+  ///@{
   std::string version() const;
   std::string vendor_id() const;
   std::string device_id() const;
-  // @}
+  ///@}
 
   /** Begin tracking objects. */
   void track_objects();

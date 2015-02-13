@@ -25,15 +25,16 @@ struct sphere_observation_set {
 };
 
 /** Attempt to estimate intrinsic and extrinsic camera parameters from a set of 
- * \ref sphere_observation_set. The input values of cam0 and cam1 are used as
- * an initial guess for the camera parameters. The initial guess must be roughly
- * correct for the optimization performed by this function to succeed.
+ * \ref sphere_observation_set.
  *
  * The optimization is performed using Levenberg-Marquardt. 
  *
- * @param enable allows which camera parameters are allowed to vary in the 
+ * @param[in] sphere_observations Provides observation data.
+ * @param[in] enable Defines which camera parameters are allowed to vary in the 
  * optimization. The variables of \ref camera contained in the string are optimized 
  * over.
+ * @param[in, out] cam0 Parameters for camera 0. The input value is used as an initial guess.
+ * @param[in, out] cam1 Parameters for camera 1. The input value is used as an initial guess.
  * @see sphere_observation_set
  */
 float calibrate(
@@ -53,7 +54,7 @@ float calibrate(
  * that to_rodrigues does not use q.b in its result if the rotation is near the singularity of
  * axis-angle representation. This can be problematic if T is an automatic differentation type.
  */
-// @{
+///@{
 template <typename T>
 vector3<T> to_rodrigues(const quaternion<T> &q) {
   // Convert to axis-angle.
@@ -74,7 +75,7 @@ quaternion<T> from_rodrigues(const vector3<T> &x) {
   T a = sqrt(sqr_abs(x) + T(1e-6));
   return quaternion<T>(cos(a/T(2)), (x/a)*sin(a/T(2)));
 }
-// @}
+///@}
 
 }  // namespace ev3cv
 

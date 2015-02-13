@@ -41,10 +41,10 @@ public:
   int n() const { return static_cast<int>(du_.size()); }
 
   /** Retrieve one of the derivatives associated with this value. */
-  // @{
+  ///@{
   T &d(int i = 0) { assert(i < n()); return du_[i]; }
   T d(int i = 0) const { return i < n() ? du_[i] : 0; }
-  // @}
+  ///@}
 
   /** Initialize a constant (all derivatives are zero). */
   diff(T u = 0) : u(u) { for (T& i : du_) i = 0; }
@@ -99,15 +99,15 @@ public:
 };
 
 /** Get or set the derivative of x with respect to the i'th variable. */
-// @{
+///@{
 template <typename T, int N>
 T &D(diff<T, N> &x, int i = 0) { return x.d(i); }
 template <typename T, int N>
 T D(const diff<T, N> &x, int i = 0) { return x.d(i); }
-// @}
+///@}
 
 /** Define basic arithmetic and comparison for automatic differentiation types. */
-// @{
+///@{
 template <typename T, int N> diff<T, N> operator + (diff<T, N> l, const diff<T, N> &r) { return l += r; }
 template <typename T, int N> diff<T, N> operator - (diff<T, N> l, const diff<T, N> &r) { return l -= r; }
 template <typename T, int N> diff<T, N> operator * (diff<T, N> l, const diff<T, N> &r) { return l *= r; }
@@ -143,10 +143,10 @@ template <typename T, int N> bool operator >  (T l, const diff<T, N> &r) { retur
 template <typename T, int N> bool operator >= (T l, const diff<T, N> &r) { return l >= r.u; }
 template <typename T, int N> bool operator == (T l, const diff<T, N> &r) { return l == r.u; }
 template <typename T, int N> bool operator != (T l, const diff<T, N> &r) { return l != r.u; }
-// @}
+///@}
 
 /** Define some standard math functions for automatic differentiation. */
-// @{
+///@{
 template <typename T, int N>
 diff<T, N> rcp(const diff<T, N> &x) {
   diff<T, N> r(x);
@@ -256,7 +256,7 @@ diff<T, N> abs(const diff<T, N> &x) {
   r.u = abs(r.u);
   return r;
 }
-// @}
+///@}
 
 template <typename T, typename U, int N>
 T scalar_cast(const diff<U, N> &x) {

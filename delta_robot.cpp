@@ -199,7 +199,6 @@ void delta_robot::init() {
 
   // Reset the motors.
   for (auto a : arms) {
-    a->set_stop_mode(motor::stop_mode_hold);
     a->run();
   }
 

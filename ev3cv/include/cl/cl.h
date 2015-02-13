@@ -25,10 +25,10 @@ class base_arg;
  * all of the registered non-hidden command line arguments. */
 void usage(const char *arg0);
 /** Parse the command line arguments from argc, argv. */
-// @{
+///@{
 void parse(const char *arg0, int argc, const char **argv);
 void parse(int argc, const char **argv);
-// @}
+///@}
 /** Parse a single argument. */
 void parse(const std::string &arg);
 /** Parse a stream of arguments. */
@@ -90,33 +90,33 @@ public:
   virtual void print(std::ostream &os) { os << "   " << desc_ << std::endl; }
     
   /** The single character name of this argument. */
-  // @{
+  ///@{
   char flag() const { return flag_; }
   void set_flag(char f) { flag_ = f; }
-  // @}
+  ///@}
 
   /** The multi-character name of this argument. */
-  // @{
+  ///@{
   const std::string &name() const { return name_; }
   void set_name(std::string name) { name_ = std::move(name); }
-  // @}
+  ///@}
 
   /** Description and logical grouping of this argument. */
-  // @{
+  ///@{
   const std::string &desc() const { return desc_; }
   void set_desc(std::string desc) { desc_ = std::move(desc); }
   const std::string &group() const { return group_; }
   void set_group(std::string group) { group_ = std::move(group); }
-  // @}
+  ///@}
 
   /** Check if this argument has flag set. */
   bool has_flag(arg_flag f) const { return (flags_ & f) != 0; }
 
   /** Add or remove multiple flags from this argument. */
-  // @{
+  ///@{
   void add_flags(unsigned flags) { flags_ |= flags; }
   void remove_flags(unsigned flags) { flags_ &= (~flags); }
-  // @}
+  ///@}
 
   /** If this argument has been parsed or not. */
   bool parsed() const { return parsed_; }
@@ -133,18 +133,18 @@ protected:
 
 public:
   /** Conversion to the value of the argument. */
-  // @{
+  ///@{
   operator const T&() const { return value; }
   operator T&() { return value; }
-  // @}
+  ///@}
 
   /** Implements pointer semantics for accessing the value of the argument. */
-  // @{
+  ///@{
   const T* operator -> () const { return &value; }
   const T& operator * () const { return value; }
   T* operator -> () { return &value; }
   T& operator * () { return value; }
-  // @}
+  ///@}
 
   /** Assign the value of this argument. */
   void operator = (const T& v) { value = v; }
@@ -217,7 +217,7 @@ protected:
 
 public:
   /** Provide random access container semantics for the values parsed by this argument. */
-  // @{
+  ///@{
   typedef typename std::vector<T>::iterator iterator;
   typedef typename std::vector<T>::const_iterator const_iterator;
 
@@ -229,15 +229,16 @@ public:
   T& operator[] (size_t i) { return values_[i]; }
   const T &operator[] (size_t i) const { return values_[i]; }
   bool empty() const { return values_.empty(); }
-  // @}
+  ///@}
     
   base_arg_list(
       const arg_setter &a1 = null_arg_setter(), 
       const arg_setter &a2 = null_arg_setter(), 
       const arg_setter &a3 = null_arg_setter(), 
       const arg_setter &a4 = null_arg_setter(), 
-      const arg_setter &a5 = null_arg_setter()) 
-    : base_arg(cl::flags(multi), a1, a2, a3, a4, a5) {}
+      const arg_setter &a5 = null_arg_setter(),
+      const arg_setter &a6 = null_arg_setter()) 
+    : base_arg(a1, a2, a3, a4, a5, a6) { add_flags(multi); }
 
   void print(std::ostream &os) {
     if (flag_ != 0) os << "-" << flag() << ", ";
@@ -283,7 +284,7 @@ public:
 };
 
 /** Set the various attributes of a command line argument. */
-// @{
+///@{
 class name : public arg_setter {
   std::string v;
 public:
@@ -325,7 +326,7 @@ public:
   group(std::string v) : v(std::move(v)) {}
   void apply(base_arg *a) const { a->set_group(v); }
 };
-// @}
+///@}
 
 }  // namespace cl
 }  // namespace ev3cv
