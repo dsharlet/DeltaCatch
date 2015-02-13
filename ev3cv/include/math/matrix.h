@@ -10,7 +10,7 @@ namespace ev3cv {
 /** A constant reference to a matrix. This is intended to be passed by value,
  * as it is itself a reference type, i.e. copies are shallow.
  * If the template dimensions are 0, the matrix is dynamically sized. */
-template <typename T, int M_ = 0, int N_ = 0, int M_stride = N_, int N_stride = 1>
+template <typename T, int M_ = 0, int N_ = 0>
 class const_matrix_ref {
 protected:
   T *x;
@@ -30,7 +30,7 @@ public:
 
   /** Get an element at row i, column j. */
   ///@{
-  T at(int i, int j) const { return x[i*M_stride + j*N_stride]; }
+  T at(int i, int j) const { return x[i*N() + j]; }
   T operator() (int i, int j) const { return at(i, j); }
   ///@}
 
