@@ -116,6 +116,14 @@ public:
     return *this;
   }
   ///@}
+
+  /** Copy the contents of A to this matrix. */
+  matrix_ref &operator = (const_ref A) {
+    for (int i = 0; i < M(); i++)
+      for (int j = 0; j < N(); j++)
+        at(i, j) = A(i, j);
+    return *this;
+  }
 };
 
 /** Non-reference matrix type. This class contains storage, and copies
