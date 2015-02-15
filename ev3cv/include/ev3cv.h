@@ -43,12 +43,19 @@ using std::tan;
 static const float pi = 3.1415926535897f;
 
 /** Compute the square of x, x^2. */
-template <typename T> T sqr(T x) { return x*x; }
+template <typename T> 
+T sqr(T x) { return x*x; }
 /** Compute the reciprocal of x, 1/x. */
-template <typename T> T rcp(T x) { return 1/x; }
+template <typename T> 
+T rcp(T x) { return 1/x; }
 
 /** Bound x to be in the range [a, b]. */
-template <typename T> T clamp(T x, T a, T b) { return min(max(x, a), b); }
+template <typename T> 
+T clamp(T x, T a, T b) { return min(max(x, a), b); }
+
+/** Evaluate \f$sinc(x) = sin(x)/x\f$. */
+template <typename T> 
+T sinc(T x) { return abs(x) < 1e-6 ? 1 : sin(x)/x; }
 
 /** Compute a random float in [a, b). */
 inline float randf(float a = 0.0f, float b = 1.0f) { return (static_cast<float>(rand()) / RAND_MAX)*(b - a) + a; }
