@@ -21,7 +21,6 @@ float calibrate(
     const string &enable,
     int max_iterations, float epsilon,
     float lambda_init, float lambda_decay) {
-
   typedef diff<double, 26> d;
   
   camera<d> cam0 = camera_cast<d>(cam0f);
@@ -94,17 +93,19 @@ float calibrate(
   double prev_error = numeric_limits<double>::infinity();
   camera<d> prev_cam0 = cam0;
   camera<d> prev_cam1 = cam1;
+  vector3<d> prev_R0 = R0;
+  vector3<d> prev_R1 = R1;
   vector<vector3<d>> prev_spheres = spheres;
-
+  
+  double error = prev_error;
   for (int it = 1; it <= max_iterations; it++) {
     d baseline = abs(cam1.x - cam0.x);
     vector3<d> b = unit(cam1.x - cam0.x);
     
-    double error = 0;
-
     // Compute J^T*J and b.
     matrix<double> JTJ(N, N);
     matrix<double> JTy(N, 1);
+    error = 0;
     
     for (size_t i = 0; i < sphere_observations.size(); i++) {
       double r_i = sphere_observations[i].radius;
@@ -152,15 +153,20 @@ float calibrate(
     if (error > prev_error) {
       log << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
         << error << ", lambda=" << lambda << endl;
+      lambda_init /= lambda_decay;
       lambda = lambda_init*randf(1.0f, 1.0f/lambda_decay);
       prev_error = error;
       cam0 = prev_cam0;
       cam1 = prev_cam1;
+      R0 = prev_R0;
+      R1 = prev_R1;
       spheres = prev_spheres;
       continue;
+    } else {
+      lambda_init = lambda;
     }
     
-    // J^T*J <- J^J*J + lambda*diag(J^J*J)
+    // J^T*J <- J^T*J + lambda*diag(J^T*J)
     for (int i = 0; i < N; i++)
       JTJ(i, i) *= 1 + lambda;
     
@@ -178,6 +184,8 @@ float calibrate(
     prev_error = error;
     prev_cam0 = cam0;
     prev_cam1 = cam1;
+    prev_R0 = R0;
+    prev_R1 = R1;
     prev_spheres = spheres;
 
     int n = 0;
@@ -218,16 +226,17 @@ float calibrate(
       }
     }
             
-    if (dot(dB, dB) < epsilon*epsilon) {
+    if (dot(dB, dB) < epsilon*epsilon && lambda < lambda_init*pow(lambda_decay, 5)) {
       log << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
-      cam0f = camera_cast<float>(cam0);
-      cam1f = camera_cast<float>(cam1);
-      //for (size_t i = 0; i < sphere_observations.size(); i++)
-      //  sphere_observations[i].center = vector_cast<float>(spheres[i]);
-      return scalar_cast<float>(error);
+      break;
     }
   }
-  throw runtime_error("calibration optimization failed to converge");
+  
+  cam0f = camera_cast<float>(cam0);
+  cam1f = camera_cast<float>(cam1);
+  //for (size_t i = 0; i < sphere_observations.size(); i++)
+  //  sphere_observations[i].center = vector_cast<float>(spheres[i]);
+  return error;
 }
 
 namespace {

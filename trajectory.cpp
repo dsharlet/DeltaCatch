@@ -174,10 +174,13 @@ float estimate_trajectory(
     if (error > prev_error) {
       dbg(2) << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
         << error << ", lambda=" << lambda << endl;
+      lambda_init /= lambda_decay;
       lambda = lambda_init*randf(1.0f, 1.0f/lambda_decay);
       prev_error = error;
       tj = prev_tj;
       continue;
+    } else {
+      lambda_init = lambda_decay;
     }
 
     // J^T*J <- J^J*J + lambda*diag(J^J*J)
