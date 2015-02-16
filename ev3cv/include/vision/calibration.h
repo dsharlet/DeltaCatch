@@ -38,8 +38,8 @@ Once the calibration_data file contains data from 3-4 capture sessions, you can 
 your cameras is to provide an initial guess. The default initial guess contains a reasonable estimate for the intrinsic parameters for
 the standard NXTcam lens. However, you will need to provide the camera position and orientation. 
 
-The position is not calibrated, so you must provide a good estimate of the position of the cameras. Position is specified with the 
-command line arguments `--cam0-position "[x0 y0 z0]"` and `--cam1-position "[x1 y1 z1]"`.
+The position is not calibrated, so you must provide a good estimate of the position of the cameras relative to the origin chosen above. 
+Position is specified with the command line arguments `--cam0-position "[x0 y0 z0]"` and `--cam1-position "[x1 y1 z1]"`.
 
 The orientation is provided via the basis vectors of the coordinate system containing the sensor. If the camera is oriented such that
 the x and y coordinates of the sensor readings correspond to the X and Y axes of the global coordinate system, then the basis vectors 
@@ -94,7 +94,7 @@ struct sphere_observation_set {
  * over.
  * \param[in, out] cam0 Parameters for camera 0. The input value is used as an initial guess.
  * \param[in, out] cam1 Parameters for camera 1. The input value is used as an initial guess.
- * @see sphere_observation_set
+ * \see sphere_observation_set
  */
 float calibrate(
     const std::vector<sphere_observation_set> &sphere_observations,
@@ -110,7 +110,7 @@ float calibrate(
  * rotation, where \f$\theta=|x|\f$, and \f$\omega=x/|x|\f$. 
  *
  * This representation is useful for solving optimization problems involving rotation. Note
- * that to_rodrigues does not use q.b in its result if the rotation is near the singularity of
+ * that to_rodrigues does not use q.b in its result if the rotation is near a singularity of the
  * axis-angle representation. This can be problematic if T is an automatic differentation type.
  */
 ///@{

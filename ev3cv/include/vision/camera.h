@@ -46,7 +46,8 @@ positive values correspond to pincushion distortion.
 
 A typical value for the standard NXTcam lens appears to be roughly \f$d_1=[{-0.05}\;{-0.05}]^T\f$.
 
-This distortion model is highly simplified compared to that found in e.g. OpenCV. Due to the low resolution and other calibration challenges, I found it very difficult
+This distortion model is highly simplified compared to that found in e.g. OpenCV. Due to the low 
+resolution and other calibration challenges imposed by cameras for EV3, I found it very difficult 
 to calibrate a distortion model with even one higher order term.
 
 */
@@ -110,7 +111,10 @@ struct camera {
         x);
   }
 
-  /** Construct a camera description from lens and sensor information. */
+  /** Construct a camera description from lens and sensor information. 
+   * \param[in] sensor_size the size of the sensor of the device.
+   * \param[in] focal_length the focal length of the lens.
+   */
   static camera from_lens(
       const vector2<T> &resolution,
       const vector2<T> &d1,
