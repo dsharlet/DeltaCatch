@@ -19,7 +19,7 @@ static cl::arg<float> epsilon(
   cl::name("epsilon"),
   cl::desc("Number to consider to be zero when solving optimization problems."),
   optimization_group);
-static cl::arg<float> lambda_recovery(
+static cl::arg<float> lambda_init(
   1.0f,
   cl::name("lambda-init"),
   cl::desc("Initial value of Levenberg-Marquardt damping parameter."),
@@ -139,7 +139,7 @@ float estimate_trajectory(
   // Levenberg-Marquardt state.
   trajectory<d> prev_tj = tj;
   float prev_error = std::numeric_limits<float>::infinity();
-  float lambda = lambda_recovery;
+  float lambda = lambda_init;
 
   int it;
   for (it = 1; it <= max_iterations; it++) {
@@ -174,7 +174,7 @@ float estimate_trajectory(
     if (error > prev_error) {
       dbg(2) << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
         << error << ", lambda=" << lambda << endl;
-      lambda = lambda_recovery;
+      lambda = lambda_init*randf(1.0f, 1.0f/lambda_decay);
       prev_error = error;
       tj = prev_tj;
       continue;

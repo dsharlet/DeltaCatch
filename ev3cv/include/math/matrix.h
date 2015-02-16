@@ -1,3 +1,7 @@
+/** \file matrix.h
+ * Defines linear algebra types and helper functions.
+ */
+
 #ifndef EV3CV_MATH_MATRIX_H
 #define EV3CV_MATH_MATRIX_H
 

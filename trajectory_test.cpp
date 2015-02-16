@@ -117,7 +117,7 @@ int main(int argc, const char **argv) {
     cameraf cam[2] = { cam0, cam1 };
     for (int i = 0; i < test_count; i++) {
       // Use a random time shift of +/- 1 frame.
-      float dt = (randf()*2.0f - 1.0f)*T;
+      float dt = randf(-1.0f, 1.0f)*T;
 
       // Generate a trajectory to test with.
       trajectoryf tj = tj_init;

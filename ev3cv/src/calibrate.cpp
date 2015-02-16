@@ -91,7 +91,7 @@ struct camera_config {
         vector_cast<float>(*resolution), 
         distortion,
         sensor_dim, focal_length,
-        quaternionf::from_basis(*x, *y, unit(cross(*x, *y))),
+        quaternionf::from_basis(unit(*x), unit(*y), unit(cross(*x, *y))),
         position);
   }
 };
@@ -144,25 +144,20 @@ static cl::arg<int> sample_count(
   cl::name("sample-count"),
   cl::desc("Number of samples to capture."),
   capture_group);
+static cl::arg<int> sample_distance(
+  10.0f,
+  cl::name("sample-distance"),
+  cl::desc("Total distance overed by the object to sample, in multiples of the sensor diagonal."),
+  capture_group);
 static cl::arg<vector3f> sample_center(
   vector3f(0.0f),
   cl::name("sample-center"),
   cl::desc("Center of the sampling sphere."),
   capture_group);
 static cl::arg<float> sample_radius(
-  77.5f,
+  82.0f,
   cl::name("sample-radius"),
   cl::desc("Radius of the sampling sphere."),
-  capture_group);
-static cl::arg<float> sample_min_dx(
-  20.0f,
-  cl::name("sample-min-dx"),
-  cl::desc("Minimum distance between samples."),
-  capture_group);
-static cl::arg<float> sample_noise_tolerance(
-  1.0f,
-  cl::name("sample-noise-tolerance"),
-  cl::desc("Maximum allowed error in a set of observations to be taken as a sample."),
   capture_group);
 static cl::arg<float> sample_rate(
   30.0f,
@@ -206,7 +201,7 @@ static cl::arg<float> lambda_init(
   cl::desc("Initial value of Levenberg-Marquardt damping parameter."),
   optimization_group);
 static cl::arg<float> lambda_decay(
-  0.9f,
+  0.5f,
   cl::name("lambda-decay"),
   cl::desc("Decay ratio of the Levenberg-Marquardt damping parameter on a successful iteration."),
   optimization_group);
@@ -265,26 +260,6 @@ void dump_config(ostream &os, const string &prefix, cameraf &cam0, const cameraf
   dump_config(os, prefix + "cam1-", cam1);
 }
 
-template <size_t N>
-vector2f mean(const circular_array<vector2f, N> &x) {
-  vector2f mu(0.0f);
-  for (size_t i = x.begin(); i != x.end(); i++)
-    mu += x[i];
-  return mu/x.size();
-}
-
-template <size_t N>
-pair<vector2f, vector2f> min_max(const circular_array<vector2f, N> &x) {
-  vector2f a(numeric_limits<float>::infinity());
-  vector2f b(-numeric_limits<float>::infinity());
-  for (size_t i = x.begin(); i != x.end(); i++) {
-    a.x = min(a.x, x[i].x);
-    a.y = min(a.y, x[i].y);
-    b.x = max(b.x, x[i].x);
-    b.y = max(b.y, x[i].y);
-  }
-  return make_pair(a, b);
-}
 
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
@@ -309,7 +284,6 @@ int main(int argc, const char **argv) {
     sphere_observation_set &set = spheres.back();
     set.radius = sample_radius;
     set.center = *sample_center;
-    set.samples.reserve(sample_count);
 
     // Turn on the cameras.
     nxtcam cam0(port_to_i2c_path(cam_config0.port));
@@ -322,69 +296,60 @@ int main(int argc, const char **argv) {
     cam1.track_objects();
     cout << "Tracking objects..." << endl;
 
-    chrono::milliseconds sample_period(static_cast<int>(1e3f/sample_rate + 0.5f));
-
-    circular_array<vector2f, 4> x0, x1;
-
     // Capture samples.
-    while (static_cast<int>(set.samples.size()) < sample_count) {
+    int dropped = 0;
+    vector<stereo_observation> obs;
+    chrono::milliseconds sample_period(static_cast<int>(1e3f/sample_rate + 0.5f));
+    while (true) {
       nxtcam::blob_list blobs0 = cam0.blobs();
       nxtcam::blob_list blobs1 = cam1.blobs();
-      
+
       if (blobs0.size() == 1 && blobs1.size() == 1) {
         const nxtcam::blob &b0 = blobs0.front();
         const nxtcam::blob &b1 = blobs1.front();
-        if (b0.x1.x <= cam0_min->x || b0.x1.y <= cam0_min->y ||
-            b0.x2.x >= cam0_max->x || b0.x2.y >= cam0_max->y)
-          continue;
-        if (b1.x1.x <= cam1_min->x || b1.x1.y <= cam1_min->y ||
-            b1.x2.x >= cam1_max->x || b1.x2.y >= cam1_max->y)
-          continue;
+        int d0 = min(min(b0.x1.x - cam0_min->x, b0.x1.y - cam0_min->y),
+                     min(cam0_max->x - b0.x2.x, cam0_max->y - b0.x2.y));
+        int d1 = min(min(b1.x1.x - cam1_min->x, b1.x1.y - cam1_min->y),
+                     min(cam1_max->x - b1.x2.x, cam0_max->y - b1.x2.y));
+        int d = min(d0, d1);
 
-        while(x0.size() >= x0.capacity()) x0.pop_front();
-        while(x1.size() >= x1.capacity()) x1.pop_front();
-        x0.push_back(b0.center());
-        x1.push_back(b1.center());
-
-        vector2f x0_mean = mean(x0);
-        vector2f x1_mean = mean(x1);
-
-        cout << "\rn=" << set.samples.size() << ", x0=" << x0_mean << ", x1=" << x1_mean << "                  ";
-        cout.flush();
-
-        // Only take a sample if we have a full set of observations to filter.
-        if (x0.size() >= x0.capacity() || x1.size() >= x1.capacity()) {
-          // Only take a sample if the min and max of the observations in the buffer are within noise tolerances.
-          vector2f x0_min, x0_max;
-          vector2f x1_min, x1_max;
-          tie(x0_min, x0_max) = min_max(x0);
-          tie(x1_min, x1_max) = min_max(x1);
-          if (abs(x0_max - x0_min) < sample_noise_tolerance &&
-              abs(x1_max - x1_min) < sample_noise_tolerance) {
-            if(set.samples.empty()) {
-              set.samples.push_back({x0_mean, x1_mean});
-              cout << endl;
-            } else { 
-              float dx = max(abs(x0_mean - set.samples.back().x0), abs(x1_mean - set.samples.back().x1));
-              if (sample_min_dx <= dx) {
-                set.samples.push_back({x0_mean, x1_mean});
-                cout << endl;
-              }
-            }
-          }
+        if (d > 0) {
+          stereo_observation b = { b0.center(), b1.center() };
+          if (d > 20)
+            cout << "\x1b[0m";
+          else if (d > 10)
+            cout << "\x1b[30;47m";
+          else
+            cout << "\x1b[37;41m";
+          cout << "\rx0=" << b.x0 << ", x1=" << b.x1;
+          obs.push_back(b);
+          dropped = 0;
+        } else if (dropped++ > 3 && !obs.empty()) {
+          break;
         }
-      } else {
-        x0.clear();
-        x1.clear();
-        cout << "\r" << string(79, ' ');
-        cout.flush();
+      } else if (dropped++ > 3 && !obs.empty()) {
+        break;
       }
+      cout.flush();
 
       this_thread::sleep_for(sample_period);
     }
+    cout << "\x1b[0m" << endl;
 
     cam0.stop_tracking();
     cam1.stop_tracking();
+    cout << "done tracking" << endl;
+    
+    if (static_cast<int>(obs.size()) < 20 + sample_count * 5)
+      throw runtime_error("not enough samples");
+
+    // Filter, align, and save the observations.
+    filter_observations(obs, 2.0f);
+    synchronize_observations(obs);
+    for (int i = 0; i < sample_count; i++) {
+      int s = i*(obs.size() - 20)/sample_count + 10;
+      set.samples.push_back(obs[s]);
+    }
 
     // Write out the updated calibration data.
     ofstream output(calibration_data_file);

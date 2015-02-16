@@ -152,7 +152,7 @@ float calibrate(
     if (error > prev_error) {
       log << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
         << error << ", lambda=" << lambda << endl;
-      lambda = lambda_init * (1.0f + randf());
+      lambda = lambda_init*randf(1.0f, 1.0f/lambda_decay);
       prev_error = error;
       cam0 = prev_cam0;
       cam1 = prev_cam1;
@@ -228,6 +228,117 @@ float calibrate(
     }
   }
   throw runtime_error("calibration optimization failed to converge");
+}
+
+namespace {
+  
+template <typename It>
+void normalize_filter(It begin, It end) {
+  double sum = 0.0;
+  for (It i = begin; i != end; i++)
+    sum += *i;
+  for (It i = begin; i != end; i++)
+    *i /= sum;
+}
+
+}
+
+void filter_observations(vector<stereo_observation> &obs, float sigma) {
+  // Generate a Gaussian filter.
+  sigma = max(sigma, 1e-3f);
+  int N = static_cast<int>(ceil(sigma*5));
+  N = (N/2)*2 + 1;
+  vector<float> gaussian(N);
+  float sqr_sigma = sqr(sigma);
+  for (int i = 0; i < N; i++) {
+    float x = i - N/2;
+    gaussian[i] = exp(-sqr(x)/sqr_sigma);
+  }
+  normalize_filter(gaussian.begin(), gaussian.end());
+  
+  // Filter the observations.
+  vector<stereo_observation> obs_f;
+  obs_f.reserve(obs.size() - N);
+  for (int i = 0; i < static_cast<int>(obs.size()); i++) {
+    stereo_observation f;
+    for (int j = 0; j < N; j++) {
+      int idx = clamp(i + j - N/2, 0, static_cast<int>(obs.size()));
+
+      f.x0 += obs[idx].x0*gaussian[j];
+      f.x1 += obs[idx].x1*gaussian[j];
+    }
+    obs_f.push_back(f);
+  }
+
+  swap(obs_f, obs);
+}
+
+float estimate_time_shift(const vector<stereo_observation> &obs) {
+  // Compute the velocity of the observations.
+  vector<stereo_observation> vobs;
+  vobs.reserve(obs.size());
+  for (size_t i = 0; i + 1 < obs.size(); i++)
+    vobs.push_back({obs[i].x0 - obs[i + 1].x0, obs[i].x1 - obs[i + 1].x1});
+
+  // Compute the L2 norm error between the sequences of velocities, 
+  // with +/- 1 frame of shift.
+  float l2_mem[3] = { 0.0f, 0.0f, 0.0f };
+  float *l2 = &l2_mem[1];
+  for (int i = 1; i + 1 < static_cast<int>(vobs.size()); i++)
+    for (int shift = -1; shift <= 1; shift++)
+      l2[shift] += sqr_abs(vobs[i].x0 - vobs[i - shift].x1);
+  
+  // Fit a parabola to l2.
+  float C = l2[0];
+  float A = (l2[-1] + l2[1] - 2*C)/2;
+  float B = l2[1] - A - C;
+
+  // Check that parabola is concave up.
+  if (A <= 0.0f) 
+    throw runtime_error("bad time shift");
+
+  // Find the minimum of the parabola.
+  float du = -B/(2*A);
+  if (du < -1.0f || du > 1.0f)
+    throw runtime_error("time shift was greater than +/- 1 frame");
+
+  return du;
+}
+
+void synchronize_observations(vector<stereo_observation> &obs, float shift) {
+  // Construct a Lanczos interpolation filter.
+  const int lobes = 3;
+  array<float, lobes*2 + 1> lcz;
+  int u = static_cast<int>(floor(shift + 0.5f));
+  float du = shift - u;
+  
+  for (int i = 0; i < lobes*2 + 1; i++) {
+    float x = i - lobes + du;
+    lcz[i] = sinc(pi*x)*sinc(pi*x/lobes);
+  }
+  normalize_filter(lcz.begin(), lcz.end());
+  
+  // Filter the second observation sequence.
+  vector<stereo_observation> shifted;
+  shifted.reserve(obs.size());
+  for (int i = 0; i < static_cast<int>(obs.size()); i++) {
+    stereo_observation f;
+    f.x0 = obs[i].x0;
+    for (int j = 0; j < static_cast<int>(lcz.size()); j++) {
+      int idx = clamp(i - u + j - lobes, 0, static_cast<int>(obs.size()));
+      f.x1 += obs[idx].x1*lcz[j];
+    }
+    shifted.push_back(f);
+  }
+
+  // Replace the observations.
+  swap(shifted, obs);
+}
+
+float synchronize_observations(vector<stereo_observation> &obs) {
+  float shift = estimate_time_shift(obs);
+  synchronize_observations(obs, shift);
+  return shift;
 }
 
 }  // namespace ev3cv

@@ -1,3 +1,7 @@
+/** \file nxtcam.h
+ * Support for NXTcam in ev3dev.
+ */
+
 #ifndef EV3CV_EV3_NXTCAM_H
 #define EV3CV_EV3_NXTCAM_H
 
@@ -30,7 +34,7 @@ public:
   typedef std::vector<blob> blob_list;
 
   /** Connect to an NXTcam at the given path. To convert an ev3dev input port 
-   * specification to a path, see \ref port_to_i2c_path. */
+   * specification to a path, see ev3cv::port_to_i2c_path. */
   nxtcam(const std::string &path, int address = 0x01);
   ~nxtcam();
   

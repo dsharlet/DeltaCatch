@@ -9,7 +9,9 @@
 
 namespace ev3cv {
 
-/** Control an EV3 motor with a PID controller. */ 
+/** Control an ev3dev::motor with a PID controller. Although ev3dev::motor uses a PID controller internally,
+ * it is difficult to update the setpoint continuously without oscillation. ev3cv::servo is designed to support
+ * this use case, and also provides an interface for controlling the setpoint via a callback function. */ 
 class servo {
 protected:
   ev3dev::motor m_;
@@ -45,10 +47,10 @@ public:
   ///@}
 
   /** Stop the servo.
-   * @param[in] hold Indicate whether the motor should hold position or not */ 
+   * \param[in] hold Indicate whether the motor should hold position or not */ 
   void stop(bool hold = true);
   /** Reset the state of the servo.
-   * @param[in] position the value to label the current position as. */
+   * \param[in] position value to label the current position. */
   void reset(int position = 0);
 
   /** Get the current position of the servo. */

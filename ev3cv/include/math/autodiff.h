@@ -1,37 +1,84 @@
+/** \file autodiff.h
+ * Defines automatic differentation types and functions.
+ */
+
+/** \page autodiff Automatic differentiation
+
+Automatic differentiation (AD) is an alternative method of computing derivatives, alongside
+numerical finite differences or symbolic differentiation. AD is more numerically stable and 
+efficient compared to finite differences, and is easier to implement and less intrusive to
+algorithm code than symbolic differentiation (or manually finding derivatives of an expression).
+
+AD works by computing derivatives at the same time as evaluating a function. An AD library 
+provides a set of basic arithmetic building blocks using the chain rule. 
+
+For a more thorough explanation of automatic differentiation, see 
+<a href="http://en.wikipedia.org/wiki/Automatic_differentiation">Automatic differentiation</a> 
+on wikipedia. The rest of this page describes the specifics of the ev3cv::diff type.
+
+The typical technique to use this type is to define a function of which the derivative is needed 
+as a template, and call this function with this type. For example:
+
+\code
+// Evaluate the polynomial A*x^2 + B*x + C
+template <typename T>
+T f(T x) {
+  return T(3)*sqr(x) + T(1)*x + T(4);
+}
+\endcode
+    
+Now, the derivative of f can be computed like so:
+\code
+diff<double, 1> x = 3.5;
+
+// By default, diff types have derivatives of 0 (i.e. constants), 
+// but since this is x, it should have a derivative of 1.
+D(x) = 1;
+
+// Evaluate y = f(x).
+diff<double, 1> y = f(x);
+
+// The above line computed both f(3.5) and f'(3.5):
+double fx = scalar_cast<double>(y);
+double df_dx = D(y);
+\endcode
+
+The above example only computed a single derivative. However, ev3cv::diff supports computing 
+up to some fixed number of partial derivatives simultaneously:
+
+\code
+template <typename T>
+T f(T x, T y) {
+  return T(3)*sqr(x) + T(1)*x*y + T(4)*sqr(y);
+}
+\endcode
+
+\code
+diff<double, 2> x = 3.14159;
+diff<double, 2> y = 2.71828;
+
+// Note that the indices here correpsond to variables. x -> 0, y -> 1.
+D(x, 0) = 1;
+D(y, 1) = 1;
+
+// Evaluate z = f(x, y).
+diff<double, 1> z = f(x, y);
+
+// The above line computed all of f(x, y), df/dx and df/dy at x, y.
+double fxy = scalar_cast<double>(z);
+double df_dx = D(z, 0);
+double df_dy = D(z, 1);
+\endcode
+
+*/
+
 #ifndef EV3CV_MATH_AUTODIFF_H
 #define EV3CV_MATH_AUTODIFF_H
 
 namespace ev3cv {
 
-/** Implements the forward automatic differentiation scheme via operator overloading. This type
- * can be used to compute the derivative of many mathematical expressions. This approach to
- * computing derivatives is convenient because it avoids the need to manually find derivatives,
- * and it is more numerically stable than computing finite differences. 
- *
- * The typical technique to use this type is to define a function as a template, for example:
- * \code
- * // Evaluate the polynomial A*x^2 + B*x + C
- * template <typename T>
- * T f(T A, T B, T C, T x) {
- *   return A*sqr(x) + B*x + C;
- * }
- * \endcode
- *     
- * Now, the derivative of quadratic can be computed like so:
- * \code
- * diff<double, 1> x = 3.5;
- * 
- * // By default, diff types have derivatives of 0, but since 
- * // this is x, it should have a derivative of 1.
- * D(x, 0) = 1.
- * 
- * // Evaluate y = f(x).
- * diff<double, 1> A = 2, B = 3, C = 1;
- * diff<double, 1> y = f(A, B, C, x);
- * 
- * // The above line also computed f'(x):
- * double df_dx = D(y, 0);
- * \endcode
+/** Implements the forward automatic differentiation scheme via operator overloading. For more information, 
+ * see \ref autodiff.
  **/
 template <typename T, int N>
 class diff {

@@ -1,15 +1,22 @@
-/*! \mainpage ev3cv documentation
- *
- * \section intro_sec Introduction
- *
- * This is the introduction.
- *
- * \section install_sec Installation
- *
- * \subsection step1 Step 1: Opening the box
- *  
- * etc...
- */
+/** 
+\mainpage ev3cv documentation
+
+\section about About
+
+ev3cv is a library for helping users of <a href="www.ev3dev.org">ev3dev</a> and cameras like 
+<a href="http://www.mindsensors.com/index.php?module=pagemaster&PAGE_user_op=view_page&PAGE_id=78">NXTcam</a> to build
+robots with LEGOs that have stereo machine vision.
+
+ev3cv also has some other useful support libraries, such as motor controllers (ev3cv::servo) and low level support for 
+NXTcam (ev3cv::nxtcam) in ev3dev.
+
+Here are a few demo videos using ev3cv:
+
+- <a href="https://www.youtube.com/watch?v=jHaB2zdfhHg">Stereo 3D tracking of a ball</a>
+- <a href="https://www.youtube.com/watch?v=vxx3bBVWaxg">ev3dev::motor vs. ev3cv::servo</a>
+
+All of the code in ev3cv is designed to run on the EV3 brick running ev3dev.  
+*/
 
 #ifndef EV3CV_EV3CV_H
 #define EV3CV_EV3CV_H

@@ -1,3 +1,56 @@
+/** \file camera.h
+ * Definition of the ev3cv camera model.
+ */
+
+/** 
+\page cameramodel Camera model
+
+ev3cv uses a pinhole camera model, which maps 3D positions to a single point via a projective
+transformation. The class implementing the camera model described here is ev3cv::camera. The model is defined as:
+
+\f[\alpha u = K [R|x] U \f]
+
+where:
+
+- \f$U = [U_x\;U_y\;U_z\;1]^T\f$ is a 3D homogenous coordinate of the global position of the object;
+- \f$[R|x]\f$ is a linear transformation mapping the 3D global coordinates to the local coordinate system of the camera;
+- \f$K\f$ is the camera calibration matrix containing the \ref intrinsic;
+- \f$u = [u_x\;u_y\;1]^T\f$ is a 2D homogenous coordinate of the projected position of \f$U\f$;
+- \f$\alpha\f$ is a scale factor, representing the fact that a 3D point corresponds to a ray passing through the center of projection.
+
+In addition, there is a non-linear radial \ref distortion mapping \f$u\f$ to \f$u'\f$, the measured 2D coordinate at the sensor.
+
+The ev3cv::camera class represents \f$R\f$ as an ev3cv::quaternion to reduce arithmetic required to evaluate rotations. 
+
+OpenCV's <a href="http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html">camera calibration</a> documentation is 
+a much more thorough treatment of this subject, I have only reproduced the bare minimum to communicate the ways in which ev3cv's camera model differs.
+
+\section intrinsic Intrinsic parameters
+
+The calibration matrix \f$K\f$ containing the intrinsic camera parameters is defined as follows:
+
+\f[K=\left[ \begin{array}{ccc}a_x & s & c_x\\0 & a_y & c_y\\0 & 0 & 1 \end{array} \right]\f]
+
+These parameters are the intrinsic parameters of the camera:
+
+- \f$a\f$ is the camera focal length;
+- \f$c\f$ is the center of projection;
+- \f$s\f$ is a skew parameter (unused and set to 0 by default).
+
+\subsection distortion Distortion model
+
+Distortion is modeled by \f$u'=u (1 + d_1 |u|^2)\f$, where \f$u'\f$ is the 
+distorted sensor observation of the normalized coordinate \f$u\f$. This model roughly
+approximates radial distortion. Negative values of \f$d_1\f$ correspond to barrel distortion,
+positive values correspond to pincushion distortion. 
+
+A typical value for the standard NXTcam lens appears to be roughly \f$d_1=[{-0.05}\;{-0.05}]^T\f$.
+
+This distortion model is highly simplified compared to that found in e.g. OpenCV. Due to the low resolution and other calibration challenges, I found it very difficult
+to calibrate a distortion model with even one higher order term.
+
+*/
+
 #ifndef EV3CV_VISION_CAMERA_H
 #define EV3CV_VISION_CAMERA_H
 
@@ -6,13 +59,13 @@
 namespace ev3cv {
 
 /** Defines the mapping of coordinates in 3D image space through a lens with radial distortion
- * to a camera sensor. */
+ * to a camera sensor. For more information about the camera model, see \ref cameramodel. */
 template <typename T>
 struct camera {
+  /** Resolution in pixels of the camera sensor. */
   vector2<T> resolution;
 
-  /** Distortion is modeled by \f$u'=u (1 + d_1 |u|^2)\f$, where \f$u'\f$ is the
-   * distorted sensor observation of the normalized coordinate \f$u\f$. */
+  /** Distortion model parameters. See \ref distortion. */
   vector2<T> d1;
   
   /** Elements of the camera calibration matrix \f$K\f$. */
@@ -75,9 +128,7 @@ struct camera {
         x);
   }
  
-  /** Realize the actual calibration matrix \f$K\f$ from the intrinsic parameters. \f$K\f$ is defined as follows:
-   * \f[K=\left[ \begin{array}{ccc}a_x & s & c_x\\0 & a_y & c_y\\0 & 0 & 1 \end{array} \right]\f]
-   */
+  /** Realize the actual calibration matrix \f$K\f$ from the intrinsic parameters (see \ref intrinsic). */
   matrix<T, 3, 3> K() const {
     matrix<T, 3, 3> k;
     k(0, 0) = a.x; k(0, 1) = s;   k(0, 2) = c.x;
@@ -166,6 +217,7 @@ struct camera {
   }
 };
 
+/** Convert a camera<U> to a camera<T>. */
 template <typename T, typename U>
 camera<T> camera_cast(const camera<U> &x) {
   camera<T> y;

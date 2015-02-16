@@ -1,3 +1,58 @@
+/** \file cl.h
+ * Provides command line parsing utilities.
+ */
+
+/** \page cl Command line parsing
+
+The ev3cv::cl namespace provides a command line parsing library. The library is designed to support a 
+decentralized declaration of command line parameters. This helps to avoid a monolithic blob of command
+line parsing code that tends to get duplicated if multiple programs need similar arguments. The design
+of the library is loosely inspired by the 
+<a href="http://llvm.org/docs/CommandLine.html">LLVM CommandLine</a> library.
+
+To use ev3cv::cl, first declare some command line arguments somewhere:
+
+\section example Example
+
+\code
+namespace cl = ev3cv::cl;
+
+cl::arg<int> integer_argument(
+    2, // default value
+    cl::name("an-integer"),
+    cl::desc("An integer argument to this program."));
+cl::boolean switch_argument(
+    cl::name("a-switch"),
+    cl::flag("s"),
+    cl::desc("A switch argument to this program."));
+\endcode
+
+When declaring an argument anywhere in the program, the argument is registered with a global set
+of command line arguments. The properties of an argument can be set with the member functions of
+ev3cv::cl::base_arg. However, to facilitate the common case of declaring command line arguments
+globally, there is a system of setters (ev3cv::cl::name, ev3cv::cl::flag, ev3cv::cl::desc, etc.) 
+that can be passed to the constructor in any order.
+
+To use the arguments, call parse with the arguments given to `main`:
+
+\code
+int main(int argc, const char **argv) {
+  // argv[0] is the name of the program being executed. Pass this to parse to get a more useful
+  // help message when the user runs "program -?"
+  cl::parse(argv[0], argc - 1, argv + 1);
+
+  // After running parse, the arguments declared above will have the values specified by the user
+  // on the command line:
+  if (switch_argument)
+    std::cout << "User specified "-s" or "--a-switch" on the command line" << std::endl;
+  std::cout << "The value of integer_argument is " << *integer_argument << std::endl;
+
+  return 0;
+}
+\endcode
+
+*/
+
 #ifndef EV3CV_CL_CL_H
 #define EV3CV_CL_CL_H
 
@@ -23,10 +78,10 @@ class base_arg;
 
 /** Print out the usage string for this application. This will show the name and descriptions of 
  * all of the registered non-hidden command line arguments. */
-void usage(const char *arg0);
+void usage(const char *argv0);
 /** Parse the command line arguments from argc, argv. */
 ///@{
-void parse(const char *arg0, int argc, const char **argv);
+void parse(const char *argv0, int argc, const char **argv);
 void parse(int argc, const char **argv);
 ///@}
 /** Parse a single argument. */

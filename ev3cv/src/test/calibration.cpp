@@ -51,16 +51,67 @@ static cl::arg<float> epsilon(
   cl::name("epsilon"),
   cl::desc("Amount of error to allow for a test to be considered successful."));
 
-int main(int argc, const char **argv) {
-  cl::parse(argv[0], argc - 1, argv + 1);
-
-  // Test Rodrigues helpers first.
-  for (int i = 0; i < 1000; i++) {
+void test_rodrigues(int count) {
+  for (int i = 0; i < count; i++) {
     quaternion<double> q = unit(quaternion_cast<double>(quaternionf(randf(), randv3f())));
     ASSERT_LT(abs(q - from_rodrigues(to_rodrigues(q))), 1e-6);
   }
+}
 
-  for (int n = 0; n < test_count; n++) {
+void test_filter() {
+  vector<stereo_observation> flat(100, {1.0f, 1.0f});
+  filter_observations(flat, 2.0f);
+  for (const auto &i : flat) {
+    ASSERT_LT(abs(i.x0 - vector2f(1.0f)), 1e-6f);
+    ASSERT_LT(abs(i.x1 - vector2f(1.0f)), 1e-6f);
+  }
+
+  const int N = 100;
+  vector<stereo_observation> line(N);
+  for (int i = 0; i < N; i++) {
+    line[i].x0 = vector2f(i, i);
+    line[i].x1 = vector2f(-i, i);
+  }
+
+  filter_observations(line, 2.0f);
+  for (int i = 10; i + 10 < N; i++) {
+    ASSERT_LT(abs(line[i].x0 - vector2f(i, i)), 1e-4f);
+    ASSERT_LT(abs(line[i].x1 - vector2f(-i, i)), 1e-4f);
+  }
+}
+
+void test_synchronize(int count) {
+  for (int i = 0; i < count; i++) {
+    try {
+      // Generate a circle of observations.
+      float r = randf(20.0f, 50.0f);
+      int N = 50;// rand()%100 + 50;
+      float shift = randf(-1.0f, 1.0f);
+      float theta_shift = shift*(2*pi/N);
+      vector<stereo_observation> obs;
+      obs.reserve(N);
+      for (int j = 0; j < N; j++) {
+        float theta = 2*pi*j/N;
+        obs.push_back({
+            vector2f(cos(theta), sin(theta))*r, 
+            vector2f(cos(theta + theta_shift), sin(theta + theta_shift))*r
+        });
+      }
+
+      float dx = synchronize_observations(obs);
+      ASSERT_LT(abs(dx - shift), 1e-3f);
+
+      for (int i = 10; i + 10 < N; i++) {
+        ASSERT_LT(abs(obs[i].x0 - obs[i].x1), 1e-2f*max(abs(obs[i].x0), abs(obs[i].x1)));
+      }
+    } catch(exception &ex) {
+      cout << ex.what() << endl;
+    }
+  }
+}
+
+void test_calibrate(int count) {
+  for (int n = 0; n < count; n++) {
     try {
       // Set up some cameras with a baseline on the x axis, looking down the z axis.
       cameraf cam0 = cameraf::from_lens(
@@ -136,5 +187,15 @@ int main(int argc, const char **argv) {
       cout << ex.what() << endl;
     }
   }
+}
+
+int main(int argc, const char **argv) {
+  cl::parse(argv[0], argc - 1, argv + 1);
+
+  test_rodrigues(1000);
+  test_synchronize(10);
+  test_filter();
+  test_calibrate(test_count);
+
   return 0;
 }

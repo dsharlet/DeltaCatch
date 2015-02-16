@@ -1,9 +1,13 @@
+/** \file quaternion.h
+ * Defines quaternion type and helper functions.
+ */
+
 #ifndef EV3CV_MATH_QUATERNION_H
 #define EV3CV_MATH_QUATERNION_H
 
 namespace ev3cv {
 
-/** Defines a quaternion \f$q = a + i b_x + j b_y + k b_z\f$. */
+/** Defines a quaternion \f$q = a + \mathbf{i} b_x + \mathbf{j} b_y + \mathbf{k} b_z\f$. */
 template <typename T>
 class quaternion {
 public:
@@ -12,12 +16,12 @@ public:
 
   /** Construct a quaternion \f$q = a\f$. */
   quaternion(T a = 0) : a(a) {}
-  /** Construct a quaternion \f$q = a + i b + j c + k d\f$. */
+  /** Construct a quaternion \f$q = a + \mathbf{i} b + \mathbf{j} c + \mathbf{k} d\f$. */
   quaternion(T a, T b, T c, T d) : a(a), b(b, c, d) {}
-  /** Construct a quaternion \f$q = a + i b + j c + k d\f$. */
+  /** Construct a quaternion \f$q = a + \mathbf{i} b + \mathbf{j} c + \mathbf{k} d\f$. */
   quaternion(T a, const vector3<T> &b) : a(a), b(b) {}
   
-  /** Construct a quaternion from an orthonormal basis \f$[x y z]\f$. */
+  /** Construct a quaternion from an orthonormal basis \f$[x\;y\;z]\f$. */
   static quaternion<T> from_basis(const vector3<T> &x, const vector3<T> &y, const vector3<T> &z) {
     T tr = x.x + y.y + z.z;
     if (tr > 0) { 
@@ -51,7 +55,7 @@ public:
     }
   }
 
-  /** Construct a quaternion from an orthonormal basis \f$[x y z]\f$, where \f$z=x \times y\f$.  */
+  /** Construct a quaternion from an orthonormal basis \f$[x\;y\;z]\f$, where \f$z=x \times y\f$.  */
   static quaternion<T> from_basis(const vector3<T> &x, const vector3<T> &y) {
     return from_basis(x, y, cross(x, y));
   }

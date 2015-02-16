@@ -14,6 +14,7 @@ namespace ev3cv {
  * This implementation of the controller has a few additional modifications:
  * - deadband: if \f$|e(t)|<deadband\f$, the output of the controller is 0.
  * - The integral error is limited to be in the range [-i_max, i_max].
+ *
  * These modifications can help avoid small oscillations around constant target setpoints, and
  * the integral error limit avoids error due to large discontinuities in the setpoint.
  */
@@ -34,9 +35,10 @@ public:
   pid_controller(T Kp = 1, T Ki = 1, T Kd = 0, T deadband = 0, T i_max = std::numeric_limits<T>::max()) 
     : sp_(0), y_(0), e_(0), i_(0), Kp_(Kp), Ki_(Ki), Kd_(Kd), deadband_(deadband), i_max_(i_max) {}
 
-  /**  Update the state of the PID controller. 
-   * @param[in] dt the timestep of the update.
-   * @param[in] x current measurement of the state of the system. */
+  /** Update the state of the PID controller. 
+   * \param[in] dt the timestep of the update.
+   * \param[in] x current measurement of the state of the system.
+   * \return the output value of the controller. */
   const T &tick(T x, T dt) {
     if ( dt > 0) {
       T e = sp_ - x;
@@ -56,6 +58,7 @@ public:
 
     return y_;
   }
+  /** \return the last output value of the controller. */
   const T &output() const { return y_; }
 
   /** Clear the internal state of the PID controller. */
