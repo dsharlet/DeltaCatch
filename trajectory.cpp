@@ -183,7 +183,7 @@ float estimate_trajectory(
       lambda_init = lambda_decay;
     }
 
-    // J^T*J <- J^J*J + lambda*diag(J^J*J)
+    // J^T*J <- J^T*J + lambda*diag(J^T*J)
     for (int i = 0; i < N; i++)
       JTJ(i, i) *= 1.0f + lambda;
 
