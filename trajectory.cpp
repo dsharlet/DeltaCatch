@@ -109,9 +109,16 @@ float estimate_trajectory(
     const cameraf &cam0, const cameraf &cam1,
     observation_buffer &obs0, observation_buffer &obs1,
     float &dtf,
-    trajectoryf &tjf) {
+    trajectoryf &tjf,
+    float time_limit) {
   const float epsilon_sq = epsilon*epsilon;
   const float half_g = gravity/2;
+
+  typedef chrono::high_resolution_clock clock;
+  auto t_begin = clock::now();
+  auto t_end = t_begin + chrono::duration<float>(1000.0f);
+  if (time_limit < std::numeric_limits<float>::infinity())
+    t_end = t_begin + chrono::duration<float>(time_limit);
 
   enum variable {
     t = 0,
@@ -214,13 +221,18 @@ float estimate_trajectory(
       }
       break;
     }
+    if (clock::now() > t_end) {
+      dbg(1) << "  time limit exceeded on it=" << it << endl;
+      break;
+    }
   }
 
   tjf.x = vector_cast<float>(tj.x);
   tjf.v = vector_cast<float>(tj.v);
   dtf = scalar_cast<float>(dt);
 
-  dbg(2) << "estimate_trajectory finished, it=" << it << endl;
+  auto time = clock::now() - t_begin;
+  dbg(2) << "estimate_trajectory finished, it=" << it << ", time=" << chrono::duration_cast<chrono::milliseconds>(time).count() << " ms " << endl;
 
   return 0.0f;
 }

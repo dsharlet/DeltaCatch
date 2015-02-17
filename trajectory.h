@@ -54,6 +54,7 @@ float estimate_trajectory(
     float gravity, 
     const cameraf &cam0, const cameraf &cam1,
     observation_buffer &obs0, observation_buffer &obs1,
-    float &dt, trajectoryf &tj);
+    float &dt, trajectoryf &tj,
+    float time_limit = std::numeric_limits<float>::infinity());
 
 #endif

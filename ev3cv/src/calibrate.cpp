@@ -106,7 +106,7 @@ struct nxtcam_config : camera_config {
     : camera_config(
           prefix, port, 
           vector2i(176, 144),
-          vector2f(-0.02f),
+          vector2f(-0.05f),
           4.0f, 1.33f, 3.5f,
           x, y, position) {}
 };

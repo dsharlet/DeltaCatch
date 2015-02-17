@@ -20,10 +20,11 @@ where:
 
 In addition, there is a non-linear radial \ref distortion mapping \f$u\f$ to \f$u'\f$, the measured 2D coordinate at the sensor.
 
-The ev3cv::camera class represents \f$R\f$ as an ev3cv::quaternion to reduce arithmetic required to evaluate rotations. 
+The ev3cv::camera class represents \f$R\f$ as an ev3cv::quaternion. 
 
-OpenCV's <a href="http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html">camera calibration</a> documentation is 
-a much more thorough treatment of this subject, I have only reproduced the bare minimum to communicate the ways in which ev3cv's camera model differs.
+OpenCV's <a href="http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html">camera calibration</a> 
+documentation is a much more thorough treatment of this subject, this documention only reproduces the bare minimum to describe the
+ways in which ev3cv's camera model differs.
 
 \section intrinsic Intrinsic parameters
 

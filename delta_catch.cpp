@@ -67,6 +67,10 @@ static cl::arg<float> reset_delay(
   1.0f,
   cl::name("reset-delay"),
   cl::desc("Delay between initiating a catch action and returning to the ready state."));
+static cl::arg<float> catch_z_offset(
+  5.5f,
+  cl::name("catch-z-offset"),
+  cl::desc("Z offset from the effector position to the intercept position."));
 
 static cl::arg<string> viz_host(
   "",
@@ -165,10 +169,14 @@ int main(int argc, const char **argv) {
       if (obs0.empty() && obs1.empty())
         obs_t0 = t_obs;
       for (nxtcam::blob &i : blobs0) {
+        if (obs0.empty() && obs1.empty())
+          dbg(1) << string(80, '-') << endl;
         obs0.push_back(observation(t_obs - obs_t0, cam0.sensor_to_focal_plane(i.center())));
         dbg(1) << "cam0 n=" << obs0.size() << ", x=" << obs0.back().f << endl;
       }
       for (nxtcam::blob &i : blobs1) {
+        if (obs0.empty() && obs1.empty())
+          dbg(1) << string(80, '-') << endl;
         obs1.push_back(observation(t_obs - obs_t0, cam1.sensor_to_focal_plane(i.center())));
         dbg(1) << "cam1 n=" << obs1.size() << ", x=" << obs1.back().f << endl;
       }
@@ -255,12 +263,20 @@ int main(int argc, const char **argv) {
         // Find the trajectory of the ball given the observations.
         if (update_tj) {
           try {
+            float entry_t = entry.t;
             entry.t = exit.t = t_none;
             estimate_trajectory(
                 gravity, 
                 cam0, cam1,
                 obs0_, obs1_, 
-                dt, tj);
+                dt, tj,
+                entry_t - t_now - (intercept_delay + catch_delay));
+            
+            // Update t_now because estimate_trajectory can take a while.
+            t_now = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count();
+
+            // Shift the trajectory down so we can treat the effector intercept position as matching the ball intercept.
+            tj.x.z -= catch_z_offset;
 
             // Intersect the trajectory with the z plane, the last place on the trajectory we can reach.
             exit.t = intersect_trajectory_zplane(gravity, tj, volume.z_min());
@@ -286,13 +302,13 @@ int main(int argc, const char **argv) {
               entry.t += obs_t0_;
 
               cout << "trajectory found with expected intercepts at:" << endl;
-              cout << "  t=" << entry.t << " s (" << entry.t - t_now << " s) at x=" << entry.x << endl;
-              cout << "  t=" << exit.t << " s (" << exit.t - t_now << " s) at x=" << exit.x << endl;
+              cout << "  entry t=" << entry.t - t_now << " s at x=" << entry.x << endl;
+              cout << "  exit t=" << exit.t - t_now << " s at x=" << exit.x << endl;
               assert(entry.t < exit.t);
             } catch(runtime_error &ex) {
               dbg(1) << ex.what() << endl;
               cout << "trajectory found with unreachable intercept expected at:" << endl;
-              cout << "  t=" << exit.t << " s (" << exit.t + obs_t0 - t_now << ") s at x=" << exit.x << endl;
+              cout << "  exit t=" << exit.t + obs_t0 - t_now << " s at x=" << exit.x << endl;
               entry.t = exit.t = t_none;
             }
             dbg(1) << "  trajectory x=" << tj.x << ", v=" << tj.v << ", dt=" << dt*sample_rate << endl;
@@ -310,15 +326,15 @@ int main(int argc, const char **argv) {
         if (t_now + intercept_delay > entry.t) {
           // If the first intercept has passed, move to the second intercept in an attempt to match the trajectory of the ball.
           if (sqr_abs(delta.position_setpoint() - exit.x) > 0.5f) {
+            dbg(1) << "moving to intercept exit x=" << exit.x << endl;
             delta.set_position_setpoint(exit.x);
-            dbg(1) << "moving to intercept entry (t=" << t_now << " s)" << endl;
             reset_at = t_now + reset_delay;
           }
         } else if (entry.t != t_none) {
           // Move to prepare for the first intercept.
           if (sqr_abs(delta.position_setpoint() - entry.x) > 0.5f) {
+            dbg(1) << "moving to intercept entry x=" << entry.x << endl;
             delta.set_position_setpoint(entry.x);
-            dbg(1) << "moving to intercept exit (t=" << t_now << " s)" << endl;
             reset_at = t_now + reset_delay;
           }
         }
