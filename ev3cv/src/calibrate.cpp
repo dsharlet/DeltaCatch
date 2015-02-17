@@ -85,7 +85,7 @@ struct camera_config {
   {}
 
   cameraf to_camera() const {
-    vector2f sensor_dim(aspect_ratio, -1.0f);
+    vector2f sensor_dim(aspect_ratio, 1.0f);
     sensor_dim *= sensor_size/abs(sensor_dim);
     return cameraf::from_lens(
         vector_cast<float>(*resolution), 

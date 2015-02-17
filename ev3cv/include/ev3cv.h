@@ -65,7 +65,7 @@ template <typename T>
 T sinc(T x) { return abs(x) < 1e-6 ? 1 : sin(x)/x; }
 
 /** Compute a random float in [a, b). */
-inline float randf(float a = 0.0f, float b = 1.0f) { return (static_cast<float>(rand()) / RAND_MAX)*(b - a) + a; }
+inline float randf(float a = 0.0f, float b = 1.0f) { return (static_cast<float>(rand())/RAND_MAX)*(b - a) + a; }
 
 /** Cast a scalar value to the specified type. */
 template <typename T, typename U>

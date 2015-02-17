@@ -154,7 +154,7 @@ struct camera {
 
     return vector2<U>(
         (u.x + T(1))*(T(0.5)*resolution.x),
-        (u.y + T(1))*(T(0.5)*resolution.y));
+        (T(1) - u.y)*(T(0.5)*resolution.y));
   }
 
   /** Map a sensor position to a position on the focal plane. */
@@ -163,8 +163,8 @@ struct camera {
     // Normalize coordinates.
     vector2<U> u(
         px.x*(T(2)/resolution.x) - T(1),
-        px.y*(T(2)/resolution.y) - T(1));
-    
+        T(1) - px.y*(T(2)/resolution.y));
+
     // Apply distortion model.
     // Compute inverse of distortion model via newton's method.
     // TODO: Try to optimize this... lots of FLOPs here if U is a diff<>.
@@ -182,7 +182,7 @@ struct camera {
     return vector2<U>(x, y);
   }
 
-  /** Map a 3D position to a position on the focal plane. */
+  /** Map a 3D world position to a position on the focal plane. */
   template <typename U>
   vector2<U> project_to_focal_plane(const vector3<U> &g) const {
     // Convert the global coordinates to the local transform.
@@ -192,7 +192,7 @@ struct camera {
     return vector2<U>(l.x, l.y)*rcp(l.z);
   }
 
-  /** Project a 3D position to a position on the sensor. */
+  /** Project a 3D world position to a position on the sensor. */
   template <typename U>
   vector2<U> project_to_sensor(const vector3<U> &g) const {
     return focal_plane_to_sensor(project_to_focal_plane(g));
