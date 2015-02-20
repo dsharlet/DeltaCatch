@@ -45,9 +45,9 @@ void main_show_position(delta_robot &delta) {
     auto x = delta.position();
     auto dx = x - x0;
     if (dot(dx, dx) > 1e-6f) {
-      cout << "xyz=" << setw(w) << x.x << setw(w) << x.y << setw(w) << x.z
-        << "   ||xy||= " << setw(w) << sqrt(x.x*x.x + x.y*x.y)
-        << endl;
+      cout << "\rxyz=" << setw(w) << x.x << setw(w) << x.y << setw(w) << x.z
+        << "   ||xy||= " << setw(w) << sqrt(x.x*x.x + x.y*x.y);
+      cout.flush();
       x0 = x;
     }
     this_thread::sleep_for(chrono::milliseconds(30));
