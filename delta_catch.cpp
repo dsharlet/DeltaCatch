@@ -56,7 +56,7 @@ static cl::arg<float> intercept_delay(
   cl::name("intercept-delay"),
   cl::desc("Delay between commanding the delta robot to move and moving in reality, in s."));
 static cl::arg<float> catch_delay(
-  0.03f,
+  0.01f,
   cl::name("catch-delay"),
   cl::desc("Delay between commanding the effector to close and closing in reality, in s."));
 static cl::arg<float> observation_delay(

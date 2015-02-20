@@ -116,9 +116,7 @@ float estimate_trajectory(
 
   typedef chrono::high_resolution_clock clock;
   auto t_begin = clock::now();
-  auto t_end = t_begin + chrono::duration<float>(1000.0f);
-  if (time_limit < std::numeric_limits<float>::infinity())
-    t_end = t_begin + chrono::duration<float>(time_limit);
+  time_limit = std::min(time_limit, 1000.0f);
 
   enum variable {
     t = 0,
@@ -141,7 +139,8 @@ float estimate_trajectory(
   size_t M1 = static_cast<int>(obs1.size());
   size_t M = M0 + M1;
   
-  dbg(1) << "estimate_trajectory, M=" << M << " (" << M0 << " + " << M1 << ")..." << endl;
+  dbg(1) << "estimate_trajectory, M=" << M << " (" << M0 << " + " << M1 
+    << "), time_limit=" << static_cast<int>(1000.0f*time_limit) << " ms ..." << endl;
 
   // Levenberg-Marquardt state.
   trajectory<d> prev_tj = tj;
@@ -221,7 +220,11 @@ float estimate_trajectory(
       }
       break;
     }
-    if (clock::now() > t_end) {
+
+    // Get the total time spent on trajetory estimation.
+    float time = chrono::duration_cast<chrono::duration<float>>(clock::now() - t_begin).count();
+    // Estimate the time after the next iteration, bail if it will exceed the time limit.
+    if (time*(1.0f + 1.0f/it) > time_limit) {
       dbg(1) << "  time limit exceeded on it=" << it << endl;
       break;
     }
