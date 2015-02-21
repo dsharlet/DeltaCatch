@@ -92,13 +92,18 @@ int main(int argc, const char **argv) {
       
       vector3f x0 = cam0.sensor_to_projection(b0.center(), 1.0f) - cam0.x;
       vector3f x1 = cam1.sensor_to_projection(b1.center(), 1.0f) - cam1.x;
+      
+      // The camera focal planes may not be parallel to the baseline, so we tweak z
+      // to make similar triangles with a vertex contained in the plane parallel
+      // to the baseline.
+      float z0 = abs(x0 - dot(x0, b)*b);
+      float z1 = abs(x1 - dot(x1, b)*b);
+      // Determine z from the adjusted focal plane positions via similar triangles.
+      float z = baseline/(dot(x0, b)/z0 - dot(x1, b)/z1);
 
-      // z is determined by the stereo disparity.
-      float z = baseline/(dot(x0, b) - dot(x1, b));
-
-      // Move the points from the focal plane to the (parallel) plane containing z and add the camera origins.
-      x0 = x0*z + cam0.x;
-      x1 = x1*z + cam1.x;
+      // Project the points out to the distance z.
+      x0 = x0*(z/z0) + cam0.x;
+      x1 = x1*(z/z1) + cam1.x;
       vector3f x = (x0 + x1)/2;
       
       stringstream ss;
