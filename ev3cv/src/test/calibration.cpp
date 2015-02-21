@@ -20,7 +20,7 @@ static cl::arg<float> baseline(
   cl::desc("Distance between the cameras."));
 
 static cl::arg<int> max_iterations(
-  100,
+  50,
   cl::name("max-iterations"),
   cl::desc("Maximum number of iterations for calibration optimization."));
 static cl::arg<float> convergence_threshold(
@@ -31,7 +31,7 @@ static cl::arg<float> lambda_init(
   1.0f,
   cl::name("lambda-init"));
 static cl::arg<float> lambda_decay(
-  0.9f,
+  0.5f,
   cl::name("lambda-decay"));
 
 static cl::arg<int> test_count(

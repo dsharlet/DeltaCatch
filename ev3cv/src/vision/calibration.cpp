@@ -112,14 +112,19 @@ float calibrate(
       for (const auto &s : sphere_observations[i].samples) {
         vector3<d> x0 = cam0.sensor_to_projection(vector_cast<d>(s.x0), d(1.0)) - cam0.x;
         vector3<d> x1 = cam1.sensor_to_projection(vector_cast<d>(s.x1), d(1.0)) - cam1.x;
-        
-        // z is determined by the stereo disparity.
-        d z = baseline/(dot(x0, b) - dot(x1, b));
 
-        // Move the points from the focal plane to the (parallel) plane containing z and add the camera origins.
-        x0 = x0*z + cam0.x;
-        x1 = x1*z + cam1.x;
-        
+        // The camera focal planes may not be parallel to the baseline, so we tweak z
+        // to make similar triangles with a vertex contained in the plane parallel
+        // to the baseline.
+        d z0 = abs(x0 - dot(x0, b)*b);
+        d z1 = abs(x1 - dot(x1, b)*b);
+        // Determine z from the adjusted focal plane positions via similar triangles.
+        d z = baseline/(dot(x0, b)/z0 - dot(x1, b)/z1);
+
+        // Project the points out to the distance z.
+        x0 = x0*(z/z0) + cam0.x;
+        x1 = x1*(z/z1) + cam1.x;
+                
         // Error in depth from the calibration sphere and x, for both samples.
         d r_s0 = r_i - safe_abs(x0 - spheres[i]);
         d r_s1 = r_i - safe_abs(x1 - spheres[i]);

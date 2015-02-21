@@ -102,7 +102,7 @@ float calibrate(
     cameraf &cam1,
     std::ostream &log = null_ostream(),
     const std::string &enable = "d1acR",
-    int max_iterations = 100, float convergence_threshold = 1e-3f,
+    int max_iterations = 50, float convergence_threshold = 1e-3f,
     float lambda_init = 1.0f, float lambda_decay = 0.5f);
 
 /** Helper functions to convert to and from Rodgrigues' representation of rotations. In this

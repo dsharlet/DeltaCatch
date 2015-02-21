@@ -6,7 +6,7 @@ using namespace std;
 using namespace ev3cv;
 
 int main(int argc, const char **argv) {
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 50; i++) {
     // Generate a (reasonable) random camera.
     camera<double> cam;
     cam.resolution = vector_cast<double>(randv2f(1.0f, 1000.0f));

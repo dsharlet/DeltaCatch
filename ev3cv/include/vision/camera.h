@@ -142,6 +142,28 @@ struct camera {
     return k;
   }
 
+  /** Apply the distortion model to a position on the focal plane. */
+  template <typename U>
+  vector2<U> distort(const vector2<U> &u) const {
+    return u*(vector2<T>(1) + d1*dot(u, u));
+  }
+
+  /** Apply the inverse of the distortion model to a normalized position on the sensor. */
+  template <typename U>
+  vector2<U> undistort(vector2<U> u) const {
+    // Compute inverse of distortion model via newton's method.
+    // TODO: Try to optimize this... lots of FLOPs here if U is a diff<>.
+    vector2<U> u_ = u;
+    for (int i = 0; i < 3; i++) {
+      vector2<U> d = vector2<T>(1) + d1*dot(u, u);
+      vector2<U> fu = u*d - u_;
+      vector2<U> df_du = d + T(2)*d1*u*u;
+      u -= fu/df_du;
+    }
+
+    return u;
+  }
+
   /** Map a position on the focal plane to a sensor position. */
   template <typename U>
   vector2<U> focal_plane_to_sensor(const vector2<U> &P) const {
@@ -151,7 +173,7 @@ struct camera {
         a.y*P.y + c.y);
     
     // Apply distortion correction.
-    u *= vector2<T>(1) + d1*dot(u, u);
+    u = distort(u);
 
     return vector2<U>(
         (u.x + T(1))*(T(0.5)*resolution.x),
@@ -166,16 +188,8 @@ struct camera {
         px.x*(T(2)/resolution.x) - T(1),
         T(1) - px.y*(T(2)/resolution.y));
 
-    // Apply distortion model.
-    // Compute inverse of distortion model via newton's method.
-    // TODO: Try to optimize this... lots of FLOPs here if U is a diff<>.
-    vector2<U> u_ = u;
-    for (int i = 0; i < 3; i++) {
-      vector2<U> d = vector2<T>(1) + d1*dot(u, u);
-      vector2<U> fu = u*d - u_;
-      vector2<U> df_du = d + T(2)*d1*u*u;
-      u -= fu/df_du;
-    }
+    // Reverse distortion.
+    u = undistort(u);
 
     // Solve K*x = u.
     U y = (u.y - c.y)*rcp(a.y);

@@ -21,23 +21,25 @@ static cl::group stereo_group("Camera configuration estimate");
 struct camera_config {
   cl::arg<string> port;
   cl::arg<vector2i> resolution;
+  cl::arg<vector2i> min, max;
   cl::arg<vector2f> distortion;
 
   cl::arg<float> sensor_size;
   cl::arg<float> aspect_ratio;
   cl::arg<float> focal_length;
 
-  cl::arg<vector3f> x, y;
+  cl::arg<vector3f> basis_x, basis_y;
   cl::arg<vector3f> position;
 
   camera_config(
       const string &prefix,
       const string &port,
       const vector2i &resolution,
+      const vector2i &min, const vector2i &max,
       const vector2f &distortion,
       float sensor_size, float aspect_ratio, float focal_length,
-      const vector3f &x,
-      const vector3f &y,
+      const vector3f &basis_x,
+      const vector3f &basis_y,
       const vector3f &position) : 
   port(
     port,
@@ -48,6 +50,16 @@ struct camera_config {
     resolution,
     cl::name(prefix + "-resolution"),
     cl::desc("Resolution of the cameras, in pixels."),
+    stereo_group),
+  min(
+    min,
+    cl::name(prefix + "-min"),
+    cl::desc("Minimum possible real measurement, in pixels."),
+    stereo_group),
+  max(
+    max,
+    cl::name(prefix + "-max"),
+    cl::desc("Maximum possible real measurement, in pixels."),
     stereo_group),
   distortion(
     distortion,
@@ -69,12 +81,12 @@ struct camera_config {
     cl::name(prefix + "-focal-length"),
     cl::desc("Focal length of the camera."),
     stereo_group),
-  x(x,
-    cl::name(prefix + "-x"),
+  basis_x(basis_x,
+    cl::name(prefix + "-basis-x"),
     cl::desc("Basis vector of the x coordinates of the camera sensor."),
     stereo_group),
-  y(y,
-    cl::name(prefix + "-y"),
+  basis_y(basis_y,
+    cl::name(prefix + "-basis-y"),
     cl::desc("Basis vector of the y coordinates of the camera sensor."),
     stereo_group),
   position(
@@ -91,7 +103,10 @@ struct camera_config {
         vector_cast<float>(*resolution), 
         distortion,
         sensor_dim, focal_length,
-        quaternionf::from_basis(unit(*x), unit(*y), unit(cross(*x, *y))),
+        quaternionf::from_basis(
+            unit(*basis_x), 
+            unit(*basis_y), 
+            unit(cross(*basis_x, *basis_y))),
         position);
   }
 };
@@ -100,29 +115,30 @@ struct nxtcam_config : camera_config {
   nxtcam_config(
       const string &prefix,
       const string &port,
-      const vector3f &x,
-      const vector3f &y,
+      const vector3f &basis_x,
+      const vector3f &basis_y,
       const vector3f &position) 
     : camera_config(
           prefix, port, 
           vector2i(176, 144),
+          vector2i(12, 1), vector2i(176, 143),
           vector2f(-0.05f),
           4.0f, 1.33f, 3.5f,
-          x, y, position) {}
+          basis_x, basis_y, position) {}
 };
 
 static nxtcam_config cam_config0(
     "cam0",
     "in1",
-    vector3f(0.0f, -cos(53.5*pi/180 + pi/2), -sin(53.5*pi/180 + pi/2)),
     vector3f(1.0f, 0.0f, 0.0f),
-    vector3f(-11.15f, 12.5f, -3.0f));
+    vector3f(0.0f, 1.0f, 0.0f),
+    vector3f(-5.0f, 0.0f, 0.0f));
 static nxtcam_config cam_config1(
     "cam1",
     "in4",
-    vector3f(0.0f, cos(53.5*pi/180 + pi/2), sin(53.5*pi/180 + pi/2)),
-    vector3f(-1.0f, 0.0f, 0.0f),
-    vector3f(11.15f, 12.5f, -3.0f));
+    vector3f(1.0f, 0.0f, 0.0f),
+    vector3f(0.0f, 1.0f, 0.0f),
+    vector3f(5.0f, 0.0f, 0.0f));
 
 static cl::arg<string> calibration_data_file(
   "calibration_data",
@@ -165,28 +181,10 @@ static cl::arg<float> sample_rate(
   cl::desc("Frequency of camera observation samples, in Hz."),
   capture_group);
 
-static cl::arg<vector2i> cam0_min(
-  vector2i(12, 1),
-  cl::name("cam0-min"),
-  cl::desc("Minimum real measurement from camera 0."));
-static cl::arg<vector2i> cam1_min(
-  vector2i(12, 1),
-  cl::name("cam1-min"),
-  cl::desc("Minimum real measurement from camera 1."));
-
-static cl::arg<vector2i> cam0_max(
-  vector2i(176, 143),
-  cl::name("cam0-max"),
-  cl::desc("Maximum real measurement from camera 0."));
-static cl::arg<vector2i> cam1_max(
-  vector2i(176, 143),
-  cl::name("cam1-max"),
-  cl::desc("Maximum real measurement from camera 1."));
-
 static cl::group optimization_group("Optimization parameters");
 
 static cl::arg<int> max_iterations(
-  100,
+  50,
   cl::name("max-iterations"),
   cl::desc("Maximum number of iterations allowed when solving optimization problems."),
   optimization_group);
@@ -307,10 +305,10 @@ int main(int argc, const char **argv) {
       if (blobs0.size() == 1 && blobs1.size() == 1) {
         const nxtcam::blob &b0 = blobs0.front();
         const nxtcam::blob &b1 = blobs1.front();
-        int d0 = min(min(b0.x1.x - cam0_min->x, b0.x1.y - cam0_min->y),
-                     min(cam0_max->x - b0.x2.x, cam0_max->y - b0.x2.y));
-        int d1 = min(min(b1.x1.x - cam1_min->x, b1.x1.y - cam1_min->y),
-                     min(cam1_max->x - b1.x2.x, cam0_max->y - b1.x2.y));
+        int d0 = min(min(b0.x1.x - cam_config0.min->x, b0.x1.y - cam_config0.min->y),
+                     min(cam_config0.max->x - b0.x2.x, cam_config0.max->y - b0.x2.y));
+        int d1 = min(min(b1.x1.x - cam_config1.min->x, b1.x1.y - cam_config1.min->y),
+                     min(cam_config1.max->x - b1.x2.x, cam_config1.max->y - b1.x2.y));
         int d = min(d0, d1);
 
         if (d > 0) {
