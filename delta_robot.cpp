@@ -26,6 +26,12 @@ delta_robot::volume delta_robot::work_volume(float epsilon) const {
   static const float sin30 = 0.5f;
 
   float b = base + cos(theta_max*pi/180)*bicep - effector;
+  
+  float z_min = -bicep + forearm;
+  for (int i = 0; i < 3; i++) {
+    float theta = (theta_max - arms[i]->min)*pi/180;
+    z_min = max(z_min, sin(theta)*bicep + forearm);
+  }
 
   // Position of the elbows.
   return volume(

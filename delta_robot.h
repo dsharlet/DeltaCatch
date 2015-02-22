@@ -21,7 +21,6 @@ public:
     ev3::port_type arm0, arm1, arm2;
     float base, effector, bicep, forearm;
     int theta_max;
-    float z_min;
   };
 
   // Defines the working envelope of a delta robot as the intersection of
@@ -59,7 +58,11 @@ public:
     float z_min() const { return z_; }
     float epsilon() const { return e_; }
     
-    vector3f center() const { return (o0_ + o1_ + o2_)/3.0f; }
+    vector3f center(float z = 0.0f) const { 
+      vector3f c = (o0_ + o1_ + o2_)/3;
+      c.z = z_*(1 - z) + (max(max(o0_.z, o1_.z), o2_.z) + r_)*z;
+      return c;
+    }
 
     std::tuple<vector3f, vector3f> bounds() const {
       return std::tie(min_, max_);
@@ -95,7 +98,6 @@ protected:
   float bicep;
   float forearm;
   int theta_max;
-  float z_min;
 
   // Get the position of the arm, in motor position units.
   vector3i raw_position() const {
@@ -136,7 +138,7 @@ public:
       : arm0(geom.arm0), arm1(geom.arm1), arm2(geom.arm2)
       , base(geom.base), effector(geom.effector)
       , bicep(geom.bicep), forearm(geom.forearm)
-      , theta_max(geom.theta_max), z_min(geom.z_min) {
+      , theta_max(geom.theta_max) {
     // Can't construct an array with an initializer list :(
     arms[0] = &arm0;
     arms[1] = &arm1;

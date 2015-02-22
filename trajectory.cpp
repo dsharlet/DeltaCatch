@@ -113,10 +113,9 @@ float estimate_trajectory(
     float time_limit) {
   const float epsilon_sq = epsilon*epsilon;
   const float half_g = gravity/2;
-
+  
   typedef chrono::high_resolution_clock clock;
   auto t_begin = clock::now();
-  time_limit = std::min(time_limit, 1000.0f);
 
   enum variable {
     t = 0,
@@ -126,14 +125,6 @@ float estimate_trajectory(
     N,
   };
   typedef diff<float, N> d;
-
-  if (obs0.size() + obs1.size() < N)
-    throw runtime_error("not enough observations");
-
-  d dt = d(dtf, t);
-  trajectory<d> tj;
-  tj.x = vector3<d>(d(tjf.x.x, x_x), d(tjf.x.y, x_y), d(tjf.x.z, x_z));
-  tj.v = vector3<d>(d(tjf.v.x, v_x), d(tjf.v.y, v_y), d(tjf.v.z, v_z));
   
   size_t M0 = static_cast<int>(obs0.size());
   size_t M1 = static_cast<int>(obs1.size());
@@ -142,6 +133,14 @@ float estimate_trajectory(
   dbg(1) << "estimate_trajectory, M=" << M << " (" << M0 << " + " << M1 
     << "), time_limit=" << static_cast<int>(1000.0f*time_limit) << " ms ..." << endl;
 
+  if (M < N)
+    throw runtime_error("not enough observations");
+
+  d dt = d(dtf, t);
+  trajectory<d> tj;
+  tj.x = vector3<d>(d(tjf.x.x, x_x), d(tjf.x.y, x_y), d(tjf.x.z, x_z));
+  tj.v = vector3<d>(d(tjf.v.x, v_x), d(tjf.v.y, v_y), d(tjf.v.z, v_z));
+  
   // Levenberg-Marquardt state.
   trajectory<d> prev_tj = tj;
   float prev_error = std::numeric_limits<float>::infinity();

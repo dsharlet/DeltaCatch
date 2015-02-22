@@ -52,7 +52,7 @@ static cl::arg<float> gravity(
   cl::desc("Acceleration due to gravity, in studs/s^2."));
 
 static cl::arg<float> intercept_delay(
-  0.02f,
+  0.05f,
   cl::name("intercept-delay"),
   cl::desc("Delay between commanding the delta robot to move and moving in reality, in s."));
 static cl::arg<float> catch_delay(
@@ -68,7 +68,7 @@ static cl::arg<float> reset_delay(
   cl::name("reset-delay"),
   cl::desc("Delay between initiating a catch action and returning to the ready state."));
 static cl::arg<float> catch_z_offset(
-  5.5f,
+  4.5f,
   cl::name("catch-z-offset"),
   cl::desc("Z offset from the effector position to the intercept position."));
 
@@ -192,6 +192,8 @@ int main(int argc, const char **argv) {
   // Set the motor parameters.
   delta.set_pid_K(pid->x, pid->y, pid->z);
   delta.init();
+  delta_robot::volume volume = delta.work_volume();
+  delta.set_position_setpoint(volume.center(0.5f));
 
   // Bask in the glory of the calibration result for a moment.
   this_thread::sleep_for(chrono::milliseconds(500));
@@ -203,8 +205,6 @@ int main(int argc, const char **argv) {
   if (!viz_host->empty())
     viz.connect(viz_host, viz_port);
   
-  delta_robot::volume volume = delta.work_volume();
-
   // Use a reasonable initial guess for the trajectory.  
   trajectoryf tj_init;
   tj_init.x = vector3f(0.0f, 200.0f, 0.0f);
@@ -316,7 +316,7 @@ int main(int argc, const char **argv) {
             dbg(1) << ex.what() << endl;
             tj = tj_init;
             dt = 0.0f;
-            delta.set_position_setpoint(volume.center());
+            delta.set_position_setpoint(volume.center(0.5f));
           }
         }
       }
@@ -363,11 +363,11 @@ int main(int argc, const char **argv) {
       tj = tj_init;
       dt = 0.0f;
       entry.t = exit.t = t_none;
-      delta.set_position_setpoint(volume.center());
+      delta.set_position_setpoint(volume.center(0.5f));
     }
     if (t_now > reset_at) {
       dbg(1) << "resetting..." << endl;
-      delta.set_position_setpoint(volume.center());
+      delta.set_position_setpoint(volume.center(0.5f));
       this_thread::sleep_for(chrono::milliseconds(500));
       delta.open_hand();
       reset_at = t_none;
