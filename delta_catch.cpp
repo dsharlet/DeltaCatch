@@ -137,11 +137,10 @@ int main(int argc, const char **argv) {
     std::swap(find_host, t);
   }
   
-  observation_buffer obs0, obs1;
-  float obs_t0 = 0.0f;
   mutex obs_lock;
-
+  observation_buffer obs0, obs1;
   auto t0 = clock::now();
+
   thread tracking_thread([&]() {
     nxtcam nxtcam0(port_to_i2c_path(stereo.cam0.port));
     nxtcam nxtcam1(port_to_i2c_path(stereo.cam1.port)); 
@@ -154,31 +153,32 @@ int main(int argc, const char **argv) {
     cout << "Tracking objects..." << endl;
   
     // t will increment in regular intervals of T.
-    auto t = clock::now();
     chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
     while (true) {
       nxtcam::blob_list blobs0 = nxtcam0.blobs();
-      float t_obs = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count() + observation_delay*1e-3f;
+      auto t = clock::now();
       nxtcam::blob_list blobs1 = nxtcam1.blobs();
 
+      float t_obs = chrono::duration_cast<chrono::duration<float>>(t - t0).count() + observation_delay*1e-3f;
       obs_lock.lock();
-      while(!obs0.empty() && obs_t0 + obs0.front().t + max_flight_time < t_obs) 
+      while(!obs0.empty() && obs0.front().t + max_flight_time < t_obs) 
         obs0.pop_front();
-      while(!obs1.empty() && obs_t0 + obs1.front().t + max_flight_time < t_obs)
+      while(!obs1.empty() && obs1.front().t + max_flight_time < t_obs)
         obs1.pop_front();
-      if (obs0.empty() && obs1.empty())
-        obs_t0 = t_obs;
       for (nxtcam::blob &i : blobs0) {
         if (obs0.empty() && obs1.empty())
           dbg(1) << string(80, '-') << endl;
-        obs0.push_back(observation(t_obs - obs_t0, cam0.sensor_to_focal_plane(i.center())));
-        dbg(1) << "cam0 n=" << obs0.size() << ", x=" << obs0.back().f << endl;
+        obs0.push_back(observation(t_obs, cam0.sensor_to_focal_plane(i.center())));
+        dbg(1) << "cam0 n=" << obs0.size() << ", t=" << t_obs << ", x=" << obs0.back().f << endl;
       }
       for (nxtcam::blob &i : blobs1) {
         if (obs0.empty() && obs1.empty())
           dbg(1) << string(80, '-') << endl;
-        obs1.push_back(observation(t_obs - obs_t0, cam1.sensor_to_focal_plane(i.center())));
-        dbg(1) << "cam1 n=" << obs1.size() << ", x=" << obs1.back().f << endl;
+        obs1.push_back(observation(t_obs, cam1.sensor_to_focal_plane(i.center())));
+        dbg(1) << "cam1 n=" << obs1.size() << ", t=" << t_obs << ", x=" << obs1.back().f << endl;
+      }
+      if (obs0.empty() && obs1.empty()) {
+        t0 = t;
       }
       obs_lock.unlock();
 
@@ -225,7 +225,7 @@ int main(int argc, const char **argv) {
 
   intercept entry, exit;
   entry.t = exit.t = t_none;
-  float reset_at = t_none;
+  auto reset_at = clock::time_point::max();
 
   while (true) {
     float t_now = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count();
@@ -235,28 +235,30 @@ int main(int argc, const char **argv) {
     // them anyways.
     if (t_now + observation_delay < entry.t) {
       observation_buffer obs0_, obs1_;
-      float obs_t0_;
 
       // Copy the observation buffers from the background thread.
       obs_lock.lock();
-      obs_t0_ = obs_t0;
+      auto t0_ = t0;
       for (size_t i = obs0.begin(); i != obs0.end(); i++)
         obs0_.push_back(obs0[i]);
       for (size_t i = obs1.begin(); i != obs1.end(); i++)
         obs1_.push_back(obs1[i]);
       obs_lock.unlock();
 
-      if (obs0_.empty() || obs1_.empty() || obs0_.size() + obs1_.size() < 7) {
+      if (obs0_.empty() || obs1_.empty()) {
+        current_obs = 0.0f;
+        tj = tj_init;
+        dt = 0.0f;
         entry.t = exit.t = t_none;
         this_thread::sleep_for(chrono::milliseconds(50));
-      } else {
+      } else if (obs0_.size() + obs1_.size() >= 7) {
         bool update_tj = false;
-        if (obs_t0_ + obs0_.back().t > current_obs) {
-          current_obs = obs_t0 + obs0_.back().t;
+        if (obs0_.back().t > current_obs) {
+          current_obs = obs0_.back().t;
           update_tj = true;
         }
-        if (obs_t0_ + obs1_.back().t > current_obs) {
-          current_obs = obs_t0 + obs1_.back().t;
+        if (obs1_.back().t > current_obs) {
+          current_obs = obs1_.back().t;
           update_tj = true;
         }
 
@@ -273,7 +275,7 @@ int main(int argc, const char **argv) {
                 entry_t - t_now - (intercept_delay + catch_delay));
             
             // Update t_now because estimate_trajectory can take a while.
-            t_now = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count();
+            t_now = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0_).count();
 
             // Shift the trajectory down so we can treat the effector intercept position as matching the ball intercept.
             tj.x.z -= catch_z_offset;
@@ -297,10 +299,6 @@ int main(int argc, const char **argv) {
                   throw runtime_error("z plane intercept is unreachable");                
               }
 
-              // Adjust the intercepts from local trajectory time to global time.
-              exit.t += obs_t0_;
-              entry.t += obs_t0_;
-
               cout << "trajectory found with expected intercepts at:" << endl;
               cout << "  entry t=" << entry.t - t_now << " s at x=" << entry.x << endl;
               cout << "  exit t=" << exit.t - t_now << " s at x=" << exit.x << endl;
@@ -308,7 +306,7 @@ int main(int argc, const char **argv) {
             } catch(runtime_error &ex) {
               dbg(1) << ex.what() << endl;
               cout << "trajectory found with unreachable intercept expected at:" << endl;
-              cout << "  exit t=" << exit.t + obs_t0 - t_now << " s at x=" << exit.x << endl;
+              cout << "  exit t=" << exit.t + t_now << " s at x=" << exit.x << endl;
               entry.t = exit.t = t_none;
             }
             dbg(1) << "  trajectory x=" << tj.x << ", v=" << tj.v << ", dt=" << dt*sample_rate << endl;
@@ -328,14 +326,14 @@ int main(int argc, const char **argv) {
           if (sqr_abs(delta.position_setpoint() - exit.x) > 0.5f) {
             dbg(1) << "moving to intercept exit x=" << exit.x << endl;
             delta.set_position_setpoint(exit.x);
-            reset_at = t_now + reset_delay;
+            reset_at = clock::now() + chrono::seconds(1);
           }
         } else if (entry.t != t_none) {
           // Move to prepare for the first intercept.
           if (sqr_abs(delta.position_setpoint() - entry.x) > 0.5f) {
             dbg(1) << "moving to intercept entry x=" << entry.x << endl;
             delta.set_position_setpoint(entry.x);
-            reset_at = t_now + reset_delay;
+            reset_at = clock::now() + chrono::seconds(1);
           }
         }
 
@@ -344,7 +342,7 @@ int main(int argc, const char **argv) {
           cout << "catching the ball!" << endl;
           delta.close_hand();
           entry.t = exit.t = t_none;
-          reset_at = t_now + reset_delay;
+          reset_at = clock::now() + chrono::seconds(1);
 
           // Clear out the trajectory data
           obs_lock.lock();
@@ -365,12 +363,15 @@ int main(int argc, const char **argv) {
       entry.t = exit.t = t_none;
       delta.set_position_setpoint(volume.center(0.5f));
     }
-    if (t_now > reset_at) {
+    if (clock::now() > reset_at) { 
       dbg(1) << "resetting..." << endl;
+      reset_at = clock::time_point::max();
+      tj = tj_init;
+      dt = 0.0f;
+      entry.t = exit.t = t_none;
       delta.set_position_setpoint(volume.center(0.5f));
       this_thread::sleep_for(chrono::milliseconds(500));
       delta.open_hand();
-      reset_at = t_none;
       dbg(1) << "reset done" << endl;
     }
   }
