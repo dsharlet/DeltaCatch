@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /** \file quaternion.h
  * Defines quaternion type and helper functions.
  */
@@ -20,11 +34,11 @@ public:
   quaternion(T a, T b, T c, T d) : a(a), b(b, c, d) {}
   /** Construct a quaternion \f$q = a + \mathbf{i} b + \mathbf{j} c + \mathbf{k} d\f$. */
   quaternion(T a, const vector3<T> &b) : a(a), b(b) {}
-  
+
   /** Construct a quaternion from an orthonormal basis \f$[x\;y\;z]\f$. */
   static quaternion<T> from_basis(const vector3<T> &x, const vector3<T> &y, const vector3<T> &z) {
     T tr = x.x + y.y + z.z;
-    if (tr > 0) { 
+    if (tr > 0) {
       T S = sqrt(tr + 1.0) * 2;
       return quaternion<T>(
           0.25 * S,
@@ -42,7 +56,7 @@ public:
       T S = sqrt(1.0 + y.y - x.x - z.z) * 2;
       return quaternion<T>(
           (z.x - x.z) / S,
-          (y.x + x.y) / S, 
+          (y.x + x.y) / S,
           0.25 * S,
           (z.y + y.z) / S);
     } else {
@@ -67,13 +81,13 @@ public:
   template <typename U>
   quaternion<T> &operator -= (const quaternion<U> &r) { a -= r.a, b -= r.b; return *this; }
   template <typename U>
-  quaternion<T> &operator *= (const quaternion<U> &r) { 
+  quaternion<T> &operator *= (const quaternion<U> &r) {
     T a_ = a*r.a - dot(b, r.b);
     b = r.b*a + r.a*b + cross(b, r.b);
     a = a_;
     return *this;
   }
-  
+
   template <typename U>
   quaternion<T> &operator *= (const U &r) {
     a *= r;

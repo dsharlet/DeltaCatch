@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -26,7 +40,7 @@ delta_robot::volume delta_robot::work_volume(float epsilon) const {
   static const float sin30 = 0.5f;
 
   float b = base + cos(theta_max*pi/180)*bicep - effector;
-  
+
   float z_min = -bicep + forearm;
   for (int i = 0; i < 3; i++) {
     float theta = (theta_max - arms[i]->min)*pi/180;
@@ -39,7 +53,7 @@ delta_robot::volume delta_robot::work_volume(float epsilon) const {
       vector3f( b*0.0f,   b,       bicep),
       vector3f( b*cos30, -b*sin30, bicep),
       forearm - 1,  // TODO: Why??
-      z_min, 
+      z_min,
       epsilon);
 }
 
@@ -52,7 +66,7 @@ vector3f delta_robot::raw_to_position(const vector3i &raw) const {
 
   static const float cos30 = sqrt(3.0f)/2;
   static const float sin30 = 0.5f;
-  
+
   // Distance of the elbow to the base in the XY plane, less the effector.
   float abs_xy0 = bicep*cos(theta.x) + (base - effector);
   float abs_xy1 = bicep*cos(theta.y) + (base - effector);
@@ -62,9 +76,9 @@ vector3f delta_robot::raw_to_position(const vector3i &raw) const {
   vector3f P1(-abs_xy0*cos30, -abs_xy0*sin30, bicep*sin(theta.x));
   vector3f P2( abs_xy1*0.0f,   abs_xy1,       bicep*sin(theta.y));
   vector3f P3( abs_xy2*cos30, -abs_xy2*sin30, bicep*sin(theta.z));
-    
+
   // The position of the effector is now a sphere intersection problem, there
-  // are 3 spheres of radius 'forearm' at each e. 
+  // are 3 spheres of radius 'forearm' at each e.
   // Construct a basis where one sphere is at 0, the next sphere is on the X axis,
   // the last sphere is on the XY plane.
   P2 -= P1;
@@ -88,17 +102,17 @@ vector3f delta_robot::raw_to_position(const vector3i &raw) const {
   if (zz < 0)
     throw runtime_error("forward kinematics has no solutions");
   float z = sqrt(zz);
-  
+
   return P1 + X*x + Y*y + Z*z;
 }
-   
+
 static float position_to_raw_YZ(vector3f x0, float base, float bicep, float forearm, float effector) {
   // We want the location of the wrist relative to the shoulder.
   x0.y += effector - base;
 
   float A = (dot(x0, x0) + bicep*bicep - forearm*forearm)/(2*x0.z);
   float B = x0.y/x0.z;
-  
+
   // Solve quadratic.
   float a = B*B + 1;
   float b = -2*A*B;
@@ -109,7 +123,7 @@ static float position_to_raw_YZ(vector3f x0, float base, float bicep, float fore
 
   float y = (-b + sqrt(D))/(2*a);
   float z = A - y*B;
-  
+
   return atan2(z, y);
 }
 
@@ -119,13 +133,13 @@ vector3i delta_robot::position_to_raw(const vector3f &x) const {
 
   vector3f theta(
     position_to_raw_YZ(
-      vector3f(x.x*cos120 + x.y*sin120, x.x*-sin120 + x.y*cos120, x.z), 
+      vector3f(x.x*cos120 + x.y*sin120, x.x*-sin120 + x.y*cos120, x.z),
       base, bicep, forearm, effector),
     position_to_raw_YZ(
-      x, 
+      x,
       base, bicep, forearm, effector),
     position_to_raw_YZ(
-      vector3f(x.x*cos120 + x.y*-sin120, x.x*sin120 + x.y*cos120, x.z), 
+      vector3f(x.x*cos120 + x.y*-sin120, x.x*sin120 + x.y*cos120, x.z),
       base, bicep, forearm, effector)
   );
 
@@ -176,7 +190,7 @@ void delta_robot::init() {
     }
     this_thread::sleep_for(timestep);
   }
-  
+
   // Find the lower limits of each arm.
   for (auto a : arms) {
     dbg(2) << "  finding theta_min for arm " << a->port_name() << "..." << endl;

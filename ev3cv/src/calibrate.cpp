@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -40,7 +54,7 @@ struct camera_config {
       float sensor_size, float aspect_ratio, float focal_length,
       const vector3f &basis_x,
       const vector3f &basis_y,
-      const vector3f &position) : 
+      const vector3f &position) :
   port(
     port,
     cl::name(prefix + "-port"),
@@ -100,12 +114,12 @@ struct camera_config {
     vector2f sensor_dim(aspect_ratio, 1.0f);
     sensor_dim *= sensor_size/abs(sensor_dim);
     return cameraf::from_lens(
-        vector_cast<float>(*resolution), 
+        vector_cast<float>(*resolution),
         distortion,
         sensor_dim, focal_length,
         quaternionf::from_basis(
-            unit(*basis_x), 
-            unit(*basis_y), 
+            unit(*basis_x),
+            unit(*basis_y),
             unit(cross(*basis_x, *basis_y))),
         position);
   }
@@ -117,9 +131,9 @@ struct nxtcam_config : camera_config {
       const string &port,
       const vector3f &basis_x,
       const vector3f &basis_y,
-      const vector3f &position) 
+      const vector3f &position)
     : camera_config(
-          prefix, port, 
+          prefix, port,
           vector2i(176, 144),
           vector2i(12, 1), vector2i(176, 143),
           vector2f(-0.05f),
@@ -211,7 +225,7 @@ static cl::arg<string> enable(
   optimization_group);
 
 void write_sphere_observations(
-    ostream &os, 
+    ostream &os,
     const vector<sphere_observation_set> &spheres) {
   for (const auto &sphere : spheres) {
     os << "set " << sphere.radius << " " << sphere.center << endl;
@@ -261,7 +275,7 @@ void dump_config(ostream &os, const string &prefix, cameraf &cam0, const cameraf
 
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
-  
+
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
@@ -276,7 +290,7 @@ int main(int argc, const char **argv) {
     } catch (exception &ex) {
       cout << "Warning, failed to read calibration data file '" << *calibration_data_file << "'" << endl;
     }
-    
+
     // Add a new dataset.
     spheres.emplace_back();
     sphere_observation_set &set = spheres.back();
@@ -337,7 +351,7 @@ int main(int argc, const char **argv) {
     cam0.stop_tracking();
     cam1.stop_tracking();
     cout << "done tracking" << endl;
-    
+
     if (static_cast<int>(obs.size()) < 20 + sample_count * 5)
       throw runtime_error("not enough samples");
 
@@ -356,27 +370,27 @@ int main(int argc, const char **argv) {
     ifstream input(calibration_data_file);
     vector<sphere_observation_set> spheres = read_sphere_observations(input);
 
-    if (spheres.empty()) 
+    if (spheres.empty())
       throw runtime_error("no calibration data");
     cout << "Read calibration data with " << spheres.size() << " sets" << endl;
-    
+
     cameraf cam0 = cam_config0.to_camera();
     cameraf cam1 = cam_config1.to_camera();
 
     calibrate(
-        spheres, 
-        cam0, cam1, 
-        cout, 
-        enable, 
-        max_iterations, convergence_threshold, 
+        spheres,
+        cam0, cam1,
+        cout,
+        enable,
+        max_iterations, convergence_threshold,
         lambda_init, lambda_decay);
 
     dump_config(cout, "   ", cam0, cam1);
-        
+
     // Dump results to output file too.
     ofstream output(output_file);
     dump_config(output, "--", cam0, cam1);
-  }  
+  }
 
   return 0;
 }

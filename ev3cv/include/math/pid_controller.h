@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef EV3CV_MATH_PID_CONTROLLER_H
 #define EV3CV_MATH_PID_CONTROLLER_H
 
@@ -8,9 +22,9 @@ namespace ev3cv {
 /** A basic generic PID controller. The PID controller output is defined by:
  * \f[y(t) = K_p e(t) + K_i \int_{0}^t e(\tau) d\tau + K_d e'(t)\f]
  * where
- * \f$e(t) = sp - x(t)\f$, \f$sp\f$ is the setpoint state of the controller, and \f$x(t)\f$ is 
+ * \f$e(t) = sp - x(t)\f$, \f$sp\f$ is the setpoint state of the controller, and \f$x(t)\f$ is
  * the measured state.
- * 
+ *
  * This implementation of the controller has a few additional modifications:
  * - deadband: if \f$|e(t)|<deadband\f$, the output of the controller is 0.
  * - The integral error is limited to be in the range [-i_max, i_max].
@@ -25,17 +39,17 @@ class pid_controller {
 
   T e_;
   T i_;
-  
+
   T Kp_, Ki_, Kd_;
-  
+
   T deadband_;
   T i_max_;
 
 public:
-  pid_controller(T Kp = 1, T Ki = 1, T Kd = 0, T deadband = 0, T i_max = std::numeric_limits<T>::max()) 
+  pid_controller(T Kp = 1, T Ki = 1, T Kd = 0, T deadband = 0, T i_max = std::numeric_limits<T>::max())
     : sp_(0), y_(0), e_(0), i_(0), Kp_(Kp), Ki_(Ki), Kd_(Kd), deadband_(deadband), i_max_(i_max) {}
 
-  /** Update the state of the PID controller. 
+  /** Update the state of the PID controller.
    * \param[in] dt the timestep of the update.
    * \param[in] x current measurement of the state of the system.
    * \return the output value of the controller. */
@@ -72,11 +86,11 @@ public:
   /** Get or set the setpoint */
   ///@{
   const T &setpoint() const { return sp_; }
-  void set_setpoint(const T &x) { 
+  void set_setpoint(const T &x) {
     sp_ = x;
   }
   ///@}
-  
+
   /** Get or set the PID parameters. */
   ///@{
   std::tuple<T, T, T> K() const { return std::tie(Kp_, Ki_, Kd_); }

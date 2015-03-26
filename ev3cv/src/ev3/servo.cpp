@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <vector>
 #include <thread>
 #include <mutex>
@@ -38,7 +52,7 @@ void controller_main() {
 
 servo::servo(const ev3dev::port_type &port) : m_(port), pid_(5000, 5000, 200, 0, 5000) {
   reset();
-  
+
   {
     std::lock_guard<std::mutex> lock(servos_lock);
     servos.push_back(this);
@@ -102,20 +116,20 @@ void servo::tick(int dt) {
   m_.set_duty_cycle_setpoint(clamp(y, -max_duty_cycle_, max_duty_cycle_));
 }
 
-int servo::position_setpoint() const { 
-  return pid_.setpoint(); 
+int servo::position_setpoint() const {
+  return pid_.setpoint();
 }
 
-void servo::set_position_setpoint(int sp) { 
+void servo::set_position_setpoint(int sp) {
   std::lock_guard<std::mutex> lock(this->lock_);
-  sp_fn_ = nullptr; 
-  pid_.set_setpoint(sp); 
+  sp_fn_ = nullptr;
+  pid_.set_setpoint(sp);
 }
 
-void servo::set_position_setpoint(std::function<int(int, int, int)> sp_fn) { 
+void servo::set_position_setpoint(std::function<int(int, int, int)> sp_fn) {
   std::lock_guard<std::mutex> lock(this->lock_);
-  sp_fn_ = sp_fn; 
-  t_ = 0; 
+  sp_fn_ = sp_fn;
+  t_ = 0;
   pid_.set_setpoint(sp_fn(position(), t_, 0));
 }
 

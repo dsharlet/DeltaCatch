@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <fstream>
 
 #include <ev3dev.h>
@@ -20,7 +34,7 @@ struct camera_config {
 
   camera_config(
       const std::string &prefix,
-      const ev3dev::port_type &port) : 
+      const ev3dev::port_type &port) :
   port(
     port,
     cl::name(prefix + "-port"),
@@ -71,7 +85,7 @@ public:
 
   void parse(std::list<const char *> &argv) {
     cl::arg<std::string>::parse(argv);
-    
+
     std::ifstream file(*this);
     cl::parse(file);
   }
@@ -81,7 +95,7 @@ struct stereo_config {
   camera_config cam0{"cam0", ev3dev::INPUT_1};
   camera_config cam1{"cam1", ev3dev::INPUT_4};
   stereo_config_file_arg config_file;
-  
+
   std::pair<cameraf, cameraf> cameras() const {
     return std::make_pair(cam0.to_camera(), cam1.to_camera());
   }

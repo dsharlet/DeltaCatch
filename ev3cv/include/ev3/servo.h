@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #ifndef EV3CV_EV3_SERVO_H
 #define EV3CV_EV3_SERVO_H
 
@@ -11,7 +25,7 @@ namespace ev3cv {
 
 /** Control an ev3dev::motor with a PID controller. Although ev3dev::motor uses a PID controller internally,
  * it is difficult to update the setpoint continuously without oscillation. ev3cv::servo is designed to support
- * this use case, and also provides an interface for controlling the setpoint via a callback function. */ 
+ * this use case, and also provides an interface for controlling the setpoint via a callback function. */
 class servo {
 protected:
   ev3dev::motor m_;
@@ -23,7 +37,7 @@ protected:
   int t_;
 
   std::mutex lock_;
-  
+
 protected:
   void tick(int ms);
 
@@ -47,7 +61,7 @@ public:
   ///@}
 
   /** Stop the servo.
-   * \param[in] hold Indicate whether the motor should hold position or not */ 
+   * \param[in] hold Indicate whether the motor should hold position or not */
   void stop(bool hold = true);
   /** Reset the state of the servo.
    * \param[in] position value to label the current position. */
@@ -61,10 +75,10 @@ public:
   int position_setpoint() const;
   void set_position_setpoint(int sp);
   ///@}
-  /** Set the position setpoint to a function callback f(x, t, dt). 
+  /** Set the position setpoint to a function callback f(x, t, dt).
    * Note that f will be called from another thread. */
   void set_position_setpoint(std::function<int(int, int, int)> sp_fn);
-  
+
   /** Get or set the max duty cycle */
   ///@{
   int max_duty_cycle() const { return max_duty_cycle_; }

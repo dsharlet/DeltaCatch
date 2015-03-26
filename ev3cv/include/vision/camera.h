@@ -1,8 +1,22 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /** \file camera.h
  * Definition of the ev3cv camera model.
  */
 
-/** 
+/**
 \page cameramodel Camera model
 
 ev3cv uses a pinhole camera model, which maps 3D positions to a single point via a projective
@@ -20,9 +34,9 @@ where:
 
 In addition, there is a non-linear radial \ref distortion mapping \f$u\f$ to \f$u'\f$, the measured 2D coordinate at the sensor.
 
-The ev3cv::camera class represents \f$R\f$ as an ev3cv::quaternion. 
+The ev3cv::camera class represents \f$R\f$ as an ev3cv::quaternion.
 
-OpenCV's <a href="http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html">camera calibration</a> 
+OpenCV's <a href="http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html">camera calibration</a>
 documentation is a much more thorough treatment of this subject, this documention only reproduces the bare minimum to describe the
 ways in which ev3cv's camera model differs.
 
@@ -40,15 +54,15 @@ These parameters are the intrinsic parameters of the camera:
 
 \subsection distortion Distortion model
 
-Distortion is modeled by \f$u'=u (1 + d_1 |u|^2)\f$, where \f$u'\f$ is the 
+Distortion is modeled by \f$u'=u (1 + d_1 |u|^2)\f$, where \f$u'\f$ is the
 distorted sensor observation of the normalized coordinate \f$u\f$. This model roughly
 approximates radial distortion. Negative values of \f$d_1\f$ correspond to barrel distortion,
-positive values correspond to pincushion distortion. 
+positive values correspond to pincushion distortion.
 
 A typical value for the standard NXTcam lens appears to be roughly \f$d_1=[{-0.05}\;{-0.05}]^T\f$.
 
-This distortion model is highly simplified compared to that found in e.g. OpenCV. Due to the low 
-resolution and other calibration challenges imposed by cameras for EV3, I found it very difficult 
+This distortion model is highly simplified compared to that found in e.g. OpenCV. Due to the low
+resolution and other calibration challenges imposed by cameras for EV3, I found it very difficult
 to calibrate a distortion model with even one higher order term.
 
 */
@@ -69,7 +83,7 @@ struct camera {
 
   /** Distortion model parameters. See \ref distortion. */
   vector2<T> d1;
-  
+
   /** Elements of the camera calibration matrix \f$K\f$. */
   ///@{
   vector2<T> a;
@@ -91,7 +105,7 @@ struct camera {
       const T &s,
       const vector2<T> &c,
       const quaternion<T> &R = quaternionf(1.0f, 0.0f),
-      const vector3<T> &x = vector3f(0.0f)) 
+      const vector3<T> &x = vector3f(0.0f))
     : resolution(resolution), d1(d1), a(a), s(s), c(c), R(R), x(x) {
   }
 
@@ -112,7 +126,7 @@ struct camera {
         x);
   }
 
-  /** Construct a camera description from lens and sensor information. 
+  /** Construct a camera description from lens and sensor information.
    * \param[in] sensor_size the size of the sensor of the device.
    * \param[in] focal_length the focal length of the lens.
    */
@@ -132,7 +146,7 @@ struct camera {
         R,
         x);
   }
- 
+
   /** Realize the actual calibration matrix \f$K\f$ from the intrinsic parameters (see \ref intrinsic). */
   matrix<T, 3, 3> K() const {
     matrix<T, 3, 3> k;
@@ -171,7 +185,7 @@ struct camera {
     vector2<U> u(
         a.x*P.x + s*P.y + c.x,
         a.y*P.y + c.y);
-    
+
     // Apply distortion correction.
     u = distort(u);
 
@@ -218,7 +232,7 @@ struct camera {
   vector3<U> focal_plane_to_projection(const vector2<U> &P, const U &z) const {
     return (R*quaternion<U>(0, P.x*z, P.y*z, z)*~R).b + x;
   }
-  
+
   /** Unproject a position on the sensor to the plane with depth z. */
   template <typename U>
   vector3<U> sensor_to_projection(const vector2<U> &px, const U &z) const {
@@ -231,7 +245,7 @@ struct camera {
     if ((~R*(g - x)*R).b.z >= T(-1e-6))
       return false;
     vector2<T> px = project_to_sensor(g);
-    return T(0) <= px.x && px.x < resolution.x && 
+    return T(0) <= px.x && px.x < resolution.x &&
            T(0) <= px.y && px.y < resolution.y;
   }
 };

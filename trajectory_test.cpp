@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -77,7 +91,7 @@ static cl::arg<float> z_plane(
 // Test and benchmark estimate_trajectory.
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
-      
+
   // Define the camera transforms.
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
@@ -92,10 +106,10 @@ int main(int argc, const char **argv) {
   tj_init.v /= flight_time;
   tj_init.v.z += -0.5f*gravity*flight_time;
 
-  dbg(1) 
-    << "Test trajectory max z=" << tj_init.position(gravity, flight_time/2).z 
+  dbg(1)
+    << "Test trajectory max z=" << tj_init.position(gravity, flight_time/2).z
     << ", target=" << tj_init.position(gravity, intersect_trajectory_zplane(gravity, tj_init, target.first.z)) << endl;
-  
+
   if (test_count > 0) {
     // Generate simulated trajectories.
 
@@ -126,10 +140,10 @@ int main(int argc, const char **argv) {
       tj.v /= flight_time;
       tj.v.z += -0.5f*gravity*flight_time;
 
-      // Generate some simulated observations of the trajectory, 
+      // Generate some simulated observations of the trajectory,
       // adding some random noise/false positives/false negatives.
       observation_buffer obs[2];
-    
+
       for (float t = 0.0f; t <= flight_time; t += T) {
         for (int c = 0; c < 2; c++) {
           if (randf() >= false_negative_rate) {
@@ -143,16 +157,16 @@ int main(int argc, const char **argv) {
             obs[c].push_back({t, cam[c].sensor_to_focal_plane(randv2f(-1.0f, 1.0f))});
         }
       }
-    
+
       try {
         // Estimate the trajectory from the random observations.
         float dt_ = 0.0f;
         trajectoryf tj_ = tj_init;
         auto start = clock::now();
         estimate_trajectory(
-            gravity, 
+            gravity,
             cam[0], cam[1],
-            obs[0], obs[1], 
+            obs[0], obs[1],
             dt_, tj_);
         auto finish = clock::now();
         benchmark_count++;
@@ -189,11 +203,11 @@ int main(int argc, const char **argv) {
       cerr << fails << " tests failed!" << endl;
 
     cout
-      << "estimate_trajectory accuracy=" << total_err/test_count 
+      << "estimate_trajectory accuracy=" << total_err/test_count
       << ", benchmark=" << 1e3f*static_cast<float>(benchmark.count())/benchmark_count/clock::period::den << " ms" << endl;
   } else {
     nxtcam nxtcam0(port_to_i2c_path(stereo.cam0.port));
-    nxtcam nxtcam1(port_to_i2c_path(stereo.cam1.port)); 
+    nxtcam nxtcam1(port_to_i2c_path(stereo.cam1.port));
     cout << "Cameras:" << endl;
     cout << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
     cout << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;
@@ -234,7 +248,7 @@ int main(int argc, const char **argv) {
         obs1.clear();
       }
 
-      while(!obs0.empty() && obs_t0 + obs0.front().t + max_flight_time < t_obs) 
+      while(!obs0.empty() && obs_t0 + obs0.front().t + max_flight_time < t_obs)
         obs0.pop_front();
       while(!obs1.empty() && obs_t0 + obs1.front().t + max_flight_time < t_obs)
         obs1.pop_front();

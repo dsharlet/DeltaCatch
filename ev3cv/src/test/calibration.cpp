@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <cl/cl.h>
 #include <vision/calibration.h>
 #include "test.h"
@@ -93,7 +107,7 @@ void test_synchronize(int count) {
       for (int j = 0; j < N; j++) {
         float theta = 2*pi*j/N;
         obs.push_back({
-            vector2f(cos(theta), sin(theta))*r, 
+            vector2f(cos(theta), sin(theta))*r,
             vector2f(cos(theta + theta_shift), sin(theta + theta_shift))*r
         });
       }
@@ -134,7 +148,7 @@ void test_calibrate(int count) {
             vector3f(0.0f, -1.0f, 0.0f),
             vector3f(0.0f, 0.0f, 1.0f))),
           vector3f(baseline/2.0f, 0.0f, 0.0f));
-  
+
       // Generate some observations of samples from a sphere.
       vector<sphere_observation_set> spheres;
       for (int i = 0; i < sphere_count; i++) {
@@ -148,7 +162,7 @@ void test_calibrate(int count) {
             sphere.samples.push_back({cam0.project_to_sensor(x), cam1.project_to_sensor(x)});
         }
       }
-      
+
       // Run the calibration with a realistic initial guess.
       cameraf cam0_ = cam0;
       cameraf cam1_ = cam1;
@@ -164,12 +178,12 @@ void test_calibrate(int count) {
       //cam1_.R = unit(quaternionf(randf(), randv3f()));
 
       calibrate(
-          spheres, 
-          cam0_, cam1_, 
-          cout, "d1aatR", 
-          max_iterations, convergence_threshold, 
+          spheres,
+          cam0_, cam1_,
+          cout, "d1aatR",
+          max_iterations, convergence_threshold,
           lambda_init, lambda_decay);
-  
+
       ASSERT_LT(abs(cam0_.d1 - cam0.d1), epsilon);
       ASSERT_LT(abs(cam0_.a - cam0.a), epsilon);
       ASSERT_LT(abs(cam0_.s - cam0.s), epsilon);

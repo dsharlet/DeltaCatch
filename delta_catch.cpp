@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -91,8 +105,8 @@ static cl::arg<vector3f> init_v(
   cl::name("init-v"));
 
 float intersect_trajectory_volume(
-    float gravity, const trajectoryf &tj, 
-    const delta_robot::volume &volume, 
+    float gravity, const trajectoryf &tj,
+    const delta_robot::volume &volume,
     float t_min, float t_max) {
   float r = volume.radius();
   for (int i = 0; i < 3; i++) {
@@ -116,13 +130,13 @@ int main(int argc, const char **argv) {
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << showpos << setprecision(3);
   cerr << fixed << showpoint << showpos << setprecision(3);
-    
+
   typedef chrono::high_resolution_clock clock;
 
   // Define the camera transforms.
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
-    
+
   // Start a thread to find the visualization server address while we start up and calibrate the robot.
   thread find_host;
   if (viz_host->empty() && viz_port != 0) {
@@ -136,14 +150,14 @@ int main(int argc, const char **argv) {
     });
     std::swap(find_host, t);
   }
-  
+
   mutex obs_lock;
   observation_buffer obs0, obs1;
   auto t0 = clock::now();
 
   thread tracking_thread([&]() {
     nxtcam nxtcam0(port_to_i2c_path(stereo.cam0.port));
-    nxtcam nxtcam1(port_to_i2c_path(stereo.cam1.port)); 
+    nxtcam nxtcam1(port_to_i2c_path(stereo.cam1.port));
     cout << "Cameras:" << endl;
     cout << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
     cout << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;
@@ -151,7 +165,7 @@ int main(int argc, const char **argv) {
     nxtcam0.track_objects();
     nxtcam1.track_objects();
     cout << "Tracking objects..." << endl;
-  
+
     // t will increment in regular intervals of T.
     chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
     while (true) {
@@ -161,7 +175,7 @@ int main(int argc, const char **argv) {
 
       float t_obs = chrono::duration_cast<chrono::duration<float>>(t - t0).count() + observation_delay*1e-3f;
       obs_lock.lock();
-      while(!obs0.empty() && obs0.front().t + max_flight_time < t_obs) 
+      while(!obs0.empty() && obs0.front().t + max_flight_time < t_obs)
         obs0.pop_front();
       while(!obs1.empty() && obs1.front().t + max_flight_time < t_obs)
         obs1.pop_front();
@@ -204,8 +218,8 @@ int main(int argc, const char **argv) {
   viz_client viz;
   if (!viz_host->empty())
     viz.connect(viz_host, viz_port);
-  
-  // Use a reasonable initial guess for the trajectory.  
+
+  // Use a reasonable initial guess for the trajectory.
   trajectoryf tj_init;
   tj_init.x = vector3f(0.0f, 200.0f, 0.0f);
   tj_init.v = -tj_init.x;
@@ -216,7 +230,7 @@ int main(int argc, const char **argv) {
   float dt = 0.0f;
   float current_obs = 0.0f;
 
-  // Remember the expected intercepts of the delta robot volume and the z plane. 
+  // Remember the expected intercepts of the delta robot volume and the z plane.
   struct intercept {
     float t;
     vector3f x;
@@ -230,7 +244,7 @@ int main(int argc, const char **argv) {
   while (true) {
     float t_now = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0).count();
 
-    // Don't bother trying to estimate a new trajectory if we are closer than the 
+    // Don't bother trying to estimate a new trajectory if we are closer than the
     // observation delay to intercept, new observations will not matter if we have
     // them anyways.
     if (t_now + observation_delay < entry.t) {
@@ -268,12 +282,12 @@ int main(int argc, const char **argv) {
             float entry_t = entry.t;
             entry.t = exit.t = t_none;
             estimate_trajectory(
-                gravity, 
+                gravity,
                 cam0, cam1,
-                obs0_, obs1_, 
+                obs0_, obs1_,
                 dt, tj,
                 entry_t - t_now - (intercept_delay + catch_delay));
-            
+
             // Update t_now because estimate_trajectory can take a while.
             t_now = chrono::duration_cast<chrono::duration<float>>(clock::now() - t0_).count();
 
@@ -296,7 +310,7 @@ int main(int argc, const char **argv) {
                 // If the trajectory does not exit the ellipse before crossing the z plane, use the z plane crossing
                 // as the exit intercept. It must lie in the volume to be a valid intercept.
                 if (!volume.contains(exit.x))
-                  throw runtime_error("z plane intercept is unreachable");                
+                  throw runtime_error("z plane intercept is unreachable");
               }
 
               cout << "trajectory found with expected intercepts at:" << endl;
@@ -363,7 +377,7 @@ int main(int argc, const char **argv) {
       entry.t = exit.t = t_none;
       delta.set_position_setpoint(volume.center(0.5f));
     }
-    if (clock::now() > reset_at) { 
+    if (clock::now() > reset_at) {
       dbg(1) << "resetting..." << endl;
       reset_at = clock::time_point::max();
       tj = tj_init;

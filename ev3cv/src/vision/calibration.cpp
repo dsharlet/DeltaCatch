@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <vision/calibration.h>
 
 using namespace std;
@@ -22,10 +36,10 @@ float calibrate(
     int max_iterations, float epsilon,
     float lambda_init, float lambda_decay) {
   typedef diff<double, 26> d;
-  
+
   camera<d> cam0 = camera_cast<d>(cam0f);
   camera<d> cam1 = camera_cast<d>(cam1f);
-  
+
   bool enable_d1 = enable.find("d1") != string::npos;
   bool enable_a = enable.find("a") != string::npos;
   bool enable_s = enable.find("s") != string::npos;
@@ -85,7 +99,7 @@ float calibrate(
       log << "  xyz" << i << endl;
     }
   }
-  
+
   log << "Running optimization over " << N << " variables..." << endl;
 
   // Levenberg-Marquardt damping parameter.
@@ -96,17 +110,17 @@ float calibrate(
   vector3<d> prev_R0 = R0;
   vector3<d> prev_R1 = R1;
   vector<vector3<d>> prev_spheres = spheres;
-  
+
   double error = prev_error;
   for (int it = 1; it <= max_iterations; it++) {
     d baseline = abs(cam1.x - cam0.x);
     vector3<d> b = unit(cam1.x - cam0.x);
-    
+
     // Compute J^T*J and b.
     matrix<double> JTJ(N, N);
     matrix<double> JTy(N, 1);
     error = 0;
-    
+
     for (size_t i = 0; i < sphere_observations.size(); i++) {
       double r_i = sphere_observations[i].radius;
       for (const auto &s : sphere_observations[i].samples) {
@@ -124,17 +138,17 @@ float calibrate(
         // Project the points out to the distance z.
         x0 = x0*(z/z0) + cam0.x;
         x1 = x1*(z/z1) + cam1.x;
-                
+
         // Error in depth from the calibration sphere and x, for both samples.
         d r_s0 = r_i - safe_abs(x0 - spheres[i]);
         d r_s1 = r_i - safe_abs(x1 - spheres[i]);
         error += sqr(r_s0.u);
         error += sqr(r_s1.u);
-        
+
         // Error in difference between the two projected points.
         d r_z = safe_abs(x0 - x1);
         error += sqr(r_z.u);
-        
+
         for (int i = 0; i < N; i++) {
           double Dr_s0_i = D(r_s0, i);
           double Dr_s1_i = D(r_s1, i);
@@ -153,10 +167,10 @@ float calibrate(
       }
     }
 
-    // If error increased, throw away the previous iteration and 
+    // If error increased, throw away the previous iteration and
     // reset the Levenberg-Marquardt damping parameter.
     if (error > prev_error) {
-      log << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
+      log << "  it=" << it << ", ||dB||=<bad iteration>, error="
         << error << ", lambda=" << lambda << endl;
       lambda_init /= lambda_decay;
       lambda = lambda_init*randf(1.0f, 1.0f/lambda_decay);
@@ -170,18 +184,18 @@ float calibrate(
     } else {
       lambda_init = lambda;
     }
-    
+
     // J^T*J <- J^T*J + lambda*diag(J^T*J)
     for (int i = 0; i < N; i++)
       JTJ(i, i) *= 1 + lambda;
-    
+
     // Solve J^T*J*dB = J^T*y.
     matrix_ref<double> dB = solve(JTJ, JTy);
-    
+
     if (!isfinite(dB))
       throw runtime_error("optimization diverged");
-    
-    log << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
+
+    log << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB))
       << ", error=" << error << ", lambda=" << lambda << endl;
 
     // Update Levenberg-Marquardt damping parameter.
@@ -220,7 +234,7 @@ float calibrate(
       cam0.x.x += dB(n++); cam0.x.y += dB(n++); cam0.x.z += dB(n++);
       cam1.x.x += dB(n++); cam1.x.y += dB(n++); cam1.x.z += dB(n++);
     }
-  
+
     for (size_t i = 0; i < spheres.size(); i++) {
       //const auto &oi = sphere_observations[i];
       auto &si = spheres[i];
@@ -230,13 +244,13 @@ float calibrate(
         si.z += dB(n++);
       }
     }
-            
+
     if (dot(dB, dB) < epsilon*epsilon && lambda < lambda_init*pow(lambda_decay, 5)) {
       log << "  converged on it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) << endl;
       break;
     }
   }
-  
+
   cam0f = camera_cast<float>(cam0);
   cam1f = camera_cast<float>(cam1);
   //for (size_t i = 0; i < sphere_observations.size(); i++)
@@ -245,7 +259,7 @@ float calibrate(
 }
 
 namespace {
-  
+
 template <typename It>
 void normalize_filter(It begin, It end) {
   double sum = 0.0;
@@ -269,7 +283,7 @@ void filter_observations(vector<stereo_observation> &obs, float sigma) {
     gaussian[i] = exp(-sqr(x)/sqr_sigma);
   }
   normalize_filter(gaussian.begin(), gaussian.end());
-  
+
   // Filter the observations.
   vector<stereo_observation> obs_f;
   obs_f.reserve(obs.size() - N);
@@ -294,21 +308,21 @@ float estimate_time_shift(const vector<stereo_observation> &obs) {
   for (size_t i = 0; i + 1 < obs.size(); i++)
     vobs.push_back({obs[i].x0 - obs[i + 1].x0, obs[i].x1 - obs[i + 1].x1});
 
-  // Compute the L2 norm error between the sequences of velocities, 
+  // Compute the L2 norm error between the sequences of velocities,
   // with +/- 1 frame of shift.
   float l2_mem[3] = { 0.0f, 0.0f, 0.0f };
   float *l2 = &l2_mem[1];
   for (int i = 1; i + 1 < static_cast<int>(vobs.size()); i++)
     for (int shift = -1; shift <= 1; shift++)
       l2[shift] += sqr_abs(vobs[i].x0 - vobs[i - shift].x1);
-  
+
   // Fit a parabola to l2.
   float C = l2[0];
   float A = (l2[-1] + l2[1] - 2*C)/2;
   float B = l2[1] - A - C;
 
   // Check that parabola is concave up.
-  if (A <= 0.0f) 
+  if (A <= 0.0f)
     throw runtime_error("bad time shift");
 
   // Find the minimum of the parabola.
@@ -325,13 +339,13 @@ void synchronize_observations(vector<stereo_observation> &obs, float shift) {
   array<float, lobes*2 + 1> lcz;
   int u = static_cast<int>(floor(shift + 0.5f));
   float du = shift - u;
-  
+
   for (int i = 0; i < lobes*2 + 1; i++) {
     float x = i - lobes + du;
     lcz[i] = sinc(pi*x)*sinc(pi*x/lobes);
   }
   normalize_filter(lcz.begin(), lcz.end());
-  
+
   // Filter the second observation sequence.
   vector<stereo_observation> shifted;
   shifted.reserve(obs.size());

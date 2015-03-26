@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <random>
 #include <chrono>
 
@@ -68,7 +82,7 @@ float intersect_trajectory_sphere(float g, const trajectoryf &tj, const vector3f
   throw runtime_error("no trajectory-ellipse intersection found");
 }
 
-// Find the intersection of a trajectory with the z plane. This function computes the 
+// Find the intersection of a trajectory with the z plane. This function computes the
 // later (larger t) of the two intersections.
 float intersect_trajectory_zplane(float g, const trajectoryf &tj, float z) {
   float a = g/2.0f;
@@ -87,9 +101,9 @@ typedef circular_array<observation, 128> observation_buffer;
 template <typename T>
 vector2<T> reprojection_error(
     float half_g,
-    const cameraf &cam, 
+    const cameraf &cam,
     const observation &ob,
-    const T* dt, 
+    const T* dt,
     const trajectory<T> &tj) {
   // Compute the error in screen space for the observation.
   vector3<T> x;
@@ -103,9 +117,9 @@ vector2<T> reprojection_error(
 }
 
 // Estimates a trajectory t given a set of observations from two cameras. The input
-// value of tj is used as an initial guess for optimization. 
+// value of tj is used as an initial guess for optimization.
 float estimate_trajectory(
-    float gravity, 
+    float gravity,
     const cameraf &cam0, const cameraf &cam1,
     observation_buffer &obs0, observation_buffer &obs1,
     float &dtf,
@@ -113,7 +127,7 @@ float estimate_trajectory(
     float time_limit) {
   const float epsilon_sq = epsilon*epsilon;
   const float half_g = gravity/2;
-  
+
   typedef chrono::high_resolution_clock clock;
   auto t_begin = clock::now();
 
@@ -125,12 +139,12 @@ float estimate_trajectory(
     N,
   };
   typedef diff<float, N> d;
-  
+
   size_t M0 = static_cast<int>(obs0.size());
   size_t M1 = static_cast<int>(obs1.size());
   size_t M = M0 + M1;
-  
-  dbg(1) << "estimate_trajectory, M=" << M << " (" << M0 << " + " << M1 
+
+  dbg(1) << "estimate_trajectory, M=" << M << " (" << M0 << " + " << M1
     << "), time_limit=" << static_cast<int>(1000.0f*time_limit) << " ms ..." << endl;
 
   if (M < N)
@@ -140,7 +154,7 @@ float estimate_trajectory(
   trajectory<d> tj;
   tj.x = vector3<d>(d(tjf.x.x, x_x), d(tjf.x.y, x_y), d(tjf.x.z, x_z));
   tj.v = vector3<d>(d(tjf.v.x, v_x), d(tjf.v.y, v_y), d(tjf.v.z, v_z));
-  
+
   // Levenberg-Marquardt state.
   trajectory<d> prev_tj = tj;
   float prev_error = std::numeric_limits<float>::infinity();
@@ -156,9 +170,9 @@ float estimate_trajectory(
       const observation &o_i = i < M0 ? obs0[obs0.begin() + i] : obs1[obs1.begin() + i - M0];
 
       vector2<d> r = reprojection_error(
-          half_g, 
-          i < M0 ? cam0 : cam1, 
-          o_i, 
+          half_g,
+          i < M0 ? cam0 : cam1,
+          o_i,
           i < M0 ? nullptr : &dt, tj);
 
       error += sqr(r.x.u) + sqr(r.y.u);
@@ -174,10 +188,10 @@ float estimate_trajectory(
       }
     }
 
-    // If error increased, throw away the previous iteration and 
+    // If error increased, throw away the previous iteration and
     // reset the Levenberg-Marquardt damping parameter.
     if (error > prev_error) {
-      dbg(2) << "  it=" << it << ", ||dB||=<bad iteration>, error=" 
+      dbg(2) << "  it=" << it << ", ||dB||=<bad iteration>, error="
         << error << ", lambda=" << lambda << endl;
       lambda_init /= lambda_decay;
       lambda = lambda_init*randf(1.0f, 1.0f/lambda_decay);
@@ -194,13 +208,13 @@ float estimate_trajectory(
 
     // Solve J^T*J*dB = J^T*y.
     matrix_ref<float, N, 1> dB = solve(JTJ, JTy);
-    
+
     if (!isfinite(dB))
       throw runtime_error("estimate_trajectory optimization diverged");
 
     // If the debug level is high, dump out info about the last few iterations.
     if (dbg_level() >= 4 && it + dbg_level() >= max_iterations) {
-      dbg(4) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB)) 
+      dbg(4) << "  it=" << it << ", ||dB||=" << sqrt(dot(dB, dB))
           << ", error=" << error << ", lambda=" << lambda << endl;
     }
 
