@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -38,9 +52,9 @@ int main(int argc, const char **argv) {
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
-  
+
   nxtcam nxtcam0(port_to_i2c_path(stereo.cam0.port));
-  nxtcam nxtcam1(port_to_i2c_path(stereo.cam1.port)); 
+  nxtcam nxtcam1(port_to_i2c_path(stereo.cam1.port));
   cout << "Cameras:" << endl;
   cout << nxtcam0.device_id() << " " << nxtcam0.version() << " (" << nxtcam0.vendor_id() << ")" << endl;
   cout << nxtcam1.device_id() << " " << nxtcam1.version() << " (" << nxtcam1.vendor_id() << ")" << endl;
@@ -63,12 +77,12 @@ int main(int argc, const char **argv) {
   }
 
   nxtcam_init_thread.join();
-  
+
   delta_robot::volume volume = delta.work_volume();
 
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
-  
+
   float baseline = abs(cam1.x - cam0.x);
   if (baseline < 1e-6f)
     throw runtime_error("camera baseline is zero");
@@ -78,9 +92,9 @@ int main(int argc, const char **argv) {
   typedef chrono::high_resolution_clock clock;
   auto t = clock::now();
   chrono::microseconds T(static_cast<int>(1e6f/sample_rate + 0.5f));
-  
+
   vector3f origin(0.0f, 0.0f, 0.0f);
-  
+
   string eraser;
   while (true) {
     nxtcam::blob_list blobs0 = nxtcam0.blobs();
@@ -89,10 +103,10 @@ int main(int argc, const char **argv) {
     if (blobs0.size() == 1 && blobs1.size() == 1) {
       const nxtcam::blob &b0 = blobs0.front();
       const nxtcam::blob &b1 = blobs1.front();
-      
+
       vector3f x0 = cam0.sensor_to_projection(b0.center(), 1.0f) - cam0.x;
       vector3f x1 = cam1.sensor_to_projection(b1.center(), 1.0f) - cam1.x;
-      
+
       // The camera focal planes may not be parallel to the baseline, so we tweak z
       // to make similar triangles with a vertex contained in the plane parallel
       // to the baseline.
@@ -105,7 +119,7 @@ int main(int argc, const char **argv) {
       x0 = x0*(z/z0) + cam0.x;
       x1 = x1*(z/z1) + cam1.x;
       vector3f x = (x0 + x1)/2;
-      
+
       stringstream ss;
       ss << fixed << showpoint << setprecision(3);
       ss << "x=" << x << ", ||x0 - x1||=" << abs(x0 - x1) << ", z=" << z;
@@ -113,7 +127,7 @@ int main(int argc, const char **argv) {
       if (msg.length() > eraser.length())
         eraser = string(msg.length(), ' ');
       cout << msg << string(eraser.size() - msg.size(), ' ');
-      
+
       if (dot(origin, origin) == 0.0f)
         origin = x*scale - volume.center();
 

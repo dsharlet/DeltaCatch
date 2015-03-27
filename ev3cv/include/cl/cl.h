@@ -1,13 +1,27 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /** \file cl.h
  * Provides command line parsing utilities.
  */
 
 /** \page cl Command line parsing
 
-The ev3cv::cl namespace provides a command line parsing library. The library is designed to support a 
+The ev3cv::cl namespace provides a command line parsing library. The library is designed to support a
 decentralized declaration of command line parameters. This helps to avoid a monolithic blob of command
 line parsing code that tends to get duplicated if multiple programs need similar arguments. The design
-of the library is loosely inspired by the 
+of the library is loosely inspired by the
 <a href="http://llvm.org/docs/CommandLine.html">LLVM CommandLine</a> library.
 
 To use ev3cv::cl, first declare some command line arguments somewhere:
@@ -30,7 +44,7 @@ cl::boolean switch_argument(
 When declaring an argument anywhere in the program, the argument is registered with a global set
 of command line arguments. The properties of an argument can be set with the member functions of
 ev3cv::cl::base_arg. However, to facilitate the common case of declaring command line arguments
-globally, there is a system of setters (ev3cv::cl::name, ev3cv::cl::flag, ev3cv::cl::desc, etc.) 
+globally, there is a system of setters (ev3cv::cl::name, ev3cv::cl::flag, ev3cv::cl::desc, etc.)
 that can be passed to the constructor in any order.
 
 To use the arguments, call parse with the arguments given to `main`:
@@ -76,7 +90,7 @@ enum arg_flag {
 
 class base_arg;
 
-/** Print out the usage string for this application. This will show the name and descriptions of 
+/** Print out the usage string for this application. This will show the name and descriptions of
  * all of the registered non-hidden command line arguments. */
 void usage(const char *argv0);
 /** Parse the command line arguments from argc, argv. */
@@ -107,7 +121,7 @@ public:
   void apply(base_arg *) const {}
 };
 
-/** Base class for a command line argument. Registers itself upon 
+/** Base class for a command line argument. Registers itself upon
  * construction and unregisters itself upon destruction. */
 class base_arg {
 protected:
@@ -117,15 +131,15 @@ protected:
   std::string group_;
   unsigned flags_;
   bool parsed_;
-    
+
   static void register_arg(base_arg *a);
   static void unregister_arg(base_arg *a);
 
-  base_arg(const arg_setter &a1, 
-            const arg_setter &a2,  
-            const arg_setter &a3, 
-            const arg_setter &a4, 
-            const arg_setter &a5, 
+  base_arg(const arg_setter &a1,
+            const arg_setter &a2,
+            const arg_setter &a3,
+            const arg_setter &a4,
+            const arg_setter &a5,
             const arg_setter &a6) : flag_(0), flags_(0), parsed_(false) {
     a1.apply(this);
     a2.apply(this);
@@ -143,7 +157,7 @@ public:
   virtual void parse(std::list<const char *> &argv) = 0;
   /** Print out a description of this argument. */
   virtual void print(std::ostream &os) { os << "   " << desc_ << std::endl; }
-    
+
   /** The single character name of this argument. */
   ///@{
   char flag() const { return flag_; }
@@ -179,7 +193,7 @@ public:
   /** Set the argument to be parsed. */
   void set_parsed() { parsed_ = true; }
 };
-  
+
 /** A command line argument for a single value. */
 template <typename T>
 class arg : public base_arg {
@@ -203,21 +217,21 @@ public:
 
   /** Assign the value of this argument. */
   void operator = (const T& v) { value = v; }
-    
-  arg(T value, 
-      const arg_setter &a1 = null_arg_setter(), 
-      const arg_setter &a2 = null_arg_setter(), 
-      const arg_setter &a3 = null_arg_setter(), 
-      const arg_setter &a4 = null_arg_setter(), 
-      const arg_setter &a5 = null_arg_setter(), 
-      const arg_setter &a6 = null_arg_setter()) 
+
+  arg(T value,
+      const arg_setter &a1 = null_arg_setter(),
+      const arg_setter &a2 = null_arg_setter(),
+      const arg_setter &a3 = null_arg_setter(),
+      const arg_setter &a4 = null_arg_setter(),
+      const arg_setter &a5 = null_arg_setter(),
+      const arg_setter &a6 = null_arg_setter())
     : base_arg(a1, a2, a3, a4, a5, a6), value(value) {}
-  arg(const arg_setter &a1 = null_arg_setter(), 
-      const arg_setter &a2 = null_arg_setter(), 
-      const arg_setter &a3 = null_arg_setter(), 
-      const arg_setter &a4 = null_arg_setter(), 
-      const arg_setter &a5 = null_arg_setter(), 
-      const arg_setter &a6 = null_arg_setter()) 
+  arg(const arg_setter &a1 = null_arg_setter(),
+      const arg_setter &a2 = null_arg_setter(),
+      const arg_setter &a3 = null_arg_setter(),
+      const arg_setter &a4 = null_arg_setter(),
+      const arg_setter &a5 = null_arg_setter(),
+      const arg_setter &a6 = null_arg_setter())
     : base_arg(a1, a2, a3, a4, a5, a6), value() {}
 
   void parse(std::list<const char *> &argv) {
@@ -238,23 +252,23 @@ public:
     os << " (" << value << ")" << std::endl;
   }
 };
-  
+
 /** A command line argument that has its value set to true by being present on the command line. */
 class boolean : public arg<bool> {
 public:
   using arg::operator =;
-    
+
   boolean(
-      const arg_setter &a1 = null_arg_setter(), 
-      const arg_setter &a2 = null_arg_setter(), 
-      const arg_setter &a3 = null_arg_setter(), 
-      const arg_setter &a4 = null_arg_setter(), 
-      const arg_setter &a5 = null_arg_setter(), 
-      const arg_setter &a6 = null_arg_setter()) 
+      const arg_setter &a1 = null_arg_setter(),
+      const arg_setter &a2 = null_arg_setter(),
+      const arg_setter &a3 = null_arg_setter(),
+      const arg_setter &a4 = null_arg_setter(),
+      const arg_setter &a5 = null_arg_setter(),
+      const arg_setter &a6 = null_arg_setter())
     : arg<bool>(false, a1, a2, a3, a4, a5, a6) {}
 
   void parse(std::list<const char *> &argv) {
-    value = true; 
+    value = true;
   }
 
   void print(std::ostream &os) {
@@ -285,14 +299,14 @@ public:
   const T &operator[] (size_t i) const { return values_[i]; }
   bool empty() const { return values_.empty(); }
   ///@}
-    
+
   base_arg_list(
-      const arg_setter &a1 = null_arg_setter(), 
-      const arg_setter &a2 = null_arg_setter(), 
-      const arg_setter &a3 = null_arg_setter(), 
-      const arg_setter &a4 = null_arg_setter(), 
+      const arg_setter &a1 = null_arg_setter(),
+      const arg_setter &a2 = null_arg_setter(),
+      const arg_setter &a3 = null_arg_setter(),
+      const arg_setter &a4 = null_arg_setter(),
       const arg_setter &a5 = null_arg_setter(),
-      const arg_setter &a6 = null_arg_setter()) 
+      const arg_setter &a6 = null_arg_setter())
     : base_arg(a1, a2, a3, a4, a5, a6) { add_flags(multi); }
 
   void print(std::ostream &os) {
@@ -317,13 +331,13 @@ public:
   using base_arg_list<T>::empty;
   using base_arg_list<T>::operator [];
   using base_arg_list<T>::print;
-    
+
   arg_list(
-      const arg_setter &a1 = null_arg_setter(), 
-      const arg_setter &a2 = null_arg_setter(), 
-      const arg_setter &a3 = null_arg_setter(), 
-      const arg_setter &a4 = null_arg_setter(), 
-      const arg_setter &a5 = null_arg_setter()) 
+      const arg_setter &a1 = null_arg_setter(),
+      const arg_setter &a2 = null_arg_setter(),
+      const arg_setter &a3 = null_arg_setter(),
+      const arg_setter &a4 = null_arg_setter(),
+      const arg_setter &a5 = null_arg_setter())
     : base_arg_list<T>(a1, a2, a3, a4, a5) {}
 
   void parse(std::list<const char *> &argv) {
@@ -333,7 +347,7 @@ public:
     ss >> v;
     if (ss.fail())
       throw std::runtime_error("failed to parse value for argument '" + name() + "'");
-      
+
     values_.push_back(v);
   }
 };
@@ -360,7 +374,7 @@ public:
   desc(std::string v) : v(std::move(v)) {}
   void apply(base_arg *a) const { a->set_desc(v); }
 };
-  
+
 class flags : public arg_setter {
   unsigned v;
 public:

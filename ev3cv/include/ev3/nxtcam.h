@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /** \file nxtcam.h
  * Support for NXTcam in ev3dev.
  */
@@ -11,8 +25,8 @@
 #include "../ev3cv.h"
 
 namespace ev3cv {
-  
-/** Given a ev3dev port specification, return a path to the corresponding I2C device. 
+
+/** Given a ev3dev port specification, return a path to the corresponding I2C device.
  * For example, 'in1' maps to '/dev/i2c-3'. */
 std::string port_to_i2c_path(const std::string &port);
 
@@ -33,11 +47,11 @@ public:
 
   typedef std::vector<blob> blob_list;
 
-  /** Connect to an NXTcam at the given path. To convert an ev3dev input port 
+  /** Connect to an NXTcam at the given path. To convert an ev3dev input port
    * specification to a path, see ev3cv::port_to_i2c_path. */
   nxtcam(const std::string &path, int address = 0x01);
   ~nxtcam();
-  
+
   /** Query information about the connected device. */
   ///@{
   std::string version() const;
@@ -51,7 +65,7 @@ public:
   void track_lines();
   /** Stop tracking. */
   void stop_tracking();
-  
+
   /** Get the currently detected blobs from the camera. */
   blob_list blobs() const;
 
@@ -65,7 +79,7 @@ protected:
     reg_count = 0x42,
     reg_data = 0x43,
   };
-  
+
   // Read size registers beginning at reg.
   void read(uint8_t reg, uint8_t *data, size_t size) const;
   // Write a single byte to a reg.

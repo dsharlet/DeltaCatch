@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /** \file autodiff.h
  * Defines automatic differentation types and functions.
  */
@@ -5,18 +19,18 @@
 /** \page autodiff Automatic differentiation
 
 Automatic differentiation (AD) is an alternative method of computing derivatives, alongside
-numerical finite differences or symbolic differentiation. AD is more numerically stable and 
+numerical finite differences or symbolic differentiation. AD is more numerically stable and
 efficient compared to finite differences, and is easier to implement and less intrusive to
 algorithm code than symbolic differentiation (or manually finding derivatives of an expression).
 
-AD works by computing derivatives at the same time as evaluating a function. An AD library 
-provides a set of basic arithmetic building blocks using the chain rule. 
+AD works by computing derivatives at the same time as evaluating a function. An AD library
+provides a set of basic arithmetic building blocks using the chain rule.
 
-For a more thorough explanation of automatic differentiation, see 
-<a href="http://en.wikipedia.org/wiki/Automatic_differentiation">Automatic differentiation</a> 
+For a more thorough explanation of automatic differentiation, see
+<a href="http://en.wikipedia.org/wiki/Automatic_differentiation">Automatic differentiation</a>
 on wikipedia. The rest of this page describes the specifics of the ev3cv::diff type.
 
-The typical technique to use this type is to define a function of which the derivative is needed 
+The typical technique to use this type is to define a function of which the derivative is needed
 as a template, and call this function with this type. For example:
 
 \code
@@ -26,12 +40,12 @@ T f(T x) {
   return T(3)*sqr(x) + T(1)*x + T(4);
 }
 \endcode
-    
+
 Now, the derivative of f can be computed like so:
 \code
 diff<double, 1> x = 3.5;
 
-// By default, diff types have derivatives of 0 (i.e. constants), 
+// By default, diff types have derivatives of 0 (i.e. constants),
 // but since this is x, it should have a derivative of 1.
 D(x) = 1;
 
@@ -43,7 +57,7 @@ double fx = scalar_cast<double>(y);
 double df_dx = D(y);
 \endcode
 
-The above example only computed a single derivative. However, ev3cv::diff supports computing 
+The above example only computed a single derivative. However, ev3cv::diff supports computing
 up to some fixed number of partial derivatives simultaneously:
 
 \code
@@ -77,7 +91,7 @@ double df_dy = D(z, 1);
 
 namespace ev3cv {
 
-/** Implements the forward automatic differentiation scheme via operator overloading. For more information, 
+/** Implements the forward automatic differentiation scheme via operator overloading. For more information,
  * see \ref autodiff.
  **/
 template <typename T, int N>
@@ -101,14 +115,14 @@ public:
   /** Initialize a variable to a value. */
   diff(T u, int i) : u(u) { for (T& i : du_) i = 0; d(i) = 1; }
 
-  diff &operator += (const diff &r) { 
-    u += r.u; 
+  diff &operator += (const diff &r) {
+    u += r.u;
     for (int i = 0; i < n(); i++)
       d(i) += r.d(i);
     return *this;
   }
-  diff &operator -= (const diff &r) { 
-    u -= r.u; 
+  diff &operator -= (const diff &r) {
+    u -= r.u;
     for (int i = 0; i < n(); i++)
       d(i) -= r.d(i);
     return *this;
@@ -326,7 +340,7 @@ std::istream &operator >> (std::istream &is, diff<T, N> &d) {
 template <typename T, int N>
 bool isfinite(const diff<T, N> &x) {
   for (int i = 0; i < x.n(); i++)
-    if (!isfinite(x.d(i))) 
+    if (!isfinite(x.d(i)))
       return false;
   return isfinite(x.u);
 }
@@ -334,7 +348,7 @@ bool isfinite(const diff<T, N> &x) {
 template <typename T, int N>
 bool isnan(const diff<T, N> &x) {
   for (int i = 0; i < x.n(); i++)
-    if (!isnan(x.d(i))) 
+    if (!isnan(x.d(i)))
       return false;
   return isnan(x.u);
 }

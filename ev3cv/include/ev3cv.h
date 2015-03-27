@@ -1,13 +1,27 @@
-/** 
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
 \mainpage ev3cv documentation
 
 \section about About
 
-ev3cv is a library for helping users of <a href="www.ev3dev.org">ev3dev</a> and cameras like 
+ev3cv is a library for helping users of <a href="www.ev3dev.org">ev3dev</a> and cameras like
 <a href="http://www.mindsensors.com/index.php?module=pagemaster&PAGE_user_op=view_page&PAGE_id=78">NXTcam</a> to build
 robots with LEGOs that have stereo machine vision.
 
-ev3cv also has some other useful support libraries, such as motor controllers (ev3cv::servo) and low level support for 
+ev3cv also has some other useful support libraries, such as motor controllers (ev3cv::servo) and low level support for
 NXTcam (ev3cv::nxtcam) in ev3dev.
 
 Here are a few demo videos using ev3cv:
@@ -15,7 +29,7 @@ Here are a few demo videos using ev3cv:
 - <a href="https://www.youtube.com/watch?v=jHaB2zdfhHg">Stereo 3D tracking of a ball</a>
 - <a href="https://www.youtube.com/watch?v=vxx3bBVWaxg">ev3dev::motor vs. ev3cv::servo</a>
 
-All of the code in ev3cv is designed to run on the EV3 brick running ev3dev.  
+All of the code in ev3cv is designed to run on the EV3 brick running ev3dev.
 */
 
 #ifndef EV3CV_EV3CV_H
@@ -50,18 +64,18 @@ using std::tan;
 static const float pi = 3.1415926535897f;
 
 /** Compute the square of x, x^2. */
-template <typename T> 
+template <typename T>
 T sqr(T x) { return x*x; }
 /** Compute the reciprocal of x, 1/x. */
-template <typename T> 
+template <typename T>
 T rcp(T x) { return 1/x; }
 
 /** Bound x to be in the range [a, b]. */
-template <typename T> 
+template <typename T>
 T clamp(T x, T a, T b) { return min(max(x, a), b); }
 
 /** Evaluate \f$sinc(x) = sin(x)/x\f$. */
-template <typename T> 
+template <typename T>
 T sinc(T x) { return abs(x) < 1e-6 ? 1 : sin(x)/x; }
 
 /** Compute a random float in [a, b). */

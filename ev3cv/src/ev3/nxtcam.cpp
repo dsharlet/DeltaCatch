@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <ev3/nxtcam.h>
 
 #include <string.h>
@@ -34,7 +48,7 @@ nxtcam::~nxtcam() {
   if (fd_ >= 0)
     close(fd_);
 }
-  
+
 string nxtcam::version() const {
   // This is reading one extra register for each field... probably harmless.
   char ret[9];
@@ -42,7 +56,7 @@ string nxtcam::version() const {
   ret[8] = 0;
   return ret;
 }
-  
+
 string nxtcam::vendor_id() const {
   // This is reading one extra register for each field... probably harmless.
   char ret[9];
@@ -50,7 +64,7 @@ string nxtcam::vendor_id() const {
   ret[8] = 0;
   return ret;
 }
-  
+
 string nxtcam::device_id() const {
   // This is reading one extra register for each field... probably harmless.
   char ret[9];
@@ -75,7 +89,7 @@ void nxtcam::stop_tracking() {
   char cmds[] = "D";
   write_cmds(cmds);
 }
-  
+
 // Update the tracking data.
 nxtcam::blob_list nxtcam::blobs() const {
   uint8_t blob_count[1];
@@ -106,7 +120,7 @@ void nxtcam::write(uint8_t reg, uint8_t data) {
   // TODO: This really seems to be necessary, unfortunately.
   this_thread::sleep_for(chrono::milliseconds(200));
 }
-  
+
 void nxtcam::read(uint8_t reg, uint8_t *data, size_t size) const {
   uint8_t addr[1] = { reg };
   if (::write(fd_, addr, sizeof(addr)) < 0)

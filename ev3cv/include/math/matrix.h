@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 /** \file matrix.h
  * Defines linear algebra types and helper functions.
  */
@@ -39,11 +53,11 @@ public:
   ///@}
 
   /** Assuming this matrix is a vector (either M == 1 or N == 1), get the i'th element of the vector. */
-  T operator() (int i) const { 
+  T operator() (int i) const {
     static_assert((M_ == 0 || M_ == 1) || (N_ == 0 || N_ == 1), "matrix is not a vector.");
     assert(M() == 1 || N() == 1);
     if (N() == 1)
-      return at(i, 0); 
+      return at(i, 0);
     else
       return at(0, i);
   }
@@ -68,10 +82,10 @@ public:
   using const_ref::operator();
   using const_ref::M;
   using const_ref::N;
-  
+
   /** Get the non-const memory this matrix reference refers to. */
   T *elements() { return x; }
-  
+
   /** Access an element at row i, column j. */
   ///@{
   T &at(int i, int j) { return x[i*N() + j]; }
@@ -79,15 +93,15 @@ public:
   ///@}
 
   /** Assuming this matrix is a vector (either M == 1 or N == 1), access the i'th element of the vector. */
-  T &operator() (int i) { 
+  T &operator() (int i) {
     static_assert((M_ == 0 || M_ == 1) || (N_ == 0 || N_ == 1), "matrix is not a vector.");
     assert(M() == 1 || N() == 1);
     if (N() == 1)
-      return at(i, 0); 
+      return at(i, 0);
     else
       return at(0, i);
   }
-  
+
   /** Matrix arithmetic-assignment operators */
   ///@{
   matrix_ref &operator += (const_ref B) {
@@ -105,7 +119,7 @@ public:
         at(i, j) -= B(i, j);
     return *this;
   }
-  
+
   matrix_ref &operator *= (T b) {
     for (int i = 0; i < M(); i++)
       for (int j = 0; j < N(); j++)
@@ -143,7 +157,7 @@ public:
 
 protected:
   T storage[M_*N_];
-  
+
 public:
   using ref::elements;
   using ref::at;
@@ -182,13 +196,13 @@ public:
         at(i, j) = (i == j) ? a : 0;
   }
 
-  /** Initialize a matrix with an initializer list of initializer lists, for example: 
+  /** Initialize a matrix with an initializer list of initializer lists, for example:
    * \code
-   * matrix<float, 3, 2> A = { 
-   *     { 1.0f, 2.0f }, 
-   *     { 3.0f, 4.0f }, 
-   *     { 5.0f, 6.0f } 
-   * }; 
+   * matrix<float, 3, 2> A = {
+   *     { 1.0f, 2.0f },
+   *     { 3.0f, 4.0f },
+   *     { 5.0f, 6.0f }
+   * };
    * \endcode
    * The inner initializer lists are the rows of the matrix. Elements not initialized are
    * initialized to 0.
@@ -217,7 +231,7 @@ public:
 };
 
 
-/** A specialization of the 0x0 matrix. This holds a dynamically allocated matrix 
+/** A specialization of the 0x0 matrix. This holds a dynamically allocated matrix
   * instead of a static array. */
 template <typename T>
 class matrix<T, 0, 0> : public matrix_ref<T, 0, 0> {
@@ -229,7 +243,7 @@ public:
 
 protected:
   std::vector<T> storage;
-  
+
 public:
   using ref::elements;
   using ref::at;
@@ -258,9 +272,9 @@ public:
       for (int j = 0; j < N; j++)
         at(i, j) = (i == j) ? a : 0;
   }
- 
+
   matrix(int M, int N) : matrix(0, M, N) {}
-  
+
   matrix &operator = (const_ref A) {
     storage.clear();
     storage.resize(A.M()*A.N());
@@ -368,7 +382,7 @@ void row_reduce(matrix_ref<T, M, N> A, BT B) {
         max = absi2j;
       }
     }
-    
+
     // Swap pivot row with the current row.
     if (pi != i) {
       for (int j = i; j < A.N(); ++j)
@@ -376,7 +390,7 @@ void row_reduce(matrix_ref<T, M, N> A, BT B) {
       for (int j = 0; j < B.N(); ++j)
         std::swap(B(i, j), B(pi, j));
     }
-  
+
     // Eliminate the rows after the pivot.
     T p = A(i, i);
     for (int i2 = i + 1; i2 < A.M(); ++i2) {
@@ -421,7 +435,7 @@ matrix_ref<T, N, Nb> solve(matrix_ref<T, N, N> A, matrix_ref<T, N, Nb> b) {
       b(i, jb) = r/A(i, i);
     }
   }
-  
+
   return b;
 }
 

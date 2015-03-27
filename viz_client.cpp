@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "viz_client.h"
 #include "debug.h"
 
@@ -40,7 +54,7 @@ string viz_client::find_host(short port, int timeout_ms) {
     dbg(2) << "  set socket broadcast=" << broadcast << endl;
 
     // Set the timeout.
-    struct timeval timeout;      
+    struct timeval timeout;
     timeout.tv_sec = timeout_ms/1000;
     timeout.tv_usec = (timeout_ms%1000)*1000;
     if (setsockopt (sd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)

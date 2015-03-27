@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -36,7 +50,7 @@ static delta_robot_args delta_geometry("", "Delta robot geometry");
 
 void main_show_position(delta_robot &delta) {
   delta.stop(false);
-  
+
   const int w = 8;
 
   auto x0 = delta.position();
@@ -78,7 +92,7 @@ void main_circle(delta_robot &delta) {
 
 int main(int argc, const char **argv) {
   cl::parse(argv[0], argc - 1, argv + 1);
-  
+
   // Reduce clutter of insignificant digits.
   cout << fixed << showpoint << setprecision(3);
   cerr << fixed << showpoint << setprecision(3);
@@ -90,7 +104,7 @@ int main(int argc, const char **argv) {
 
   // Bask in the glory of the calibration result for a moment.
   this_thread::sleep_for(chrono::milliseconds(500));
-  
+
   // Figure out what we're doing.
   if (circle) {
     main_circle(delta);

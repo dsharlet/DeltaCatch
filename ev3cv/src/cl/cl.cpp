@@ -1,3 +1,17 @@
+// Copyright 2015 Google, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//     distributed under the License is distributed on an "AS IS" BASIS,
+//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "../../include/cl/cl.h"
 
 #include <algorithm>
@@ -21,23 +35,23 @@ base_arg *next_positional_arg() {
 }
 
 base_arg *find_arg(const char *name) {
-  list<base_arg *>::iterator i = find_if(args().begin(), args().end(), [=] (base_arg *i) { 
-    return !i->has_flag(positional) && i->name() == name; 
+  list<base_arg *>::iterator i = find_if(args().begin(), args().end(), [=] (base_arg *i) {
+    return !i->has_flag(positional) && i->name() == name;
   });
   return i != args().end() ? *i : nullptr;
 }
-  
+
 base_arg *find_arg(char flag) {
-  list<base_arg *>::iterator i = find_if(args().begin(), args().end(), [=] (base_arg *i) { 
-    return !i->has_flag(positional) && i->flag() == flag; 
+  list<base_arg *>::iterator i = find_if(args().begin(), args().end(), [=] (base_arg *i) {
+    return !i->has_flag(positional) && i->flag() == flag;
   });
   return i != args().end() ? *i : nullptr;
 }
 
 boolean help(
-  flag('?'), 
-  name("help"), 
-  desc("Show command line options"), 
+  flag('?'),
+  name("help"),
+  desc("Show command line options"),
   flags(hidden));
 
 void base_arg::register_arg(base_arg *a) {
@@ -50,7 +64,7 @@ void base_arg::register_arg(base_arg *a) {
 
 void base_arg::unregister_arg(base_arg *a) {
   args().remove(a);
-} 
+}
 
 void usage(const char *arg0, ostream &os) {
   os << "Usage: " << endl;
@@ -61,7 +75,7 @@ void usage(const char *arg0, ostream &os) {
     }
   }
   os << endl << endl;
-    
+
   os << "Optional arguments:" << endl;
   map<string, vector<base_arg *>> groups;
   for (auto i : args()) {
@@ -87,7 +101,7 @@ void usage(const char *arg0) {
 void parse(list<const char *> argv) {
   while (!argv.empty()) {
     const char *argi = argv.front();
-      
+
     base_arg *ai = NULL;
     if (*argi++ == '-') {
       // This is a named argument?
@@ -114,7 +128,7 @@ void parse(list<const char *> argv) {
     }
   }
 }
-  
+
 void parse(int argc, const char **argv) {
   list<const char *> args;
   for (int i = 0; i < argc; i++) {
@@ -125,14 +139,14 @@ void parse(int argc, const char **argv) {
 
 void parse(const char *arg0, int argc, const char **argv) {
   parse(argc, argv);
-        
+
   // If the help flag was set, show usage and exit.
   if (help) {
     usage(arg0);
     exit(1);
   }
 }
-  
+
 void parse(const string &arg) {
   list<const char *> args = { arg.c_str() };
   parse(args);
@@ -142,7 +156,7 @@ void parse(istream &is, char delim) {
   while (is) {
     string line;
     getline(is, line, delim);
-      
+
     string::size_type space = line.find(' ');
     if (space != string::npos) {
       line[space] = '\0';
