@@ -11,7 +11,7 @@ void delta_hand::init() {
     delta_robot::init(); 
   });
 
-  const auto stall_time = chrono::milliseconds(200);
+  const auto stall_time = chrono::milliseconds(100);
     
   // Start running the grabber motor indefinitely.
   hand.reset();
