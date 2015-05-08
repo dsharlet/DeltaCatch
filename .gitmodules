@@ -1,0 +1,3 @@
+[submodule "ev3cv"]
+	path = ev3cv
+	url = https://github.com/dsharlet/ev3cv
