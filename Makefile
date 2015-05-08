@@ -1,8 +1,8 @@
 
 CFLAGS=-O2 -march=armv5
-CCFLAGS=-std=c++11 -Wall -D_GLIBCXX_USE_NANOSLEEP -I../../ev3dev-lang/cpp -Iev3cv/include
+CCFLAGS=-std=c++11 -Wall -D_GLIBCXX_USE_NANOSLEEP -I../ev3dev-lang/cpp -Iev3cv/include
 OBJ=
-LIBS=-lstdc++ -Lev3cv/lib -lcl -lev3cv -L../../ev3dev-lang/cpp/lib -lev3dev -lpthread -lm
+LIBS=-lstdc++ -Lev3cv/lib -lcl -lev3cv -L../ev3dev-lang/cpp/lib -lev3dev -lpthread -lm
 DEPS=\
 	debug.h \
 	delta_hand.h \
