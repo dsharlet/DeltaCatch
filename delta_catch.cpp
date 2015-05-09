@@ -31,8 +31,6 @@
 #include "stereo_config.h"
 #include "delta_robot_args.h"
 
-#include "viz_client.h"
-
 using namespace ev3dev;
 using namespace std;
 
@@ -86,17 +84,6 @@ static cl::arg<float> catch_z_offset(
   cl::name("catch-z-offset"),
   cl::desc("Z offset from the effector position to the intercept position."));
 
-static cl::arg<string> viz_host(
-  "",
-  cl::name("viz-host"),
-  cl::desc("Hostname/address of the visualization server."),
-  cl::group("Visualization"));
-static cl::arg<short> viz_port(
-  3333,
-  cl::name("viz-port"),
-  cl::desc("Network port of the visualization server."),
-  cl::group("Visualization"));
-
 static cl::arg<vector3f> init_x(
   vector3f(0.0f, 0.0f, 0.0f),
   cl::name("init-x"));
@@ -136,20 +123,6 @@ int main(int argc, const char **argv) {
   // Define the camera transforms.
   cameraf cam0, cam1;
   tie(cam0, cam1) = stereo.cameras();
-
-  // Start a thread to find the visualization server address while we start up and calibrate the robot.
-  thread find_host;
-  if (viz_host->empty() && viz_port != 0) {
-    thread t([&]() {
-      try {
-        viz_host = viz_client::find_host(viz_port);
-        cout << "Found visualization host at " << *viz_host << ":" << viz_port << endl;
-      } catch(exception &ex) {
-        dbg(1) << "viz_client::find_host failed: " << ex.what() << endl;
-      }
-    });
-    std::swap(find_host, t);
-  }
 
   mutex obs_lock;
   observation_buffer obs0, obs1;
@@ -207,17 +180,10 @@ int main(int argc, const char **argv) {
   delta.set_pid_K(pid->x, pid->y, pid->z);
   delta.init();
   delta_robot::volume volume = delta.work_volume();
-  delta.set_position_setpoint(volume.center(0.5f));
+  delta.set_position_sp(volume.center(0.5f));
 
   // Bask in the glory of the calibration result for a moment.
   this_thread::sleep_for(chrono::milliseconds(500));
-
-
-  // Check to see if we should connect to a visualization host.
-  find_host.join();
-  viz_client viz;
-  if (!viz_host->empty())
-    viz.connect(viz_host, viz_port);
 
   // Use a reasonable initial guess for the trajectory.
   trajectoryf tj_init;
@@ -328,7 +294,7 @@ int main(int argc, const char **argv) {
             dbg(1) << ex.what() << endl;
             tj = tj_init;
             dt = 0.0f;
-            delta.set_position_setpoint(volume.center(0.5f));
+            delta.set_position_sp(volume.center(0.5f));
           }
         }
       }
@@ -337,16 +303,16 @@ int main(int argc, const char **argv) {
       if (t_now < exit.t) {
         if (t_now + intercept_delay > entry.t) {
           // If the first intercept has passed, move to the second intercept in an attempt to match the trajectory of the ball.
-          if (sqr_abs(delta.position_setpoint() - exit.x) > 0.5f) {
+          if (sqr_abs(delta.position_sp() - exit.x) > 0.5f) {
             dbg(1) << "moving to intercept exit x=" << exit.x << endl;
-            delta.set_position_setpoint(exit.x);
+            delta.set_position_sp(exit.x);
             reset_at = clock::now() + chrono::seconds(1);
           }
         } else if (entry.t != t_none) {
           // Move to prepare for the first intercept.
-          if (sqr_abs(delta.position_setpoint() - entry.x) > 0.5f) {
+          if (sqr_abs(delta.position_sp() - entry.x) > 0.5f) {
             dbg(1) << "moving to intercept entry x=" << entry.x << endl;
-            delta.set_position_setpoint(entry.x);
+            delta.set_position_sp(entry.x);
             reset_at = clock::now() + chrono::seconds(1);
           }
         }
@@ -375,7 +341,7 @@ int main(int argc, const char **argv) {
       tj = tj_init;
       dt = 0.0f;
       entry.t = exit.t = t_none;
-      delta.set_position_setpoint(volume.center(0.5f));
+      delta.set_position_sp(volume.center(0.5f));
     }
     if (clock::now() > reset_at) {
       dbg(1) << "resetting..." << endl;
@@ -383,7 +349,7 @@ int main(int argc, const char **argv) {
       tj = tj_init;
       dt = 0.0f;
       entry.t = exit.t = t_none;
-      delta.set_position_setpoint(volume.center(0.5f));
+      delta.set_position_sp(volume.center(0.5f));
       this_thread::sleep_for(chrono::milliseconds(500));
       delta.open_hand();
       dbg(1) << "reset done" << endl;

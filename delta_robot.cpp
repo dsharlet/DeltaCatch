@@ -151,13 +151,13 @@ vector3i delta_robot::position_to_raw(const vector3f &x) const {
     theta_max - static_cast<int>(floor(theta.z + 0.5f)));
 }
 
-void delta_robot::set_raw_position_setpoint(const vector3i &x) {
+void delta_robot::set_raw_position_sp(const vector3i &x) {
   if (!is_raw_position_reachable(x))
     throw std::runtime_error("position is unreachable");
   dbg(3) << "delta_robot setpoint -> " << x << endl;
-  arms[0]->set_position_setpoint(x.x);
-  arms[1]->set_position_setpoint(x.y);
-  arms[2]->set_position_setpoint(x.z);
+  arms[0]->set_position_sp(x.x);
+  arms[1]->set_position_sp(x.y);
+  arms[2]->set_position_sp(x.z);
 }
 
 void delta_robot::init() {
@@ -178,11 +178,11 @@ void delta_robot::init() {
   dbg(2) << "  finding theta_max..." << endl;
   // Set the motors to run in reverse indefinitely.
   for (auto a : arms)
-    a->set_position_setpoint([=](int x, int t, int dt) { return (t*-speed)/1000; });
+    a->set_position_sp([=](int x, int t, int dt) { return (t*-speed)/1000; });
 
   while (running()) {
     for (auto a : arms) {
-      if (a->running() && abs(a->position() - a->position_setpoint()) > stall_threshold) {
+      if (a->running() && abs(a->position() - a->position_sp()) > stall_threshold) {
         a->reset(-1);
         a->stop();
         dbg(2) << "  found theta_max for arm " << a->port_name() << endl;
@@ -199,15 +199,15 @@ void delta_robot::init() {
       if (a != i) {
         int x0 = i->position();
         // Move the motor to the top.
-        i->set_position_setpoint([=] (int x, int t, int dt) { return max(0, x0 - (t*speed)/1000); });
+        i->set_position_sp([=] (int x, int t, int dt) { return max(0, x0 - (t*speed)/1000); });
       } else {
-        i->set_position_setpoint([=] (int x, int t, int dt) { return (t*speed)/1000; });
+        i->set_position_sp([=] (int x, int t, int dt) { return (t*speed)/1000; });
       }
       i->run();
     }
 
     while (true) {
-      if (abs(a->position_setpoint() - a->position()) > stall_threshold) {
+      if (abs(a->position_sp() - a->position()) > stall_threshold) {
         a->min = a->position();
         dbg(2) << "  found theta_min=" << a->min << endl;
         break;
@@ -223,7 +223,7 @@ void delta_robot::init() {
   }
 
   dbg(1) << "  done" << endl;
-  set_position_setpoint(work_volume().center());
+  set_position_sp(work_volume().center());
 
   // While waiting for the effector to center, run some tests.
   test();

@@ -122,14 +122,14 @@ protected:
   }
 
   // Get the position setpoint of the arm, in motor position units.
-  vector3i raw_position_setpoint() const {
+  vector3i raw_position_sp() const {
     return vector3i(
-      arms[0]->position_setpoint(),
-      arms[1]->position_setpoint(),
-      arms[2]->position_setpoint());
+      arms[0]->position_sp(),
+      arms[1]->position_sp(),
+      arms[2]->position_sp());
   }
 
-  void set_raw_position_setpoint(const vector3i &x);
+  void set_raw_position_sp(const vector3i &x);
 
   bool is_raw_position_reachable(const vector3i &x) const {
     return
@@ -175,11 +175,11 @@ public:
   // Forward kinemantics: find the spatial position given raw motor positions.
   vector3f raw_to_position(const vector3i &raw) const;
   vector3f position() const { return raw_to_position(raw_position()); }
-  vector3f position_setpoint() const { return raw_to_position(raw_position_setpoint()); }
+  vector3f position_sp() const { return raw_to_position(raw_position_sp()); }
 
   // Inverse kinematics: find the raw motor positions given a spatial location.
   vector3i position_to_raw(const vector3f &x) const;
-  void set_position_setpoint(const vector3f &x) { set_raw_position_setpoint(position_to_raw(x)); }
+  void set_position_sp(const vector3f &x) { set_raw_position_sp(position_to_raw(x)); }
 
   // Compute a conservative bounding volume of reachable effector positions. Inverse
   // kinematics is guaranteed to succeed within this volume.

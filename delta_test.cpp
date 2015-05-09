@@ -85,7 +85,7 @@ void main_circle(delta_robot &delta) {
     x = x*radius + center;
     if (show_path)
       cout << x << endl;
-    delta.set_position_setpoint(x);
+    delta.set_position_sp(x);
     this_thread::sleep_for(chrono::milliseconds(1000/sample_rate));
   }
 }

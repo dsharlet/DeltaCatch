@@ -29,8 +29,15 @@ public:
 
   void init();
 
-  void close_hand() { hand.set_position_setpoint(grab_close); hand.run(); }
-  void open_hand() { hand.set_position_setpoint(grab_open); hand.run(); }
+  void close_hand() { 
+    hand.set_position_sp(grab_close); 
+    hand.set_command(ev3dev::motor::command_run_to_abs_pos); 
+  }
+
+  void open_hand() { 
+    hand.set_position_sp(grab_open); 
+    hand.set_command(ev3dev::motor::command_run_to_abs_pos); 
+  }
 };
 
 #endif

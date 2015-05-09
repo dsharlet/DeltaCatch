@@ -28,40 +28,37 @@ void delta_hand::init() {
   const auto stall_time = chrono::milliseconds(100);
 
   // Start running the grabber motor indefinitely.
-  hand.reset();
-  hand.set_run_mode(motor::run_mode_forever);
-  hand.set_stop_mode(motor::stop_mode_coast);
-  hand.set_regulation_mode(motor::mode_off);
-  hand.set_duty_cycle_setpoint(-80);
+  hand.set_command(motor::command_reset);
+  hand.set_stop_command(motor::stop_command_coast);
+  hand.set_duty_cycle_sp(-80);
   grab_close = hand.position();
-  hand.run();
+  hand.set_command(motor::command_run_forever);
 
   // Wait until all the motors hit the zero position.
-  while (hand.running()) {
+  while (hand.state().count("running")) {
     this_thread::sleep_for(stall_time);
     int pos = hand.position();
     if (pos >= grab_close)
-      hand.stop();
+      hand.set_command(motor::command_stop);
     else
       grab_close = pos;
   }
   grab_open = grab_close;
 
-  hand.set_duty_cycle_setpoint(80);
-  hand.run();
+  hand.set_duty_cycle_sp(80);
+  hand.set_command(motor::command_run_forever);
 
-  while (hand.running()) {
+  while (hand.state().count("running")) {
     this_thread::sleep_for(stall_time);
     int pos = hand.position();
     if (pos <= grab_open)
-      hand.stop();
+      hand.set_command(motor::command_stop);
     else
       grab_open = pos;
   }
 
   // We always want the hand to move as quickly as possible.
-  hand.set_run_mode(motor::run_mode_position);
-  hand.set_duty_cycle_setpoint(100);
+  hand.set_duty_cycle_sp(100);
 
   // Wait for the base's init.
   base.join();

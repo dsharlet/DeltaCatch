@@ -136,7 +136,7 @@ int main(int argc, const char **argv) {
       if (scale > 0.0f) {
         try {
           // Move to the position.
-          delta.set_position_setpoint(x);
+          delta.set_position_sp(x);
         } catch(runtime_error &) {
 
         }
