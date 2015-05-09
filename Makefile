@@ -11,7 +11,6 @@ DEPS=\
 	stereo_config.h \
 	test.h \
 	trajectory.h \
-	viz_client.h \
 
 obj/%.o: %.cpp $(DEPS)
 	mkdir -p obj
@@ -21,7 +20,7 @@ bin/delta_test: obj/delta_test.o obj/delta_robot.o obj/debug.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 		
-bin/delta_catch: obj/delta_catch.o obj/delta_robot.o obj/debug.o obj/delta_hand.o obj/trajectory.o obj/viz_client.o
+bin/delta_catch: obj/delta_catch.o obj/delta_robot.o obj/debug.o obj/delta_hand.o obj/trajectory.o
 	mkdir -p bin
 	$(CC) -o $@ $^ $(CFLAGS) $(CCFLAGS) $(LIBS)
 		
