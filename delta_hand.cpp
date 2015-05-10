@@ -28,31 +28,31 @@ void delta_hand::init() {
   const auto stall_time = chrono::milliseconds(100);
 
   // Start running the grabber motor indefinitely.
-  hand.set_command(motor::command_reset);
+  hand.reset();
   hand.set_stop_command(motor::stop_command_coast);
   hand.set_duty_cycle_sp(-80);
   grab_close = hand.position();
-  hand.set_command(motor::command_run_forever);
+  hand.run_forever();
 
   // Wait until all the motors hit the zero position.
   while (hand.state().count("running")) {
     this_thread::sleep_for(stall_time);
     int pos = hand.position();
     if (pos >= grab_close)
-      hand.set_command(motor::command_stop);
+      hand.stop();
     else
       grab_close = pos;
   }
   grab_open = grab_close;
 
   hand.set_duty_cycle_sp(80);
-  hand.set_command(motor::command_run_forever);
+  hand.run_forever();
 
   while (hand.state().count("running")) {
     this_thread::sleep_for(stall_time);
     int pos = hand.position();
     if (pos <= grab_open)
-      hand.set_command(motor::command_stop);
+      hand.stop();
     else
       grab_open = pos;
   }

@@ -180,9 +180,9 @@ void delta_robot::init() {
   for (auto a : arms)
     a->set_position_sp([=](int x, int t, int dt) { return (t*-speed)/1000; });
 
-  while (running()) {
+  while (is_in_transit()) {
     for (auto a : arms) {
-      if (a->running() && abs(a->position() - a->position_sp()) > stall_threshold) {
+      if (a->is_in_transit() && abs(a->position() - a->position_sp()) > stall_threshold) {
         a->reset(-1);
         a->stop();
         dbg(2) << "  found theta_max for arm " << a->port_name() << endl;

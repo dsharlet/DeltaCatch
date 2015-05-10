@@ -165,9 +165,9 @@ public:
       i->stop(hold);
   }
   void set_pid_K(int Kp, int Ki, int Kd) { for (auto i : arms) i->controller().set_K(Kp, Ki, Kd); }
-  bool running() const {
+  bool is_in_transit() const {
     for (auto i : arms)
-      if (i->running())
+      if (i->is_in_transit())
         return true;
     return false;
   }

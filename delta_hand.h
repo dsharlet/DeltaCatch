@@ -31,12 +31,12 @@ public:
 
   void close_hand() { 
     hand.set_position_sp(grab_close); 
-    hand.set_command(ev3dev::motor::command_run_to_abs_pos); 
+    hand.run_to_abs_pos();
   }
 
   void open_hand() { 
     hand.set_position_sp(grab_open); 
-    hand.set_command(ev3dev::motor::command_run_to_abs_pos); 
+    hand.run_to_abs_pos();
   }
 };
 
